@@ -165,10 +165,26 @@ async function start() {
 
   console.log('');
   console.log('  World Menu POS is running!');
-  console.log('');
-  console.log(`  This computer:  http://localhost:${config.port}`);
-  console.log(`  Tablets/Phones: http://${localIp}:${config.port}`);
-  console.log('');
+  // Advertise on local network via mDNS
+  try {
+    const { Bonjour } = await import('bonjour-service');
+    const bonjour = new Bonjour();
+    bonjour.publish({ name: 'World Menu POS', type: 'http', port: config.port, host: 'worldmenu.local' });
+    console.log('');
+    console.log('  World Menu POS is running!');
+    console.log('');
+    console.log(`  This computer:  http://localhost:${config.port}`);
+    console.log(`  Tablets/Phones: http://${localIp}:${config.port}`);
+    console.log(`  Network name:   http://worldmenu.local:${config.port}`);
+    console.log('');
+  } catch {
+    console.log('');
+    console.log('  World Menu POS is running!');
+    console.log('');
+    console.log(`  This computer:  http://localhost:${config.port}`);
+    console.log(`  Tablets/Phones: http://${localIp}:${config.port}`);
+    console.log('');
+  }
 
   // Start automatic daily log bookkeeping
   startAutoDailyLog();
