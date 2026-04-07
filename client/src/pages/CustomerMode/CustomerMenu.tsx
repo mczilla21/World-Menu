@@ -167,6 +167,9 @@ export default function CustomerMenu() {
   const [billItems, setBillItems] = useState<any[]>([]);
   const [billTotal, setBillTotal] = useState(0);
   const [tipAmount, setTipAmount] = useState(0);
+  const [splitMode, setSplitMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [paidItems, setPaidItems] = useState<Set<number>>(new Set());
 
   const handleShowBill = async () => {
     if (!tableNumber) return;
@@ -560,94 +563,158 @@ export default function CustomerMenu() {
         </div>
       )}
 
-      {/* Bill / Tip / Receipt screen */}
-      {showBill && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 440, maxHeight: '90vh', overflow: 'auto', padding: 24 }}
-            className="sm:rounded-3xl">
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', textAlign: 'center', marginBottom: 4 }}>Your Bill</h2>
-            <p style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 20 }}>Table {tableNumber}</p>
+      {/* Bill / Split / Tip / Receipt screen */}
+      {showBill && (() => {
+        const unpaidItems = billItems.filter((_: any, i: number) => !paidItems.has(i));
+        const myItems = splitMode ? billItems.filter((_: any, i: number) => selectedItems.has(i)) : unpaidItems;
+        const myTotal = myItems.reduce((s: number, i: any) => s + i.item_price * i.quantity, 0);
+        const tipPcts = (settings.tip_percentages || '15,18,20').split(',').map(Number).filter(n => !isNaN(n));
+        const allPaid = splitMode && paidItems.size + selectedItems.size >= billItems.length;
 
-            {/* Items */}
-            <div style={{ marginBottom: 16 }}>
-              {billItems.map((item: any, idx: number) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 14 }}>
-                  <span style={{ color: '#1e293b' }}>
-                    {item.quantity > 1 && <b style={{ color: '#d97706' }}>{item.quantity}× </b>}
-                    {item.item_name}
-                  </span>
-                  <span style={{ color: '#64748b' }}>{currency}{(item.item_price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
+            <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 440, maxHeight: '90vh', overflow: 'auto', padding: 24 }}
+              className="sm:rounded-3xl">
 
-            {/* Subtotal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 15, fontWeight: 600, color: '#0f172a' }}>
-              <span>Subtotal</span>
-              <span>{currency}{billTotal.toFixed(2)}</span>
-            </div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', textAlign: 'center', marginBottom: 4 }}>
+                {splitMode ? 'Select Your Items' : 'Your Bill'}
+              </h2>
+              <p style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 16 }}>
+                Table {tableNumber}{splitMode ? ' — Tap the items you\'re paying for' : ''}
+              </p>
 
-            {/* Tip selector */}
-            {settings.tipping_enabled === '1' && (
-              <div style={{ margin: '16px 0', padding: 16, background: '#f8fafc', borderRadius: 16 }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Leave a tip?</p>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setTipAmount(0)}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: tipAmount === 0 ? '#0f172a' : '#e2e8f0', color: tipAmount === 0 ? '#fff' : '#475569' }}>
-                    None
-                  </button>
-                  {(settings.tip_percentages || '15,18,20').split(',').map(Number).filter(n => !isNaN(n)).map(pct => {
-                    const amt = Math.round(billTotal * pct) / 100;
-                    const isActive = Math.abs(tipAmount - amt) < 0.01;
-                    return (
-                      <button key={pct} onClick={() => setTipAmount(amt)}
-                        style={{ flex: 1, padding: '8px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: isActive ? (settings.theme_color || '#3b82f6') : '#e2e8f0', color: isActive ? '#fff' : '#475569' }}>
-                        <div>{pct}%</div>
-                        <div style={{ fontSize: 10, opacity: 0.7 }}>{currency}{amt.toFixed(2)}</div>
-                      </button>
-                    );
-                  })}
-                  <button onClick={() => { const custom = prompt('Enter tip amount:'); if (custom) setTipAmount(parseFloat(custom) || 0); }}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: '#e2e8f0', color: '#475569' }}>
-                    Custom
-                  </button>
-                </div>
-                {tipAmount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 14, color: '#059669', fontWeight: 600 }}>
-                    <span>Tip</span>
-                    <span>{currency}{tipAmount.toFixed(2)}</span>
-                  </div>
-                )}
+              {/* Split / Full toggle */}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#f1f5f9', borderRadius: 12, padding: 4 }}>
+                <button onClick={() => { setSplitMode(false); setSelectedItems(new Set()); }}
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: !splitMode ? '#fff' : 'transparent', color: !splitMode ? '#0f172a' : '#94a3b8', boxShadow: !splitMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+                  Full Bill
+                </button>
+                <button onClick={() => setSplitMode(true)}
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: splitMode ? '#fff' : 'transparent', color: splitMode ? '#0f172a' : '#94a3b8', boxShadow: splitMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+                  Split Check ✂️
+                </button>
               </div>
-            )}
 
-            {/* Total */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: 22, fontWeight: 800, color: '#0f172a', borderTop: '2px solid #e2e8f0' }}>
-              <span>Total</span>
-              <span style={{ color: '#059669' }}>{currency}{(billTotal + tipAmount).toFixed(2)}</span>
-            </div>
+              {/* Items */}
+              <div style={{ marginBottom: 16 }}>
+                {billItems.map((item: any, idx: number) => {
+                  const isPaid = paidItems.has(idx);
+                  const isSelected = selectedItems.has(idx);
+                  const isSelectable = splitMode && !isPaid;
 
-            {/* Actions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
-              <button onClick={async () => {
-                // Print receipt
-                try { await fetch('/api/printer/receipt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table_number: tableNumber }) }); } catch {}
-                handleConfirmCheck();
-              }} style={{ width: '100%', padding: 16, borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, background: '#22c55e', color: '#fff' }}>
-                Print Receipt & Request Check
-              </button>
-              <button onClick={handleConfirmCheck}
-                style={{ width: '100%', padding: 14, borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 600, background: '#3b82f6', color: '#fff' }}>
-                No Receipt — Just the Check
-              </button>
-              <button onClick={() => setShowBill(false)}
-                style={{ width: '100%', padding: 10, borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, color: '#94a3b8', background: 'transparent' }}>
-                Cancel — Keep Ordering
-              </button>
+                  return (
+                    <button key={idx}
+                      onClick={() => {
+                        if (!isSelectable) return;
+                        const next = new Set(selectedItems);
+                        if (next.has(idx)) next.delete(idx); else next.add(idx);
+                        setSelectedItems(next);
+                      }}
+                      style={{
+                        display: 'flex', justifyContent: 'space-between', width: '100%', padding: '10px 12px', marginBottom: 4,
+                        borderRadius: 12, border: 'none', cursor: isSelectable ? 'pointer' : 'default', textAlign: 'left',
+                        background: isPaid ? '#f1f5f9' : isSelected ? '#dcfce7' : '#fff',
+                        opacity: isPaid ? 0.4 : 1,
+                        outline: isSelected ? '2px solid #22c55e' : 'none',
+                        fontSize: 14,
+                      }}>
+                      <span style={{ color: isPaid ? '#94a3b8' : '#1e293b', textDecoration: isPaid ? 'line-through' : 'none' }}>
+                        {splitMode && !isPaid && <span style={{ marginRight: 8 }}>{isSelected ? '✅' : '⬜'}</span>}
+                        {item.quantity > 1 && <b style={{ color: '#d97706' }}>{item.quantity}× </b>}
+                        {item.item_name}
+                      </span>
+                      <span style={{ color: '#64748b' }}>{currency}{(item.item_price * item.quantity).toFixed(2)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* My subtotal */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 15, fontWeight: 600, color: '#0f172a' }}>
+                <span>{splitMode ? 'Your share' : 'Subtotal'}</span>
+                <span>{currency}{myTotal.toFixed(2)}</span>
+              </div>
+
+              {/* Tip */}
+              {settings.tipping_enabled === '1' && myTotal > 0 && (
+                <div style={{ margin: '12px 0', padding: 12, background: '#f8fafc', borderRadius: 14 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>Add a tip?</p>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={() => setTipAmount(0)}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: tipAmount === 0 ? '#0f172a' : '#e2e8f0', color: tipAmount === 0 ? '#fff' : '#475569' }}>
+                      None
+                    </button>
+                    {tipPcts.map(pct => {
+                      const amt = Math.round(myTotal * pct) / 100;
+                      const isActive = Math.abs(tipAmount - amt) < 0.01;
+                      return (
+                        <button key={pct} onClick={() => setTipAmount(amt)}
+                          style={{ flex: 1, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: isActive ? (settings.theme_color || '#3b82f6') : '#e2e8f0', color: isActive ? '#fff' : '#475569' }}>
+                          <div>{pct}%</div>
+                          <div style={{ fontSize: 9, opacity: 0.7 }}>{currency}{amt.toFixed(2)}</div>
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => { const c = prompt('Enter tip:'); if (c) setTipAmount(parseFloat(c) || 0); }}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: '#e2e8f0', color: '#475569' }}>
+                      Custom
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Total */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: 20, fontWeight: 800, color: '#0f172a', borderTop: '2px solid #e2e8f0' }}>
+                <span>Total</span>
+                <span style={{ color: '#059669' }}>{currency}{(myTotal + tipAmount).toFixed(2)}</span>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+                {splitMode && selectedItems.size > 0 && (
+                  <button onClick={() => {
+                    // Mark selected items as paid
+                    setPaidItems(prev => {
+                      const next = new Set(prev);
+                      selectedItems.forEach(i => next.add(i));
+                      return next;
+                    });
+                    setSelectedItems(new Set());
+                    setTipAmount(0);
+
+                    // If all items now paid, request check
+                    if (paidItems.size + selectedItems.size >= billItems.length) {
+                      handleConfirmCheck();
+                    }
+                  }} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, background: '#8b5cf6', color: '#fff' }}>
+                    Pay My Share ({currency}{(myTotal + tipAmount).toFixed(2)})
+                  </button>
+                )}
+
+                {!splitMode && (
+                  <>
+                    <button onClick={async () => {
+                      try { await fetch('/api/printer/receipt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table_number: tableNumber }) }); } catch {}
+                      handleConfirmCheck();
+                    }} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, background: '#22c55e', color: '#fff' }}>
+                      🖨️ Print Receipt & Request Check
+                    </button>
+                    <button onClick={handleConfirmCheck}
+                      style={{ width: '100%', padding: 12, borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, background: '#3b82f6', color: '#fff' }}>
+                      No Receipt — Just the Check
+                    </button>
+                  </>
+                )}
+
+                <button onClick={() => { setShowBill(false); setSplitMode(false); setSelectedItems(new Set()); setPaidItems(new Set()); setTipAmount(0); }}
+                  style={{ width: '100%', padding: 8, borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, color: '#94a3b8', background: 'transparent' }}>
+                  ← Keep Ordering
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* PIN gate */}
       {showPin && (
