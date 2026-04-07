@@ -24,6 +24,7 @@ const defaultSettings: Settings = {
   customer_mode_enabled: '1',
   logo: '',
   admin_pin: '',
+  github_repo: 'mczilla21/World-Menu',
   // v2
   order_types_enabled: 'dine_in,takeout,pickup',
   takeout_only: '0',

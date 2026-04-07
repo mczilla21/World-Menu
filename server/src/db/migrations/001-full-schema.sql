@@ -13,7 +13,8 @@ INSERT OR IGNORE INTO settings (key, value) VALUES
   ('order_prefix', 'A'),
   ('theme_color', '#3b82f6'),
   ('customer_mode_enabled', '1'),
-  ('logo', '');
+  ('logo', ''),
+  ('github_repo', 'mczilla21/World-Menu');
 
 -- Translations (flexible multi-language)
 CREATE TABLE IF NOT EXISTS translations (
