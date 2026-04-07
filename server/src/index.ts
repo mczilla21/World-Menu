@@ -27,6 +27,7 @@ import { registerTaxReportRoutes } from './routes/tax-reports.js';
 import { registerWebSocket } from './ws/handler.js';
 import { runDailyReset } from './daily-reset.js';
 import { startAutoDailyLog } from './auto-daylog.js';
+import { checkForUpdate, downloadAndApplyUpdate, startUpdateChecker } from './auto-update.js';
 
 const app = Fastify({ logger: false });
 
@@ -115,38 +116,11 @@ async function start() {
   });
 
   app.get('/api/check-update', async () => {
-    const fs = await import('fs');
-    const path = await import('path');
+    return checkForUpdate();
+  });
 
-    // Read local version
-    let local = { version: '1.0.0', build: 1 };
-    try {
-      const vFile = path.join(config.clientDist, '..', '..', 'version.json');
-      local = JSON.parse(fs.readFileSync(vFile, 'utf8'));
-    } catch {}
-
-    // Check GitHub for latest
-    const repoSetting = (getDb().prepare("SELECT value FROM settings WHERE key = 'github_repo'").get() as any)?.value || '';
-    if (!repoSetting) return { current: local, latest: null, updateAvailable: false, message: 'No GitHub repo configured' };
-
-    try {
-      const res = await fetch(`https://api.github.com/repos/${repoSetting}/releases/latest`, {
-        headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'WorldMenuPOS' },
-      });
-      if (!res.ok) return { current: local, latest: null, updateAvailable: false, message: 'Could not reach GitHub' };
-
-      const release = await res.json();
-      const remoteVersion = release.tag_name?.replace('v', '') || '0.0.0';
-      const updateAvailable = remoteVersion !== local.version;
-
-      return {
-        current: local,
-        latest: { version: remoteVersion, name: release.name, url: release.html_url, download: release.zipball_url, date: release.published_at },
-        updateAvailable,
-      };
-    } catch (err: any) {
-      return { current: local, latest: null, updateAvailable: false, message: err.message };
-    }
+  app.post('/api/apply-update', async () => {
+    return downloadAndApplyUpdate();
   });
 
   // Server network info (for tablet connection URLs)
@@ -198,6 +172,9 @@ async function start() {
 
   // Start automatic daily log bookkeeping
   startAutoDailyLog();
+
+  // Start update checker (checks twice a day)
+  startUpdateChecker();
 }
 
 start().catch((err) => {

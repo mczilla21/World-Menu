@@ -860,7 +860,9 @@ function WebsiteEmbed() {
 function UpdateChecker() {
   const { settings, updateSetting } = useSettings();
   const [checking, setChecking] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [updateResult, setUpdateResult] = useState<any>(null);
   const [currentVersion, setCurrentVersion] = useState('');
 
   useEffect(() => {
@@ -869,6 +871,7 @@ function UpdateChecker() {
 
   const checkForUpdate = async () => {
     setChecking(true);
+    setUpdateResult(null);
     try {
       const res = await fetch('/api/check-update');
       setResult(await res.json());
@@ -878,33 +881,59 @@ function UpdateChecker() {
     setChecking(false);
   };
 
+  const applyUpdate = async () => {
+    if (!confirm('Update World Menu POS? Your data will be kept. The server will need a restart after.')) return;
+    setUpdating(true);
+    try {
+      const res = await fetch('/api/apply-update', { method: 'POST' });
+      setUpdateResult(await res.json());
+    } catch {
+      setUpdateResult({ ok: false, message: 'Update failed' });
+    }
+    setUpdating(false);
+  };
+
   return (
     <div className="bg-slate-800 rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-slate-200">Software Updates</h3>
           <p className="text-xs text-slate-400 mt-1">Current version: <b>{currentVersion}</b></p>
+          <p className="text-xs text-slate-500">Checks automatically twice a day</p>
         </div>
         <button onClick={checkForUpdate} disabled={checking}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${checking ? 'bg-slate-600 text-slate-400' : 'bg-blue-600 text-white'}`}>
-          {checking ? 'Checking...' : 'Check for Updates'}
+          style={{ padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: checking ? '#e2e8f0' : '#3b82f6', color: checking ? '#94a3b8' : '#fff' }}>
+          {checking ? 'Checking...' : 'Check Now'}
         </button>
       </div>
 
-      {result && result.updateAvailable && (
-        <div className="p-3 rounded-lg" style={{ background: '#dcfce7', border: '1px solid #86efac' }}>
-          <div className="font-bold" style={{ color: '#166534' }}>Update available: v{result.latest.version}</div>
-          <div className="text-sm" style={{ color: '#15803d' }}>{result.latest.name}</div>
-          <div className="text-xs mt-1" style={{ color: '#16a34a' }}>{result.latest.date?.slice(0, 10)}</div>
-          <a href={result.latest.url} target="_blank" rel="noopener noreferrer"
-            className="inline-block mt-2 px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: '#22c55e' }}>
-            Download Update
-          </a>
+      {result && result.available && (
+        <div className="p-4 rounded-lg" style={{ background: '#dcfce7', border: '1px solid #86efac' }}>
+          <div className="font-bold" style={{ color: '#166534', fontSize: 16 }}>Update available: v{result.latestVersion}</div>
+          <div className="text-sm" style={{ color: '#15803d' }}>{result.releaseName}</div>
+          {result.releaseDate && <div className="text-xs mt-1" style={{ color: '#16a34a' }}>{result.releaseDate.slice(0, 10)}</div>}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button onClick={applyUpdate} disabled={updating}
+              style={{ padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, background: updating ? '#94a3b8' : '#22c55e', color: '#fff' }}>
+              {updating ? 'Updating...' : 'Update Now'}
+            </button>
+            <a href={result.releaseUrl} target="_blank" rel="noopener noreferrer"
+              style={{ padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, color: '#15803d', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+              View on GitHub
+            </a>
+          </div>
         </div>
       )}
 
-      {result && !result.updateAvailable && !result.message && (
-        <div className="text-sm" style={{ color: '#4ade80' }}>You're up to date!</div>
+      {result && !result.available && !result.message && (
+        <div className="text-sm" style={{ color: '#22c55e' }}>You're up to date!</div>
+      )}
+
+      {updateResult && (
+        <div className="p-3 rounded-lg" style={{ background: updateResult.ok ? '#dcfce7' : '#fee2e2', border: `1px solid ${updateResult.ok ? '#86efac' : '#fca5a5'}` }}>
+          <div style={{ color: updateResult.ok ? '#166534' : '#991b1b', fontWeight: 600 }}>{updateResult.message}</div>
+          {updateResult.ok && <p className="text-xs mt-1" style={{ color: '#15803d' }}>Restart START.bat to apply the update.</p>}
+        </div>
       )}
 
       {result && result.message && (
