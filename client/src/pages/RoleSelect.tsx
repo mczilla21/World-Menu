@@ -79,28 +79,30 @@ export default function RoleSelect() {
   // Main screen — Dine In or Staff Login
   if (!showPin) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#f8fafc' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fbcfe8 50%, #dbeafe 100%)' }}>
         <div className="w-full max-w-sm">
           <div className="text-center mb-10">
             {settings.logo && (
-              <img src={`/uploads/${settings.logo}`} alt="" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-3" />
+              <img src={`/uploads/${settings.logo}`} alt="" style={{ width: 80, height: 80, borderRadius: 24, objectFit: 'cover', margin: '0 auto 12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
             )}
-            <h1 className="text-2xl font-bold" style={{ color: '#0f172a' }}>{settings.restaurant_name}</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{settings.restaurant_name}</h1>
+            <p style={{ fontSize: 14, color: '#64748b' }}>Welcome! What can we do for you?</p>
           </div>
 
           <div className="space-y-4">
             <button
               onClick={handleDineIn}
-              className="w-full py-6 rounded-2xl font-bold text-xl text-white transition-all active:scale-[0.98]"
-              style={{ background: '#22c55e', boxShadow: '0 4px 14px rgba(34,197,94,0.3)' }}
+              className="w-full py-7 rounded-3xl font-bold text-xl text-white transition-all active:scale-[0.97]"
+              style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', boxShadow: '0 6px 20px rgba(34,197,94,0.35)' }}
             >
-              🍽️ Dine In
+              <span style={{ fontSize: 28, display: 'block', marginBottom: 4 }}>🍜</span>
+              Dine In
             </button>
 
             <button
               onClick={() => setShowPin(true)}
-              className="w-full py-6 rounded-2xl font-bold text-xl text-white transition-all active:scale-[0.98]"
-              style={{ background: '#3b82f6', boxShadow: '0 4px 14px rgba(59,130,246,0.3)' }}
+              className="w-full py-5 rounded-3xl font-bold text-lg text-white transition-all active:scale-[0.97]"
+              style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', boxShadow: '0 6px 20px rgba(59,130,246,0.35)' }}
             >
               🔑 Staff Login
             </button>
@@ -112,14 +114,15 @@ export default function RoleSelect() {
 
   // PIN entry screen
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h2 className="text-xl font-bold" style={{ color: '#0f172a' }}>Staff Login</h2>
-          <p className="text-sm mt-1" style={{ color: '#64748b' }}>Enter your PIN</p>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>👋</div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Welcome Back!</h2>
+          <p style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>Enter your 4-digit PIN</p>
         </div>
 
-        <div className="p-6 rounded-2xl" style={{ background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div className="p-6 rounded-3xl" style={{ background: '#fff', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
           {/* Hidden input for keyboard typing */}
           <input
             type="tel"
@@ -135,9 +138,11 @@ export default function RoleSelect() {
           <div className="flex justify-center gap-3 mb-6">
             {[0, 1, 2, 3].map(i => (
               <div key={i} style={{
-                width: 16, height: 16, borderRadius: '50%',
-                background: error ? '#ef4444' : i < pin.length ? '#0f172a' : '#e2e8f0',
-                transition: 'background 0.15s',
+                width: 20, height: 20, borderRadius: '50%',
+                background: error ? '#ef4444' : i < pin.length ? '#8b5cf6' : '#e2e8f0',
+                transition: 'all 0.2s',
+                transform: i < pin.length ? 'scale(1.2)' : 'scale(1)',
+                boxShadow: i < pin.length ? '0 2px 8px rgba(139,92,246,0.3)' : 'none',
               }} />
             ))}
           </div>
@@ -155,12 +160,13 @@ export default function RoleSelect() {
                 }}
                 disabled={!key}
                 style={{
-                  height: 56, border: 'none', borderRadius: 12,
-                  fontSize: key === '⌫' ? 18 : 22, fontWeight: 700,
+                  height: 60, border: 'none', borderRadius: 16,
+                  fontSize: key === '⌫' ? 20 : 24, fontWeight: 700,
                   cursor: key ? 'pointer' : 'default',
                   background: !key ? 'transparent' : '#f1f5f9',
-                  color: key === '⌫' ? '#64748b' : '#0f172a',
+                  color: key === '⌫' ? '#94a3b8' : '#1e293b',
                   visibility: key ? 'visible' : 'hidden',
+                  transition: 'all 0.1s',
                 }}
               >
                 {key}

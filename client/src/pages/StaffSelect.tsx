@@ -36,14 +36,15 @@ export default function StaffSelect() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #fef3c7 100%)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-xl font-bold" style={{ color: '#0f172a' }}>{settings.restaurant_name}</h1>
-          <div className="mt-3 inline-block px-4 py-2 rounded-xl" style={{ background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-            <span className="text-sm" style={{ color: '#64748b' }}>Welcome, </span>
-            <span className="text-sm font-bold" style={{ color: '#0f172a' }}>{employee.name}</span>
-            <span className="text-xs ml-2 px-2 py-0.5 rounded-full" style={{ background: '#f1f5f9', color: '#64748b' }}>{employee.role}</span>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>{settings.restaurant_name}</h1>
+          <div className="mt-3 inline-block px-5 py-2.5 rounded-2xl" style={{ background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+            <span style={{ fontSize: 14, color: '#64748b' }}>Hey </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{employee.name}!</span>
+            <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${modes.find(m=>m.id==='admin')?.color || '#f1f5f9'}20`, color: modes.find(m=>m.id==='admin')?.color || '#64748b' }}>{employee.role}</span>
           </div>
         </div>
 
@@ -52,12 +53,12 @@ export default function StaffSelect() {
             <button
               key={mode.id}
               onClick={() => pick(mode.id)}
-              className="w-full py-5 px-5 rounded-2xl text-left transition-all active:scale-[0.98] flex items-center gap-4"
-              style={{ background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0' }}
+              className="w-full py-5 px-5 rounded-2xl text-left transition-all active:scale-[0.96] flex items-center gap-4"
+              style={{ background: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.06)', border: '2px solid #f1f5f9' }}
             >
-              <span className="text-2xl w-10 text-center">{mode.icon}</span>
+              <span style={{ fontSize: 28, width: 44, textAlign: 'center' }}>{mode.icon}</span>
               <div className="flex-1">
-                <div className="font-semibold" style={{ color: '#0f172a' }}>{t(mode.label)}</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>{t(mode.label)}</div>
                 <div className="text-xs" style={{ color: '#94a3b8' }}>{t(mode.desc)}</div>
               </div>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: mode.color }} />
