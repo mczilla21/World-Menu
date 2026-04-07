@@ -163,8 +163,34 @@ export default function CustomerMenu() {
     setExcludedAllergens(next);
   };
 
-  const handleRequestCheck = async () => {
+  const [showBill, setShowBill] = useState(false);
+  const [billItems, setBillItems] = useState<any[]>([]);
+  const [billTotal, setBillTotal] = useState(0);
+  const [tipAmount, setTipAmount] = useState(0);
+
+  const handleShowBill = async () => {
+    if (!tableNumber) return;
+    try {
+      const res = await fetch(`/api/orders/table/${encodeURIComponent(tableNumber)}/bill`);
+      const data = await res.json();
+      const items: any[] = [];
+      let total = 0;
+      for (const order of data.orders || []) {
+        for (const item of order.items || []) {
+          items.push(item);
+          total += item.item_price * item.quantity;
+        }
+      }
+      setBillItems(items);
+      setBillTotal(total);
+      setTipAmount(0);
+      setShowBill(true);
+    } catch {}
+  };
+
+  const handleConfirmCheck = async () => {
     if (!tableNumber || checkRequested) return;
+    setShowBill(false);
     setCheckRequested(true);
     try {
       await fetch('/api/service/call-waiter', {
@@ -173,7 +199,6 @@ export default function CustomerMenu() {
         body: JSON.stringify({ table_number: tableNumber, type: 'check_requested' }),
       });
     } catch {}
-    // After 5 seconds, reset to language selection for next customer
     setTimeout(() => {
       setCheckRequested(false);
       setHasOrdered(false);
@@ -391,7 +416,7 @@ export default function CustomerMenu() {
           {/* Request Check - only after ordering */}
           {hasOrdered && (
             <button
-              onClick={handleRequestCheck}
+              onClick={handleShowBill}
               className="h-14 px-5 rounded-full shadow-lg flex items-center gap-2 bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all text-white font-semibold text-sm"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -530,6 +555,95 @@ export default function CustomerMenu() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bill / Tip / Receipt screen */}
+      {showBill && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 440, maxHeight: '90vh', overflow: 'auto', padding: 24 }}
+            className="sm:rounded-3xl">
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', textAlign: 'center', marginBottom: 4 }}>Your Bill</h2>
+            <p style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 20 }}>Table {tableNumber}</p>
+
+            {/* Items */}
+            <div style={{ marginBottom: 16 }}>
+              {billItems.map((item: any, idx: number) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 14 }}>
+                  <span style={{ color: '#1e293b' }}>
+                    {item.quantity > 1 && <b style={{ color: '#d97706' }}>{item.quantity}× </b>}
+                    {item.item_name}
+                  </span>
+                  <span style={{ color: '#64748b' }}>{currency}{(item.item_price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Subtotal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 15, fontWeight: 600, color: '#0f172a' }}>
+              <span>Subtotal</span>
+              <span>{currency}{billTotal.toFixed(2)}</span>
+            </div>
+
+            {/* Tip selector */}
+            {settings.tipping_enabled === '1' && (
+              <div style={{ margin: '16px 0', padding: 16, background: '#f8fafc', borderRadius: 16 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Leave a tip?</p>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => setTipAmount(0)}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: tipAmount === 0 ? '#0f172a' : '#e2e8f0', color: tipAmount === 0 ? '#fff' : '#475569' }}>
+                    None
+                  </button>
+                  {(settings.tip_percentages || '15,18,20').split(',').map(Number).filter(n => !isNaN(n)).map(pct => {
+                    const amt = Math.round(billTotal * pct) / 100;
+                    const isActive = Math.abs(tipAmount - amt) < 0.01;
+                    return (
+                      <button key={pct} onClick={() => setTipAmount(amt)}
+                        style={{ flex: 1, padding: '8px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: isActive ? (settings.theme_color || '#3b82f6') : '#e2e8f0', color: isActive ? '#fff' : '#475569' }}>
+                        <div>{pct}%</div>
+                        <div style={{ fontSize: 10, opacity: 0.7 }}>{currency}{amt.toFixed(2)}</div>
+                      </button>
+                    );
+                  })}
+                  <button onClick={() => { const custom = prompt('Enter tip amount:'); if (custom) setTipAmount(parseFloat(custom) || 0); }}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: '#e2e8f0', color: '#475569' }}>
+                    Custom
+                  </button>
+                </div>
+                {tipAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 14, color: '#059669', fontWeight: 600 }}>
+                    <span>Tip</span>
+                    <span>{currency}{tipAmount.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Total */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: 22, fontWeight: 800, color: '#0f172a', borderTop: '2px solid #e2e8f0' }}>
+              <span>Total</span>
+              <span style={{ color: '#059669' }}>{currency}{(billTotal + tipAmount).toFixed(2)}</span>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+              <button onClick={async () => {
+                // Print receipt
+                try { await fetch('/api/printer/receipt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table_number: tableNumber }) }); } catch {}
+                handleConfirmCheck();
+              }} style={{ width: '100%', padding: 16, borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, background: '#22c55e', color: '#fff' }}>
+                Print Receipt & Request Check
+              </button>
+              <button onClick={handleConfirmCheck}
+                style={{ width: '100%', padding: 14, borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 600, background: '#3b82f6', color: '#fff' }}>
+                No Receipt — Just the Check
+              </button>
+              <button onClick={() => setShowBill(false)}
+                style={{ width: '100%', padding: 10, borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, color: '#94a3b8', background: 'transparent' }}>
+                Cancel — Keep Ordering
+              </button>
             </div>
           </div>
         </div>

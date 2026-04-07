@@ -81,19 +81,7 @@ export default function CustomerCart({ currency, themeColor, onClose, onOrderSen
             </div>
           )}
 
-          {/* Tipping */}
-          {cart.length > 0 && tippingEnabled && (
-            <div className="mt-5 pt-4 border-t border-gray-100">
-              <TipSelector
-                subtotal={subtotal}
-                currency={currency}
-                themeColor={themeColor}
-                tipPercentages={tipPercentages}
-                tipAmount={tipAmount}
-                onTipChange={setTipAmount}
-              />
-            </div>
-          )}
+          {/* Tipping moved to bill/check screen */}
         </div>
 
         {cart.length > 0 && (
