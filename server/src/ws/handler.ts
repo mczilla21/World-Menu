@@ -6,12 +6,13 @@ export function registerWebSocket(app: FastifyInstance) {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const role = url.searchParams.get('role') || 'server';
 
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
     addClient(role, socket);
-    console.log(`WebSocket connected: ${role}`);
+    console.log(`  ✓ ${role} connected from ${ip}`);
 
     socket.on('close', () => {
       removeClient(role, socket);
-      console.log(`WebSocket disconnected: ${role}`);
+      console.log(`  ✗ ${role} disconnected from ${ip}`);
     });
 
     socket.on('message', (raw: any) => {
