@@ -1,0 +1,336 @@
+<html>
+<head>
+<title>World Menu POS</title>
+<HTA:APPLICATION
+  ID="WorldMenuInstaller"
+  APPLICATIONNAME="World Menu POS"
+  BORDER="thin"
+  BORDERSTYLE="normal"
+  CAPTION="yes"
+  MAXIMIZEBUTTON="yes"
+  MINIMIZEBUTTON="yes"
+  SCROLL="no"
+  SHOWINTASKBAR="yes"
+  SINGLEINSTANCE="yes"
+  SYSMENU="yes"
+  WINDOWSTATE="normal"
+/>
+<style>
+* { margin: 0; padding: 0; }
+body { font-family: Segoe UI, Arial, sans-serif; background: #0f172a; color: #e2e8f0; overflow: hidden; text-align: center; }
+.wrap { padding: 40px 50px; }
+
+.dots { margin-bottom: 30px; }
+.dot { display: inline-block; width: 80px; height: 6px; background: #1e293b; margin: 0 3px; }
+
+.step { padding: 10px 0; }
+h1 { font-size: 42px; color: #fff; margin-bottom: 4px; }
+h2 { font-size: 28px; color: #fff; margin-bottom: 10px; }
+.big-emoji { font-size: 72px; margin-bottom: 16px; }
+.tagline { font-size: 18px; color: #f59e0b; margin-bottom: 6px; font-weight: bold; }
+.desc { font-size: 16px; color: #94a3b8; line-height: 1.6; margin-bottom: 28px; }
+.small { font-size: 13px; color: #64748b; margin-top: 16px; }
+.ver { font-size: 11px; color: #334155; margin-top: 4px; }
+
+.btn { padding: 18px 48px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; margin: 6px; color: #fff; }
+.btn-go { background: #f59e0b; color: #0f172a; }
+.btn-blue { background: #3b82f6; }
+.btn-green { background: #22c55e; }
+.btn-gray { background: #334155; color: #94a3b8; }
+.btn-big { padding: 22px 60px; font-size: 22px; }
+
+.ftable { margin: 0 auto 28px auto; }
+.ftable td { font-size: 15px; color: #cbd5e1; padding: 10px 18px; background: #1e293b; text-align: left; }
+.ftable .ficon { font-size: 20px; padding-right: 6px; }
+
+.checks { width: 460px; margin: 0 auto 24px auto; text-align: left; }
+.chk { padding: 14px 18px; margin-bottom: 8px; background: #1e293b; font-size: 15px; color: #cbd5e1; }
+.chk-icon { display: inline-block; width: 32px; text-align: center; font-size: 13px; font-weight: bold; margin-right: 12px; padding: 2px 0; }
+
+.log { width: 500px; height: 90px; background: #080c14; border: 1px solid #1e293b; padding: 10px; font-family: Consolas, monospace; font-size: 12px; color: #64748b; overflow-y: auto; text-align: left; margin: 0 auto 20px auto; }
+
+.path-box { background: #1e293b; padding: 18px 28px; font-family: Consolas; font-size: 16px; color: #60a5fa; display: inline-block; margin-bottom: 24px; }
+
+.err-box { display: none; color: #fca5a5; font-size: 14px; background: #1e293b; padding: 12px 18px; margin: 12px auto; width: 460px; }
+</style>
+<script>
+var shell = new ActiveXObject("WScript.Shell");
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+var installDir = "C:\\world-menu-pos";
+var nodeFound = false;
+var isUpdate = false;
+
+function resizeWindow() {
+  window.resizeTo(820, 780);
+  var sl = (screen.width - 820) / 2;
+  var st = (screen.height - 780) / 2;
+  window.moveTo(sl, st);
+}
+
+function showStep(n) {
+  for (var i = 0; i < 5; i++) {
+    var s = document.getElementById('s' + i);
+    if (s) s.style.display = (i == n) ? '' : 'none';
+    var d = document.getElementById('d' + i);
+    if (d) d.style.background = (i < n ? '#22c55e' : (i == n ? '#f59e0b' : '#1e293b'));
+  }
+}
+
+function log(msg) {
+  var el = document.getElementById('logBox');
+  if (el) { el.innerHTML += msg + '<br>'; el.scrollTop = el.scrollHeight; }
+}
+
+function setIcon(id, status) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (status == 'ok') { el.style.background = '#22c55e'; el.style.color = '#fff'; el.innerHTML = 'YES'; }
+  else if (status == 'fail') { el.style.background = '#ef4444'; el.style.color = '#fff'; el.innerHTML = 'NO'; }
+  else if (status == 'run') { el.style.background = '#3b82f6'; el.style.color = '#fff'; el.innerHTML = '...'; }
+  else { el.style.background = '#334155'; el.style.color = '#64748b'; el.innerHTML = '-'; }
+}
+
+function checkNode() {
+  try {
+    var exec = shell.Exec("cmd /c node --version 2>&1");
+    var output = "";
+    while (!exec.StdOut.AtEndOfStream) output += exec.StdOut.ReadLine();
+    if (output.indexOf("v") === 0) {
+      nodeFound = true;
+      document.getElementById('nodeMsg').innerHTML = 'Node.js ' + output + ' found!';
+      document.getElementById('nodeMsg').style.color = '#4ade80';
+      document.getElementById('nodeIcon').style.background = '#22c55e';
+      document.getElementById('nodeIcon').style.color = '#fff';
+      document.getElementById('nodeIcon').innerHTML = 'YES';
+    }
+  } catch(e) {}
+}
+
+function startInstall() { showStep(3); setTimeout(doInstall, 300); }
+
+function doInstall() {
+  var htaPath = document.location.pathname.replace(/\//g, '\\');
+  if (htaPath.charAt(0) == '\\') htaPath = htaPath.substring(1);
+  var sourceDir = htaPath.substring(0, htaPath.lastIndexOf('\\'));
+
+  setIcon('i1', 'run');
+  if (isUpdate) { log('Updating World Menu (keeping your data)...'); }
+  else { log('Setting up World Menu at ' + installDir + '...'); }
+  try {
+    // Backup database before update
+    if (isUpdate && fso.FileExists(installDir + '\\server\\data\\restaurant.db')) {
+      shell.Run('cmd /c copy /y "' + installDir + '\\server\\data\\restaurant.db" "%TEMP%\\worldmenu-backup.db" >nul 2>&1', 0, true);
+      log('Your data has been backed up');
+    }
+
+    shell.Run('cmd /c if not exist "' + installDir + '" mkdir "' + installDir + '"', 0, true);
+    shell.Run('cmd /c xcopy "' + sourceDir + '\\world-menu-pos\\*" "' + installDir + '\\" /E /I /H /Y /Q >nul 2>&1', 0, true);
+    if (!fso.FileExists(installDir + '\\package.json')) {
+      shell.Run('cmd /c xcopy "' + sourceDir + '\\*" "' + installDir + '\\" /E /I /H /Y /Q >nul 2>&1', 0, true);
+    }
+
+    // Restore database after update
+    if (isUpdate && fso.FileExists('%TEMP%\\worldmenu-backup.db')) {
+      shell.Run('cmd /c if not exist "' + installDir + '\\server\\data" mkdir "' + installDir + '\\server\\data"', 0, true);
+      shell.Run('cmd /c copy /y "%TEMP%\\worldmenu-backup.db" "' + installDir + '\\server\\data\\restaurant.db" >nul 2>&1', 0, true);
+      shell.Run('cmd /c del "%TEMP%\\worldmenu-backup.db" >nul 2>&1', 0, true);
+      log('Your data has been restored');
+    }
+
+    setIcon('i1', 'ok'); log('Files ready!');
+  } catch(e) { setIcon('i1', 'fail'); log('Oops: ' + e.message); return; }
+
+  setIcon('i2', 'run'); log('Checking for Node.js...');
+  if (!nodeFound) {
+    setIcon('i2', 'fail'); log('Node.js not found!');
+    document.getElementById('errBox').style.display = '';
+    document.getElementById('errBox').innerHTML = 'We need Node.js to run World Menu.<br>Download it free from <b>nodejs.org</b> then come back!';
+    return;
+  }
+  setIcon('i2', 'ok'); log('Node.js is ready!');
+
+  setIcon('i3', 'run'); log('Installing the good stuff (hang tight)...');
+  try {
+    shell.Run('cmd /c cd /d "' + installDir + '" && npm install >nul 2>&1', 0, true);
+    setIcon('i3', 'ok'); log('Dependencies installed!');
+  } catch(e) { setIcon('i3', 'fail'); log('Oops: ' + e.message); return; }
+
+  setIcon('i4', 'run'); log('Building the magic...');
+  try {
+    shell.Run('cmd /c cd /d "' + installDir + '\\client" && npx vite build >nul 2>&1', 0, true);
+    shell.Run('cmd /c copy /y "' + installDir + '\\client\\public\\manifest.json" "' + installDir + '\\client\\dist\\" >nul 2>&1', 0, true);
+    shell.Run('cmd /c copy /y "' + installDir + '\\client\\public\\embed.js" "' + installDir + '\\client\\dist\\" >nul 2>&1', 0, true);
+    setIcon('i4', 'ok'); log('App built!');
+  } catch(e) { setIcon('i4', 'fail'); log('Oops: ' + e.message); return; }
+
+  setIcon('i5', 'run'); log('Setting up shortcuts...');
+  try {
+    var desktop = shell.SpecialFolders("Desktop");
+    var sc = shell.CreateShortcut(desktop + "\\World Menu POS.lnk");
+    sc.TargetPath = installDir + "\\START.bat";
+    sc.WorkingDirectory = installDir;
+    sc.Description = "Launch World Menu POS";
+    sc.Save();
+    try {
+      var sm = shell.SpecialFolders("Programs");
+      shell.Run('cmd /c if not exist "' + sm + '\\World Menu POS" mkdir "' + sm + '\\World Menu POS"', 0, true);
+      var sml = shell.CreateShortcut(sm + "\\World Menu POS\\World Menu POS.lnk");
+      sml.TargetPath = installDir + "\\START.bat"; sml.WorkingDirectory = installDir; sml.Save();
+    } catch(e2) {}
+    var ub = installDir + "\\uninstall.bat";
+    var f = fso.CreateTextFile(ub, true);
+    f.WriteLine("@echo off"); f.WriteLine("echo Uninstalling World Menu POS...");
+    f.WriteLine("taskkill /F /IM node.exe >nul 2>&1");
+    f.WriteLine("reg delete \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\WorldMenuPOS\" /f >nul 2>&1");
+    f.WriteLine("del \"%USERPROFILE%\\Desktop\\World Menu POS.lnk\" >nul 2>&1");
+    f.WriteLine("rmdir /s /q \"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\World Menu POS\" >nul 2>&1");
+    f.WriteLine("cd /d \"%TEMP%\""); f.WriteLine("rmdir /s /q \"" + installDir + "\" >nul 2>&1");
+    f.WriteLine("echo Done! && pause"); f.Close();
+    var rk = "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\WorldMenuPOS\\";
+    shell.RegWrite(rk + "DisplayName", "World Menu POS", "REG_SZ");
+    shell.RegWrite(rk + "DisplayVersion", "1.0.0", "REG_SZ");
+    shell.RegWrite(rk + "Publisher", "World Menu", "REG_SZ");
+    shell.RegWrite(rk + "InstallLocation", installDir, "REG_SZ");
+    shell.RegWrite(rk + "UninstallString", "cmd /c \"" + ub + "\"", "REG_SZ");
+    shell.RegWrite(rk + "NoModify", 1, "REG_DWORD");
+    shell.RegWrite(rk + "NoRepair", 1, "REG_DWORD");
+    shell.RegWrite(rk + "EstimatedSize", 150000, "REG_DWORD");
+    setIcon('i5', 'ok'); log('All set!');
+  } catch(e) { setIcon('i5', 'ok'); log('Mostly done!'); }
+
+  log(''); log('World Menu POS is installed!');
+  setTimeout(function() { showStep(4); }, 600);
+}
+
+function launchApp() {
+  shell.Run('cmd /c cd /d "' + installDir + '" && start START.bat', 1, false);
+  setTimeout(function() { shell.Run('cmd /c start http://localhost:3000', 1, false); }, 4000);
+}
+
+function checkExisting() {
+  if (fso.FileExists(installDir + "\\package.json")) {
+    isUpdate = true;
+    document.getElementById('welcomeTitle').innerHTML = 'Update Available!';
+    document.getElementById('welcomeTagline').innerHTML = 'A new version is ready to install.';
+    document.getElementById('welcomeDesc').innerHTML = 'Your menu, settings, and data will be kept.<br>Only the app code gets updated.';
+    document.getElementById('welcomeBtn').innerHTML = 'Update Now!';
+    document.getElementById('welcomeBtn').onclick = function() { showStep(2); };
+    document.getElementById('freshBtn').style.display = '';
+  }
+}
+
+function doFreshInstall() {
+  if (confirm('Fresh install will erase ALL existing data (menu, settings, orders). Are you sure?')) {
+    try { shell.Run('cmd /c rmdir /s /q "' + installDir + '"', 0, true); } catch(e) {}
+    isUpdate = false;
+    startInstall();
+  }
+}
+
+function init() { resizeWindow(); checkNode(); checkExisting(); showStep(0); }
+window.onload = init;
+</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="dots">
+    <span class="dot" id="d0" style="background:#f59e0b"></span>
+    <span class="dot" id="d1"></span>
+    <span class="dot" id="d2"></span>
+    <span class="dot" id="d3"></span>
+    <span class="dot" id="d4"></span>
+  </div>
+
+  <!-- WELCOME -->
+  <div id="s0" class="step">
+    <div class="big-emoji">&#127758;&#127869;</div>
+    <h1 id="welcomeTitle">World Menu</h1>
+    <div class="tagline" id="welcomeTagline">Your restaurant, every language, one system.</div>
+    <div class="desc" id="welcomeDesc">The POS that speaks your customers' language.<br>Free. Fast. Beautiful.</div>
+    <table class="ftable" cellspacing="6">
+      <tr>
+        <td><span class="ficon">&#127760;</span> 60+ Languages</td>
+        <td><span class="ficon">&#128241;</span> Works on any tablet</td>
+      </tr>
+      <tr>
+        <td><span class="ficon">&#128104;&#8205;&#127859;</span> Kitchen Display</td>
+        <td><span class="ficon">&#128176;</span> POS + Payments</td>
+      </tr>
+      <tr>
+        <td><span class="ficon">&#128424;</span> Auto Receipt Printing</td>
+        <td><span class="ficon">&#128202;</span> Sales Reports</td>
+      </tr>
+      <tr>
+        <td><span class="ficon">&#128197;</span> Reservations</td>
+        <td><span class="ficon">&#127873;</span> Gift Cards + Loyalty</td>
+      </tr>
+    </table>
+    <button class="btn btn-go btn-big" id="welcomeBtn" onclick="showStep(1)">Let's Get Started!</button>
+    <br>
+    <button class="btn btn-gray" id="freshBtn" onclick="doFreshInstall()" style="display:none;font-size:12px;padding:8px 20px;">Fresh Install (erase everything)</button>
+    <div class="ver">v1.0.0</div>
+  </div>
+
+  <!-- SYSTEM CHECK -->
+  <div id="s1" class="step" style="display:none">
+    <div class="big-emoji">&#128269;</div>
+    <h2>Quick System Check</h2>
+    <div class="desc">Making sure this computer is ready for awesomeness.</div>
+    <div class="checks">
+      <div class="chk">
+        <span class="chk-icon" style="background:#22c55e;color:#fff">YES</span>
+        Windows 10/11 &#10004;
+      </div>
+      <div class="chk">
+        <span class="chk-icon" id="nodeIcon" style="background:#334155;color:#64748b">?</span>
+        <span id="nodeMsg" style="color:#fbbf24">Node.js - looking...</span>
+      </div>
+    </div>
+    <button class="btn btn-gray" onclick="showStep(0)">Back</button>
+    <button class="btn btn-blue" onclick="showStep(2)">Looks Good, Next!</button>
+    <div class="small">Don't have Node.js? Grab it free at <b style="color:#60a5fa">nodejs.org</b></div>
+  </div>
+
+  <!-- INSTALL LOCATION -->
+  <div id="s2" class="step" style="display:none">
+    <div class="big-emoji">&#128193;</div>
+    <h2>Where should we set up shop?</h2>
+    <div class="desc">World Menu POS will live here:</div>
+    <div class="path-box"><span id="installPath">C:\world-menu-pos</span></div>
+    <br><br>
+    <button class="btn btn-gray" onclick="showStep(1)">Back</button>
+    <button class="btn btn-go btn-big" onclick="startInstall()">Install World Menu!</button>
+  </div>
+
+  <!-- INSTALLING -->
+  <div id="s3" class="step" style="display:none">
+    <div class="big-emoji">&#9889;</div>
+    <h2>Setting up your restaurant...</h2>
+    <div class="desc">Hang tight, this takes a minute or two.</div>
+    <div class="checks">
+      <div class="chk"><span class="chk-icon" id="i1" style="background:#334155;color:#64748b">-</span> Copying files</div>
+      <div class="chk"><span class="chk-icon" id="i2" style="background:#334155;color:#64748b">-</span> Checking Node.js</div>
+      <div class="chk"><span class="chk-icon" id="i3" style="background:#334155;color:#64748b">-</span> Installing ingredients</div>
+      <div class="chk"><span class="chk-icon" id="i4" style="background:#334155;color:#64748b">-</span> Cooking the app</div>
+      <div class="chk"><span class="chk-icon" id="i5" style="background:#334155;color:#64748b">-</span> Plating it up</div>
+    </div>
+    <div class="log" id="logBox"></div>
+    <div class="err-box" id="errBox"></div>
+  </div>
+
+  <!-- DONE! -->
+  <div id="s4" class="step" style="display:none">
+    <div class="big-emoji">&#127881;&#127881;&#127881;</div>
+    <h2>You're ready to serve!</h2>
+    <div class="tagline">World Menu POS is installed and ready to go.</div>
+    <div class="desc">
+      A shortcut is on your desktop.<br>
+      Connect your tablets to <b style="color:#60a5fa">http://your-pc-ip:3000</b><br><br>
+      Now go make some hungry people happy!
+    </div>
+    <button class="btn btn-green btn-big" onclick="launchApp()">&#127758; Launch World Menu!</button>
+    <div class="small">Tip: Bookmark the URL on your tablets for easy access!</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules/
+server/data/restaurant.db
+server/data/restaurant.db-shm
+server/data/restaurant.db-wal
+server/data/uploads/*
+!server/data/uploads/.gitkeep
+client/dist/
+*.log
+.DS_Store
+Thumbs.db

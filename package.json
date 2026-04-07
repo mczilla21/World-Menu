@@ -1,0 +1,17 @@
+{
+  "name": "world-menu",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspace=client",
+    "start": "npm run start --workspace=server"
+  },
+  "dependencies": {
+    "node-thermal-printer": "^4.6.0"
+  }
+}

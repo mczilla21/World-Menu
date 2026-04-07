@@ -1,0 +1,551 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useSettings, LANGUAGE_OPTIONS } from '../../hooks/useSettings';
+import { useCustomerStore } from '../../stores/customerStore';
+import type { MenuItem, Category } from '../../hooks/useMenu';
+import MenuItemCard from './MenuItemCard';
+import ItemDetail from './ItemDetail';
+import CustomerCart from './CustomerCart';
+import OrderConfirmation from './OrderConfirmation';
+import AllergenFilter from './AllergenFilter';
+import IngredientPopup from '../../components/IngredientPopup';
+import PinGate from '../../components/PinGate';
+import { useWebSocket } from '../../hooks/useWebSocket';
+
+interface TranslationMap {
+  [key: string]: string;
+}
+
+export default function CustomerMenu() {
+  const { tableNumber } = useParams<{ tableNumber: string }>();
+  const navigate = useNavigate();
+  const { settings } = useSettings();
+  const { setTableNumber, cart, customerLang, setCustomerLang, setOrderType, clearCart } = useCustomerStore();
+
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [translations, setTranslations] = useState<TranslationMap>({});
+  const [selectedCat, setSelectedCat] = useState<number>(0);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [showCart, setShowCart] = useState(false);
+  const [orderSent, setOrderSent] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [excludedAllergens, setExcludedAllergens] = useState<Set<string>>(new Set());
+  const [showAllergenFilter, setShowAllergenFilter] = useState(false);
+  const [callingWaiter, setCallingWaiter] = useState(false);
+  const [ingredientTarget, setIngredientTarget] = useState<MenuItem | null>(null);
+  const [langSelected, setLangSelected] = useState(false);
+  const [hasOrdered, setHasOrdered] = useState(false);
+  const [checkRequested, setCheckRequested] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [orderStatus, setOrderStatus] = useState('');
+
+  useEffect(() => {
+    if (tableNumber) {
+      setTableNumber(tableNumber);
+      setOrderType('dine_in');
+    } else {
+      // No table = takeout mode
+      setOrderType('takeout');
+    }
+  }, [tableNumber, setTableNumber, setOrderType]);
+
+  // Listen for table close/reset via WebSocket
+  const handleWs = useCallback((msg: any) => {
+    if (msg.type === 'TABLE_CLOSED' && String(msg.tableNumber) === tableNumber) {
+      // Table settled — reset for next customer
+      setLangSelected(false);
+      setHasOrdered(false);
+      setOrderSent(false);
+      setCheckRequested(false);
+      setSearchQuery('');
+      setCustomerLang(settings.native_language);
+      clearCart();
+    }
+    if (msg.type === 'ORDER_APPROVED') {
+      setOrderStatus('preparing');
+      setTimeout(() => setOrderStatus(''), 5000);
+    }
+    if (msg.type === 'ORDER_READY') {
+      setOrderStatus('ready');
+    }
+    if (msg.type === 'ORDER_REJECTED') {
+      alert(msg.reason || 'Your order was declined. Please ask your server.');
+    }
+  }, [tableNumber, settings.native_language, setCustomerLang]);
+
+  useWebSocket(tableNumber ? `table-${tableNumber}` : '', handleWs);
+
+  // If only one language, auto-select and skip the picker
+  const supportedLangs = settings.supported_languages.split(',').filter(Boolean);
+  const allLangs = [settings.native_language, ...supportedLangs.filter(l => l !== settings.native_language)];
+  useEffect(() => {
+    if (allLangs.length <= 1) {
+      setCustomerLang(settings.native_language);
+      setLangSelected(true);
+    }
+  }, [settings.native_language, allLangs.length, setCustomerLang]);
+
+  const fetchMenu = useCallback(async () => {
+    try {
+      const [menuRes, catRes] = await Promise.all([
+        fetch('/api/menu'),
+        fetch('/api/categories'),
+      ]);
+      const menuData = await menuRes.json();
+      const catData = await catRes.json();
+      setItems(menuData.filter((i: MenuItem) => i.is_active));
+      setCategories(catData);
+      if (catData.length > 0) setSelectedCat(catData[0].id);
+    } catch (e) {
+      console.error('Failed to fetch menu:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchTranslations = useCallback(async () => {
+    if (customerLang === settings.native_language) {
+      setTranslations({});
+      return;
+    }
+    try {
+      const [catT, itemT, modT, modGT] = await Promise.all([
+        fetch(`/api/translations/category?lang=${customerLang}`).then(r => r.json()),
+        fetch(`/api/translations/menu_item?lang=${customerLang}`).then(r => r.json()),
+        fetch(`/api/translations/modifier?lang=${customerLang}`).then(r => r.json()),
+        fetch(`/api/translations/modifier_group?lang=${customerLang}`).then(r => r.json()),
+      ]);
+      const map: TranslationMap = {};
+      for (const t of [...catT, ...itemT, ...modT, ...modGT]) {
+        map[`${t.entity_type}:${t.entity_id}:${t.field}`] = t.value;
+      }
+      setTranslations(map);
+    } catch {}
+  }, [customerLang, settings.native_language]);
+
+  useEffect(() => { fetchMenu(); }, [fetchMenu]);
+  useEffect(() => { fetchTranslations(); }, [fetchTranslations]);
+
+  const t = (entityType: string, entityId: number, field: string, fallback: string): string => {
+    if (customerLang === settings.native_language) return fallback;
+    return translations[`${entityType}:${entityId}:${field}`] || fallback;
+  };
+
+  // Filter out items with excluded allergens
+  const filterByAllergens = (itemList: MenuItem[]) => {
+    if (excludedAllergens.size === 0) return itemList;
+    return itemList.filter(item => {
+      if (!item.allergens || item.allergens.length === 0) return true;
+      return !item.allergens.some(a => excludedAllergens.has(a));
+    });
+  };
+
+  const searchResults = searchQuery.trim()
+    ? filterByAllergens(items.filter(i => {
+        const q = searchQuery.toLowerCase();
+        const translatedName = t('menu_item', i.id, 'name', i.name).toLowerCase();
+        return i.name.toLowerCase().includes(q) || translatedName.includes(q) || (i.description || '').toLowerCase().includes(q);
+      }))
+    : null;
+  const filteredItems = searchResults || filterByAllergens(items.filter(i => i.category_id === selectedCat));
+  const specialItems = filterByAllergens(items.filter(i => i.is_special));
+  const totalCartItems = cart.reduce((s, i) => s + i.quantity, 0);
+  const currency = settings.currency_symbol || '$';
+  const callWaiterEnabled = settings.call_waiter_enabled !== '0' && !!tableNumber;
+
+  const toggleAllergen = (code: string) => {
+    const next = new Set(excludedAllergens);
+    if (next.has(code)) next.delete(code);
+    else next.add(code);
+    setExcludedAllergens(next);
+  };
+
+  const handleRequestCheck = async () => {
+    if (!tableNumber || checkRequested) return;
+    setCheckRequested(true);
+    try {
+      await fetch('/api/service/call-waiter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_number: tableNumber, type: 'check_requested' }),
+      });
+    } catch {}
+    // After 5 seconds, reset to language selection for next customer
+    setTimeout(() => {
+      setCheckRequested(false);
+      setHasOrdered(false);
+      setOrderSent(false);
+      setLangSelected(false);
+    }, 5000);
+  };
+
+  const handleCallWaiter = async () => {
+    if (!tableNumber || callingWaiter) return;
+    setCallingWaiter(true);
+    try {
+      await fetch('/api/service/call-waiter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_number: tableNumber }),
+      });
+      setTimeout(() => setCallingWaiter(false), 5000);
+    } catch {
+      setCallingWaiter(false);
+    }
+  };
+
+  if (checkRequested) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
+        <div className="bg-blue-100 w-24 h-24 rounded-full flex items-center justify-center mb-6 animate-pulse">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="M7 15h4" />
+            <path d="M7 11h10" />
+            <path d="M7 8h10" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Requested!</h2>
+        <p className="text-gray-500 text-center">Your server has been notified.<br/>Thank you for dining at {settings.restaurant_name}!</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-gray-400">Loading menu...</div>
+      </div>
+    );
+  }
+
+  if (orderSent) {
+    return (
+      <OrderConfirmation
+        tableNumber={tableNumber || ''}
+        onAddMore={() => setOrderSent(false)}
+        restaurantName={settings.restaurant_name}
+        orderType={tableNumber ? 'dine_in' : 'takeout'}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Order status banner */}
+      {orderStatus === 'preparing' && (
+        <div style={{ background: '#3b82f6', color: '#fff', padding: '14px 16px', textAlign: 'center', fontWeight: 700, fontSize: 15 }}
+          onClick={() => setOrderStatus('')}>
+          👨‍🍳 Your order has been approved and is being prepared!
+        </div>
+      )}
+      {orderStatus === 'ready' && (
+        <div style={{ background: '#22c55e', color: '#fff', padding: '16px', textAlign: 'center', fontWeight: 700, fontSize: 18 }}
+          className="animate-pulse" onClick={() => setOrderStatus('')}>
+          🎉 Your order is READY!
+        </div>
+      )}
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-30">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {settings.logo && (
+              <img src={`/uploads/${settings.logo}`} alt="" className="w-10 h-10 rounded-lg object-cover" />
+            )}
+            <div>
+              <h1 className="font-bold text-lg text-gray-900">{settings.restaurant_name}</h1>
+              <p className="text-xs text-gray-500">{tableNumber ? `Table ${tableNumber}` : 'Takeout'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Allergen filter button */}
+            <button
+              onClick={() => setShowAllergenFilter(true)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                excludedAllergens.size > 0 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {excludedAllergens.size > 0 ? `Allergens (${excludedAllergens.size})` : 'Allergens'}
+            </button>
+            {allLangs.length > 1 && (
+              <button
+                onClick={() => setShowLangPicker(!showLangPicker)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+              >
+                {LANGUAGE_OPTIONS.find(l => l.code === customerLang)?.flag || customerLang.toUpperCase()}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Language picker */}
+        {showLangPicker && (
+          <div className="px-4 pb-3 flex gap-2 flex-wrap">
+            {allLangs.map(code => {
+              const langInfo = LANGUAGE_OPTIONS.find(l => l.code === code);
+              return (
+                <button
+                  key={code}
+                  onClick={() => { setCustomerLang(code); setShowLangPicker(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    customerLang === code
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {langInfo?.name || code}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Search */}
+        <div className="px-4 pb-2">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search menu..."
+            className="w-full bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400"
+          />
+        </div>
+
+        {/* Category scroll */}
+        <div className="flex gap-2 px-4 pb-3 overflow-x-auto">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCat(cat.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                selectedCat === cat.id
+                  ? 'text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={selectedCat === cat.id ? { backgroundColor: settings.theme_color } : undefined}
+            >
+              {t('category', cat.id, 'name', cat.name)}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* Specials section */}
+      {specialItems.length > 0 && selectedCat === categories[0]?.id && (
+        <div className="px-4 pt-4">
+          <h2 className="text-sm font-bold text-gray-900 mb-2">Today's Specials</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {specialItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setSelectedItem(item)}
+                className="flex-shrink-0 w-40 bg-white rounded-xl shadow-sm overflow-hidden text-left"
+              >
+                {item.image && (
+                  <img src={`/uploads/${item.image}`} alt="" className="w-full h-24 object-cover" />
+                )}
+                <div className="p-2.5">
+                  <div className="text-xs font-semibold text-gray-900 line-clamp-1">{t('menu_item', item.id, 'name', item.name)}</div>
+                  <div className="text-xs mt-1">
+                    <span className="line-through text-gray-400 mr-1">{currency}{item.price.toFixed(2)}</span>
+                    <span className="font-bold" style={{ color: settings.theme_color }}>{currency}{(item.special_price ?? item.price).toFixed(2)}</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Menu grid */}
+      <div className="flex-1 p-4">
+        <div className="grid grid-cols-2 gap-3">
+          {filteredItems.map(item => (
+            <MenuItemCard
+              key={item.id}
+              item={item}
+              translatedName={t('menu_item', item.id, 'name', item.name)}
+              translatedDesc={t('menu_item', item.id, 'description', item.description)}
+              currency={currency}
+              themeColor={settings.theme_color}
+              onClick={() => setSelectedItem(item)}
+              onLongPress={() => {
+                const ingredients = (item.ingredients || '').split(',').map(s => s.trim()).filter(Boolean);
+                if (ingredients.length > 0) setIngredientTarget(item);
+                else setSelectedItem(item);
+              }}
+            />
+          ))}
+        </div>
+        {filteredItems.length === 0 && (
+          <p className="text-center text-gray-400 mt-8">No items in this category</p>
+        )}
+      </div>
+
+      {/* Floating action buttons */}
+      {callWaiterEnabled && totalCartItems === 0 && !showCart && (
+        <div className="fixed bottom-6 right-4 z-20 flex flex-col gap-3 items-end">
+          {/* Request Check - only after ordering */}
+          {hasOrdered && (
+            <button
+              onClick={handleRequestCheck}
+              className="h-14 px-5 rounded-full shadow-lg flex items-center gap-2 bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all text-white font-semibold text-sm"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="M7 15h4" />
+                <path d="M7 11h10" />
+              </svg>
+              Request Check
+            </button>
+          )}
+          {/* Call Waiter */}
+          <button
+            onClick={handleCallWaiter}
+            disabled={callingWaiter}
+            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
+              callingWaiter ? 'bg-green-500' : 'bg-amber-500 hover:bg-amber-400 active:scale-95'
+            }`}
+          >
+            {callingWaiter ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Floating cart button */}
+      {totalCartItems > 0 && !showCart && (
+        <div className="fixed bottom-6 left-4 right-4 z-20">
+          <button
+            onClick={() => setShowCart(true)}
+            className="w-full py-4 rounded-2xl font-bold text-lg text-white shadow-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+            style={{ backgroundColor: settings.theme_color }}
+          >
+            <span className="bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-base font-black">{totalCartItems}</span>
+            View Cart
+            <span className="ml-auto mr-1 font-bold">
+              {currency}{cart.reduce((s, i) => s + i.item_price * i.quantity, 0).toFixed(2)}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Item detail modal */}
+      {selectedItem && (
+        <ItemDetail
+          item={selectedItem}
+          translatedName={t('menu_item', selectedItem.id, 'name', selectedItem.name)}
+          translatedDesc={t('menu_item', selectedItem.id, 'description', selectedItem.description)}
+          currency={currency}
+          nativeName={selectedItem.name}
+          themeColor={settings.theme_color}
+          onClose={() => setSelectedItem(null)}
+          translateModGroup={(groupId: number, fallback: string) => t('modifier_group', groupId, 'name', fallback)}
+          translateModifier={(modId: number, fallback: string) => t('modifier', modId, 'name', fallback)}
+        />
+      )}
+
+      {/* Cart slide-up */}
+      {showCart && (
+        <CustomerCart
+          currency={currency}
+          themeColor={settings.theme_color}
+          onClose={() => setShowCart(false)}
+          onOrderSent={() => { setShowCart(false); setOrderSent(true); setHasOrdered(true); }}
+        />
+      )}
+
+      {/* Allergen filter modal */}
+      {showAllergenFilter && (
+        <AllergenFilter
+          excluded={excludedAllergens}
+          onToggle={toggleAllergen}
+          onClose={() => setShowAllergenFilter(false)}
+          themeColor={settings.theme_color}
+        />
+      )}
+
+      {/* Switch Role - at very bottom of menu, locked behind PIN */}
+      <div className="py-6 flex justify-center">
+        <button
+          onClick={() => {
+            if (settings.admin_pin) {
+              setShowPin(true);
+            } else {
+              localStorage.removeItem('role');
+              navigate('/');
+            }
+          }}
+          className="text-[10px] text-gray-300 hover:text-gray-400"
+        >
+          Switch Role
+        </button>
+      </div>
+
+      {/* Ingredient popup on long press */}
+      {ingredientTarget && (
+        <IngredientPopup
+          itemName={t('menu_item', ingredientTarget.id, 'name', ingredientTarget.name)}
+          ingredients={(ingredientTarget.ingredients || '').split(',').map(s => s.trim()).filter(Boolean)}
+          viewOnly
+          onConfirm={() => setIngredientTarget(null)}
+          onClose={() => setIngredientTarget(null)}
+        />
+      )}
+
+      {/* Language selection overlay — shows on top of the menu */}
+      {!langSelected && allLangs.length > 1 && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
+            <div className="text-center mb-6">
+              {settings.logo && (
+                <img src={`/uploads/${settings.logo}`} alt="" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-3" />
+              )}
+              <h2 className="text-xl font-bold text-gray-900">{settings.restaurant_name}</h2>
+              <p className="text-gray-500 text-sm mt-1">Choose your language</p>
+            </div>
+            <div className="grid gap-2">
+              {allLangs.map(code => {
+                const langInfo = LANGUAGE_OPTIONS.find(l => l.code === code);
+                return (
+                  <button
+                    key={code}
+                    onClick={() => {
+                      setCustomerLang(code);
+                      setLangSelected(true);
+                    }}
+                    className="rounded-2xl px-5 py-4 text-left flex items-center gap-4 transition-all active:scale-[0.97] hover:bg-gray-50 border-2 border-gray-100 hover:border-gray-300"
+                  >
+                    <span className="text-2xl font-bold text-gray-400 w-10 text-center">{langInfo?.flag || code.toUpperCase()}</span>
+                    <span className="text-lg font-semibold text-gray-900">{langInfo?.name || code}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PIN gate */}
+      {showPin && (
+        <PinGate
+          pin={settings.admin_pin}
+          onSuccess={() => {
+            localStorage.removeItem('role');
+            navigate('/');
+          }}
+          onCancel={() => setShowPin(false)}
+        />
+      )}
+    </div>
+  );
+}
