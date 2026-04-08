@@ -1,4 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSettings } from '../../hooks/useSettings';
+
+const FLOOR_THEMES: { key: string; label: string; bg: string }[] = [
+  { key: 'dark-wood', label: '🪵 Dark Wood', bg: `linear-gradient(90deg,rgba(30,20,12,0.5) 0%,transparent 50%,rgba(30,20,12,0.5) 100%),repeating-linear-gradient(90deg,#1c1510 0px,#1c1510 28px,#211a14 28px,#211a14 30px,#1e1612 30px,#1e1612 55px,#221c15 55px,#221c15 57px),#1a1410` },
+  { key: 'light-wood', label: '🏠 Light Wood', bg: `linear-gradient(90deg,rgba(180,150,100,0.15) 0%,transparent 50%,rgba(180,150,100,0.15) 100%),repeating-linear-gradient(90deg,#d4b896 0px,#d4b896 28px,#c9a87e 28px,#c9a87e 30px,#d0b088 30px,#d0b088 55px,#c5a47a 55px,#c5a47a 57px),#c9a87e` },
+  { key: 'dark', label: '🌙 Dark', bg: '#111827' },
+  { key: 'concrete', label: '🏢 Concrete', bg: `linear-gradient(135deg,#374151,#1f2937,#374151)` },
+  { key: 'marble', label: '🤍 Marble', bg: `linear-gradient(135deg,#f8f8f8 0%,#e8e8e8 25%,#f0f0f0 50%,#e5e5e5 75%,#f8f8f8 100%)` },
+  { key: 'custom', label: '🖼 Custom Image', bg: '' },
+];
 
 interface FloorTable {
   id: number;
@@ -27,6 +37,7 @@ const typeStyles: Record<string, { bg: string; border: string; shape: string }> 
 };
 
 export default function FloorPlanEditor() {
+  const { settings, updateSetting } = useSettings();
   const [tables, setTables] = useState<FloorTable[]>([]);
   const [dragging, setDragging] = useState<{ id: number; offsetX: number; offsetY: number } | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
@@ -40,6 +51,11 @@ export default function FloorPlanEditor() {
   const [showAddPanel, setShowAddPanel] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const floorTheme = settings.floor_theme || 'dark-wood';
+  const floorBgImage = settings.floor_bg_image || '';
+  const themeObj = FLOOR_THEMES.find(t => t.key === floorTheme) || FLOOR_THEMES[0];
+  const canvasBg = floorTheme === 'custom' && floorBgImage ? undefined : themeObj.bg;
 
   const snap = (v: number) => snapToGrid ? Math.round(v / gridSize) * gridSize : v;
 
@@ -235,6 +251,50 @@ export default function FloorPlanEditor() {
         <span className="ml-auto text-slate-500">{tables.length} total</span>
       </div>
 
+      {/* Floor theme selector */}
+      <div className="bg-slate-800 rounded-2xl p-4 space-y-3">
+        <h3 className="font-semibold text-slate-200 text-sm">Floor Background</h3>
+        <div className="flex gap-2 flex-wrap">
+          {FLOOR_THEMES.map(t => (
+            <button
+              key={t.key}
+              onClick={() => updateSetting('floor_theme', t.key)}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${floorTheme === t.key ? 'bg-blue-600 text-white scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {floorTheme === 'custom' && (
+          <div className="flex items-center gap-3">
+            {floorBgImage && <img src={`/uploads/${floorBgImage}`} alt="" className="w-16 h-10 rounded-lg object-cover" />}
+            <button
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (!file) return;
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  const res = await fetch('/api/uploads', { method: 'POST', body: formData });
+                  const data = await res.json();
+                  if (data.filename) await updateSetting('floor_bg_image', data.filename);
+                };
+                input.click();
+              }}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-semibold text-slate-300"
+            >
+              {floorBgImage ? 'Change Image' : 'Upload Image'}
+            </button>
+            {floorBgImage && (
+              <button onClick={() => updateSetting('floor_bg_image', '')} className="text-xs text-red-400 hover:text-red-300">Remove</button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Add seating panel */}
       {showAddPanel && (
         <div className="bg-slate-800 rounded-2xl p-5 space-y-4">
@@ -282,10 +342,15 @@ export default function FloorPlanEditor() {
           style={{
             height: canvasHeight,
             touchAction: editMode ? 'none' : 'auto',
-            background: '#f1f5f9',
+            background: canvasBg || '#1a1410',
           }}
           onClick={() => { if (!dragging) setSelected(null); }}
         >
+          {/* Custom background image */}
+          {floorTheme === 'custom' && floorBgImage && (
+            <img src={`/uploads/${floorBgImage}`} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+          )}
+
           {/* Grid lines */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: editMode && snapToGrid ? 0.15 : 0.05 }}>
             <defs>

@@ -2,6 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import { useWebSocket } from '../../hooks/useWebSocket';
 
+const FLOOR_THEMES: Record<string, string> = {
+  'dark-wood': `linear-gradient(90deg,rgba(30,20,12,0.5) 0%,transparent 50%,rgba(30,20,12,0.5) 100%),repeating-linear-gradient(90deg,#1c1510 0px,#1c1510 28px,#211a14 28px,#211a14 30px,#1e1612 30px,#1e1612 55px,#221c15 55px,#221c15 57px),#1a1410`,
+  'light-wood': `linear-gradient(90deg,rgba(180,150,100,0.15) 0%,transparent 50%,rgba(180,150,100,0.15) 100%),repeating-linear-gradient(90deg,#d4b896 0px,#d4b896 28px,#c9a87e 28px,#c9a87e 30px,#d0b088 30px,#d0b088 55px,#c5a47a 55px,#c5a47a 57px),#c9a87e`,
+  'dark': '#111827',
+  'concrete': 'linear-gradient(135deg,#374151,#1f2937,#374151)',
+  'marble': 'linear-gradient(135deg,#f8f8f8 0%,#e8e8e8 25%,#f0f0f0 50%,#e5e5e5 75%,#f8f8f8 100%)',
+};
+
 interface FloorTable {
   id: number;
   label: string;
@@ -243,18 +251,14 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
         </div>
       </div>
 
-      {/* Floor area — dark wood grain */}
+      {/* Floor area */}
       <div ref={containerRef} className="flex-1 overflow-auto relative" style={{
-        background: `
-          linear-gradient(90deg, rgba(30,20,12,0.5) 0%, transparent 50%, rgba(30,20,12,0.5) 100%),
-          repeating-linear-gradient(90deg, #1c1510 0px, #1c1510 28px, #211a14 28px, #211a14 30px, #1e1612 30px, #1e1612 55px, #221c15 55px, #221c15 57px),
-          #1a1410
-        `,
+        background: settings.floor_theme === 'custom' ? '#1a1410' : (FLOOR_THEMES[settings.floor_theme || 'dark-wood'] || FLOOR_THEMES['dark-wood']),
       }}>
-        {/* Subtle floor texture overlay */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'radial-gradient(ellipse at 30% 20%, rgba(255,200,100,0.03) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(255,200,100,0.02) 0%, transparent 50%)',
-        }} />
+        {/* Custom background image */}
+        {settings.floor_theme === 'custom' && settings.floor_bg_image && (
+          <img src={`/uploads/${settings.floor_bg_image}`} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+        )}
 
         {useGrid ? (
           <div className="p-6">
