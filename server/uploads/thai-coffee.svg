@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#EFEBE9"/><stop offset="100%" stop-color="#795548"/></radialGradient>
+<linearGradient id="coffee" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFDE7"/><stop offset="25%" stop-color="#D7CCC8"/><stop offset="50%" stop-color="#5D4037"/><stop offset="100%" stop-color="#3E2723"/></linearGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Glass -->
+<path d="M145,90 L155,340 L245,340 L255,90 Z" fill="#FFF" opacity="0.2" stroke="#BDBDBD" stroke-width="2"/>
+<!-- Coffee liquid -->
+<path d="M148,100 L157,335 L243,335 L252,100 Z" fill="url(#coffee)"/>
+<!-- Cream layer on top -->
+<ellipse cx="200" cy="115" rx="48" ry="10" fill="#FFFDE7" opacity="0.85"/>
+<path d="M158,108 Q180,98 200,108 Q220,118 242,108" fill="none" stroke="#FFF9C4" stroke-width="3" opacity="0.6"/>
+<!-- Ice cubes -->
+<rect x="165" y="140" width="28" height="22" rx="5" fill="#FFF" opacity="0.25" transform="rotate(5,179,151)"/>
+<rect x="195" y="185" width="28" height="22" rx="5" fill="#FFF" opacity="0.2" transform="rotate(-6,209,196)"/>
+<rect x="170" y="230" width="25" height="20" rx="5" fill="#FFF" opacity="0.25" transform="rotate(3,182,240)"/>
+<rect x="198" y="270" width="25" height="20" rx="5" fill="#FFF" opacity="0.2"/>
+<!-- Glass shine -->
+<line x1="155" y1="100" x2="160" y2="330" stroke="#FFF" stroke-width="3" opacity="0.2"/>
+<!-- Straw -->
+<rect x="218" y="40" width="7" height="160" rx="2" fill="#4E342E" transform="rotate(5,221,120)"/>
+<!-- Condensation -->
+<circle cx="252" cy="155" r="3" fill="#FFF" opacity="0.35"/>
+<circle cx="148" cy="190" r="2.5" fill="#FFF" opacity="0.35"/>
+<circle cx="254" cy="220" r="2" fill="#FFF" opacity="0.3"/>
+<!-- Label -->
+<text x="200" y="385" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#3E2723">Thai Coffee</text>
+</svg>

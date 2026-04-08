@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFF3E0"/><stop offset="100%" stop-color="#FF8F00"/></radialGradient>
+<linearGradient id="tea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFDE7"/><stop offset="30%" stop-color="#FF8F00"/><stop offset="100%" stop-color="#E65100"/></linearGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Glass -->
+<path d="M145,90 L155,340 L245,340 L255,90 Z" fill="#FFF" opacity="0.2" stroke="#E0E0E0" stroke-width="2"/>
+<!-- Tea liquid -->
+<path d="M148,100 L157,335 L243,335 L252,100 Z" fill="url(#tea)"/>
+<!-- Cream swirl on top -->
+<ellipse cx="200" cy="115" rx="48" ry="8" fill="#FFFDE7" opacity="0.8"/>
+<path d="M160,110 Q180,100 200,110 Q220,120 240,110" fill="none" stroke="#FFF9C4" stroke-width="3" opacity="0.7"/>
+<!-- Ice cubes -->
+<rect x="165" y="140" width="28" height="22" rx="5" fill="#FFF" opacity="0.35" transform="rotate(5,179,151)"/>
+<rect x="195" y="180" width="28" height="22" rx="5" fill="#FFF" opacity="0.3" transform="rotate(-8,209,191)"/>
+<rect x="170" y="220" width="25" height="20" rx="5" fill="#FFF" opacity="0.35" transform="rotate(3,182,230)"/>
+<rect x="200" y="260" width="25" height="20" rx="5" fill="#FFF" opacity="0.3"/>
+<!-- Glass shine -->
+<line x1="155" y1="100" x2="160" y2="330" stroke="#FFF" stroke-width="3" opacity="0.3"/>
+<!-- Straw -->
+<rect x="218" y="40" width="7" height="160" rx="2" fill="#E65100" transform="rotate(5,221,120)"/>
+<!-- Condensation drops -->
+<circle cx="252" cy="150" r="3" fill="#FFF" opacity="0.4"/>
+<circle cx="255" cy="200" r="2.5" fill="#FFF" opacity="0.3"/>
+<circle cx="148" cy="180" r="2.5" fill="#FFF" opacity="0.4"/>
+<!-- Label -->
+<text x="200" y="385" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="bold" fill="#BF360C">Thai Tea</text>
+</svg>

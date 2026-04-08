@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FDDCCC"/><stop offset="100%" stop-color="#C62828"/></radialGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Steam -->
+<g opacity="0.6">
+<path d="M135,95 Q142,68 149,95 Q156,68 163,95" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;-3,-18;0,0" dur="1.6s" repeatCount="indefinite"/></path>
+<path d="M195,85 Q202,55 209,85 Q216,55 223,85" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;0,-20;0,0" dur="2s" repeatCount="indefinite"/></path>
+<path d="M255,95 Q262,68 269,95 Q276,68 283,95" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;3,-18;0,0" dur="1.7s" repeatCount="indefinite"/></path>
+</g>
+<!-- Bowl -->
+<ellipse cx="200" cy="250" rx="145" ry="90" fill="#6D2C1A"/>
+<ellipse cx="200" cy="250" rx="140" ry="85" fill="#7D3C2A"/>
+<!-- Broth -->
+<ellipse cx="200" cy="230" rx="130" ry="70" fill="#A04020"/>
+<!-- Chili oil swirls -->
+<circle cx="150" cy="235" r="12" fill="#D50000" opacity="0.3"/><circle cx="240" cy="240" r="9" fill="#D50000" opacity="0.25"/>
+<!-- Noodles -->
+<g stroke="#F0DC82" stroke-width="3" fill="none" opacity="0.7">
+<path d="M120,230 Q150,215 180,230 Q210,245 240,230 Q270,215 300,230"/>
+<path d="M110,240 Q140,225 170,240 Q200,255 230,240 Q260,225 290,240"/>
+</g>
+<!-- Chashu -->
+<circle cx="155" cy="210" r="22" fill="#8B5E3C"/><circle cx="155" cy="210" r="16" fill="#A0704B" opacity="0.7"/>
+<!-- Egg -->
+<ellipse cx="260" cy="210" rx="20" ry="16" fill="#FFF"/><ellipse cx="260" cy="210" rx="12" ry="9" fill="#FFD700"/>
+<!-- Fish cake -->
+<circle cx="200" cy="195" r="14" fill="#FFD1DC"/><path d="M193,195 Q200,185 207,195" fill="none" stroke="#E75480" stroke-width="2"/>
+<!-- Sesame seeds -->
+<circle cx="140" cy="225" r="2" fill="#FFF8DC"/><circle cx="230" cy="222" r="2" fill="#FFF8DC"/><circle cx="180" cy="232" r="2" fill="#FFF8DC"/>
+<!-- Bean sprouts -->
+<g stroke="#F5F5DC" stroke-width="2" fill="none">
+<path d="M120,215 Q125,210 130,215"/><path d="M270,220 Q275,215 280,220"/>
+</g>
+<!-- Seaweed -->
+<rect x="220" y="185" width="25" height="35" rx="3" fill="#1B4332" opacity="0.85"/>
+<!-- Green onion -->
+<circle cx="175" cy="198" r="4" fill="#4CAF50"/><circle cx="240" cy="198" r="3" fill="#4CAF50"/>
+<!-- Chili peppers -->
+<ellipse cx="130" cy="200" rx="11" ry="4" fill="#D50000" transform="rotate(-15,130,200)"/><line x1="119" y1="198" x2="115" y2="195" stroke="#2E7D32" stroke-width="2"/>
+<!-- Bowl rim -->
+<ellipse cx="200" cy="180" rx="140" ry="30" fill="none" stroke="#6D2C1A" stroke-width="6"/>
+<!-- Chopsticks -->
+<line x1="280" y1="140" x2="340" y2="100" stroke="#C4873B" stroke-width="5" stroke-linecap="round"/>
+<line x1="290" y1="145" x2="350" y2="105" stroke="#A0704B" stroke-width="5" stroke-linecap="round"/>
+<!-- Label -->
+<text x="200" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="bold" fill="#6D2C1A">Spicy Shoyu Ramen</text>
+</svg>

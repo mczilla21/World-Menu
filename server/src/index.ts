@@ -193,14 +193,18 @@ async function start() {
     }
   } catch {}
 
-  // Auto-close stale orders older than 24 hours on startup
-  try {
-    const db = getDb();
-    const stale = db.prepare(
-      "UPDATE orders SET closed = 1, status = 'finished', finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE closed = 0 AND status = 'active' AND created_at < datetime('now', '-24 hours')"
-    ).run();
-    if (stale.changes > 0) console.log(`  Auto-closed ${stale.changes} stale order(s) older than 24 hours`);
-  } catch {}
+  // Auto-close stale orders older than 48 hours (runs on startup + every 6 hours)
+  const closeStaleOrders = () => {
+    try {
+      const db = getDb();
+      const stale = db.prepare(
+        "UPDATE orders SET closed = 1, status = 'finished', finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE closed = 0 AND status = 'active' AND created_at < datetime('now', '-48 hours')"
+      ).run();
+      if (stale.changes > 0) console.log(`  Auto-closed ${stale.changes} stale order(s) older than 48 hours`);
+    } catch {}
+  };
+  closeStaleOrders();
+  setInterval(closeStaleOrders, 6 * 60 * 60 * 1000);
 
   // Start automatic daily log bookkeeping
   startAutoDailyLog();

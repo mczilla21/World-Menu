@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#E8F5E9"/><stop offset="100%" stop-color="#66BB6A"/></radialGradient>
+<linearGradient id="matcha" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFDE7"/><stop offset="20%" stop-color="#F1F8E9"/><stop offset="50%" stop-color="#7CB342"/><stop offset="100%" stop-color="#558B2F"/></linearGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Glass -->
+<path d="M145,90 L155,340 L245,340 L255,90 Z" fill="#FFF" opacity="0.25" stroke="#C8E6C9" stroke-width="2"/>
+<!-- Matcha liquid -->
+<path d="M148,100 L157,335 L243,335 L252,100 Z" fill="url(#matcha)"/>
+<!-- Cream layer -->
+<ellipse cx="200" cy="118" rx="48" ry="10" fill="#FFFDE7" opacity="0.9"/>
+<path d="M158,112 Q180,102 200,112 Q220,122 242,112" fill="none" stroke="#FFF" stroke-width="3" opacity="0.5"/>
+<!-- Ice cubes -->
+<rect x="165" y="145" width="28" height="22" rx="5" fill="#FFF" opacity="0.3" transform="rotate(5,179,156)"/>
+<rect x="195" y="190" width="28" height="22" rx="5" fill="#FFF" opacity="0.25" transform="rotate(-7,209,201)"/>
+<rect x="170" y="235" width="25" height="20" rx="5" fill="#FFF" opacity="0.3" transform="rotate(4,182,245)"/>
+<rect x="200" y="275" width="25" height="20" rx="5" fill="#FFF" opacity="0.25"/>
+<!-- Glass shine -->
+<line x1="155" y1="100" x2="160" y2="330" stroke="#FFF" stroke-width="3" opacity="0.3"/>
+<!-- Straw -->
+<rect x="218" y="40" width="7" height="160" rx="2" fill="#2E7D32" transform="rotate(5,221,120)"/>
+<!-- Condensation -->
+<circle cx="252" cy="160" r="3" fill="#FFF" opacity="0.4"/>
+<circle cx="148" cy="195" r="2.5" fill="#FFF" opacity="0.4"/>
+<circle cx="255" cy="230" r="2" fill="#FFF" opacity="0.3"/>
+<!-- Sparkle -->
+<g fill="#FFF" opacity="0.6">
+<polygon points="300,100 302,106 308,106 303,110 305,116 300,112 295,116 297,110 292,106 298,106">
+<animate attributeName="opacity" values="0.6;0.2;0.6" dur="1.5s" repeatCount="indefinite"/>
+</polygon>
+</g>
+<!-- Label -->
+<text x="200" y="385" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#2E7D32">Matcha Tea</text>
+</svg>

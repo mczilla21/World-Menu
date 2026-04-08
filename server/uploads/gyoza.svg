@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFF8E1"/><stop offset="100%" stop-color="#FFB74D"/></radialGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Plate -->
+<ellipse cx="200" cy="270" rx="155" ry="45" fill="#BDBDBD"/>
+<ellipse cx="200" cy="265" rx="155" ry="45" fill="#EEEEEE"/>
+<!-- Gyoza 1 -->
+<ellipse cx="110" cy="230" rx="35" ry="18" fill="#DAA520"/>
+<path d="M75,230 Q93,210 110,218 Q127,210 145,230" fill="#F5DEB3" stroke="#C49B20" stroke-width="1.5"/>
+<g stroke="#C49B20" stroke-width="1" opacity="0.6"><line x1="88" y1="218" x2="90" y2="225"/><line x1="100" y1="215" x2="101" y2="222"/><line x1="112" y1="214" x2="112" y2="221"/><line x1="124" y1="215" x2="123" y2="222"/><line x1="134" y1="218" x2="132" y2="225"/></g>
+<!-- Gyoza 2 -->
+<ellipse cx="175" cy="225" rx="35" ry="18" fill="#DAA520"/>
+<path d="M140,225 Q158,205 175,213 Q192,205 210,225" fill="#F5DEB3" stroke="#C49B20" stroke-width="1.5"/>
+<g stroke="#C49B20" stroke-width="1" opacity="0.6"><line x1="153" y1="213" x2="155" y2="220"/><line x1="165" y1="210" x2="166" y2="217"/><line x1="177" y1="209" x2="177" y2="216"/><line x1="189" y1="210" x2="188" y2="217"/><line x1="199" y1="213" x2="197" y2="220"/></g>
+<!-- Gyoza 3 -->
+<ellipse cx="240" cy="222" rx="35" ry="18" fill="#DAA520"/>
+<path d="M205,222 Q223,202 240,210 Q257,202 275,222" fill="#F5DEB3" stroke="#C49B20" stroke-width="1.5"/>
+<g stroke="#C49B20" stroke-width="1" opacity="0.6"><line x1="218" y1="210" x2="220" y2="217"/><line x1="230" y1="207" x2="231" y2="214"/><line x1="242" y1="206" x2="242" y2="213"/><line x1="254" y1="207" x2="253" y2="214"/><line x1="264" y1="210" x2="262" y2="217"/></g>
+<!-- Gyoza 4 -->
+<ellipse cx="305" cy="228" rx="35" ry="18" fill="#DAA520"/>
+<path d="M270,228 Q288,208 305,216 Q322,208 340,228" fill="#F5DEB3" stroke="#C49B20" stroke-width="1.5"/>
+<g stroke="#C49B20" stroke-width="1" opacity="0.6"><line x1="283" y1="216" x2="285" y2="223"/><line x1="295" y1="213" x2="296" y2="220"/><line x1="307" y1="212" x2="307" y2="219"/><line x1="319" y1="213" x2="318" y2="220"/><line x1="329" y1="216" x2="327" y2="223"/></g>
+<!-- Gyoza 5 -->
+<ellipse cx="165" cy="250" rx="35" ry="18" fill="#DAA520"/>
+<path d="M130,250 Q148,230 165,238 Q182,230 200,250" fill="#F5DEB3" stroke="#C49B20" stroke-width="1.5"/>
+<!-- Soy sauce dish -->
+<ellipse cx="85" cy="300" rx="32" ry="10" fill="#5D4037"/>
+<ellipse cx="85" cy="297" rx="32" ry="10" fill="#6D4C41"/>
+<ellipse cx="85" cy="294" rx="28" ry="8" fill="#3E2723"/>
+<!-- Sparkle -->
+<g fill="#FFD700" opacity="0.7">
+<polygon points="320,150 322,156 328,156 323,160 325,166 320,162 315,166 317,160 312,156 318,156">
+<animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.5s" repeatCount="indefinite"/>
+</polygon>
+</g>
+<!-- Label -->
+<text x="200" y="375" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="bold" fill="#8D6E63">Gyoza</text>
+</svg>

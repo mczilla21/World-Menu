@@ -42,12 +42,20 @@ export default function StaffSelect() {
   const endShift = async () => {
     if (!confirm(`End shift for ${employee.name}? This will clock you out.`)) return;
     try {
-      await fetch('/api/employees/clock-out', {
+      const res = await fetch('/api/employees/clock-out', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin: employee.pin || '' }),
       });
-    } catch {}
+      const data = await res.json();
+      if (data.error && data.error !== 'Not clocked in') {
+        alert('Could not clock out: ' + data.error);
+        return;
+      }
+    } catch {
+      alert('Could not reach server. Please try again.');
+      return;
+    }
     sessionStorage.removeItem('wm_employee');
     sessionStorage.removeItem('wm_access');
     localStorage.removeItem('role');
