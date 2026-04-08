@@ -31,6 +31,8 @@ const defaultSettings: Settings = {
   call_waiter_enabled: '1',
   tipping_enabled: '0',
   tip_percentages: '15,18,20',
+  // Mode
+  sandbox_mode: '1',
   // Payment
   card_surcharge: '3',
   // Idle screen

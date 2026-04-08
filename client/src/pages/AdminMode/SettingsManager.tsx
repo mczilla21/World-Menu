@@ -729,26 +729,27 @@ export default function SettingsManager() {
       <EndOfDay />
       <DailyLogView />
 
-      {/* Reset Financial Data — owner only */}
-      <div className="bg-slate-800 rounded-xl p-4 space-y-3">
-        <h3 className="font-semibold text-slate-200">Reset Financial Data</h3>
-        <p className="text-xs text-slate-400">Clears all orders, daily logs, time entries, and cash drawer history. Keeps your menu, employees, settings, and floor plan.</p>
-        <button
-          onClick={async () => {
-            const confirm1 = confirm('Are you sure? This will permanently delete ALL orders, daily logs, time entries, and financial records.');
-            if (!confirm1) return;
-            const confirm2 = confirm('This cannot be undone. Type OK in the next prompt to confirm.');
-            if (!confirm2) return;
-            const typed = prompt('Type RESET to confirm:');
-            if (typed !== 'RESET') { alert('Cancelled.'); return; }
-            await fetch('/api/reset-financial-data', { method: 'POST' });
-            alert('All financial data has been cleared. Your menu, employees, and settings are untouched.');
-          }}
-          className="w-full bg-red-900/50 hover:bg-red-900/70 py-3 rounded-xl font-semibold text-sm text-red-400 transition-colors"
-        >
-          Reset All Financial Data
-        </button>
-      </div>
+      {/* Sandbox / Go Live */}
+      {settings.sandbox_mode === '1' && (
+        <div className="bg-orange-900/30 border border-orange-700/50 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🧪</span>
+            <h3 className="font-semibold text-orange-300">Sandbox Mode Active</h3>
+          </div>
+          <p className="text-xs text-orange-300/70">You're in test mode. All orders and data are practice runs. When you're ready to serve real customers, tap Go Live below. This will clear all test data and switch to production mode.</p>
+          <button
+            onClick={async () => {
+              if (!confirm('Go live? This will clear all test orders, logs, and time entries. Your menu, employees, and settings will be kept.')) return;
+              await fetch('/api/reset-financial-data', { method: 'POST' });
+              await updateSetting('sandbox_mode', '0');
+              alert('You are now LIVE! World Menu is ready for real customers.');
+            }}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-base transition-colors"
+          >
+            🚀 Go Live — Start Serving Real Customers
+          </button>
+        </div>
+      )}
 
       {/* Save */}
       {dirty && (

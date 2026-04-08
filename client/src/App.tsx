@@ -23,6 +23,13 @@ export default function App() {
   return (
     <>
       <OfflineIndicator />
+      {settings.sandbox_mode === '1' && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <div style={{ transform: 'rotate(-35deg)', fontSize: 120, fontWeight: 900, color: 'rgba(249,115,22,0.08)', whiteSpace: 'nowrap', userSelect: 'none', letterSpacing: 8 }}>
+            SANDBOX
+          </div>
+        </div>
+      )}
       <Suspense fallback={<div className="min-h-screen" style={{background:'#f8fafc'}} />}>
         <Routes>
           {needsSetup ? (

@@ -62,6 +62,7 @@ export default function SetupWizard() {
         supported_languages: [...supportedLangs].join(','),
         table_count: tableCount,
         setup_complete: '1',
+        sandbox_mode: '1',
       };
       if (logoFilename) settings.logo = logoFilename;
 
