@@ -45,6 +45,15 @@ export default function SettingsManager() {
   const [packagingOptions, setPackagingOptions] = useState<PackagingOption[]>([]);
   const [newPackaging, setNewPackaging] = useState('');
 
+  // Warn before navigating away with unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) { e.preventDefault(); e.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
+
   useEffect(() => {
     fetch('/api/server-info').then(r => r.json()).then(data => {
       if (data.url) setServerUrl(data.url);

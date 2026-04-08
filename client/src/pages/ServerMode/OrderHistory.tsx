@@ -160,7 +160,7 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-base">{order.order_number}</span>
                         {order.order_type === 'dine_in' && <span className="text-xs text-slate-500">Table {order.table_number}</span>}
-                        {order.order_type === 'takeout' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-900/40 text-orange-400 font-medium">Takeout</span>}
+                        {order.order_type === 'takeout' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-900/40 text-orange-400 font-medium">To-Go</span>}
                         {order.order_type === 'pickup' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-900/40 text-green-400 font-medium">To-Go</span>}
                         {order.order_type !== 'takeout' && order.order_type !== 'pickup' && !order.order_type && <span className="text-xs text-slate-500">Table {order.table_number}</span>}
                         {order.customer_name && <span className="text-xs text-slate-400">{order.customer_name}</span>}

@@ -242,7 +242,7 @@ export default function ServerMode() {
         setView('table');
       }
     }
-    else if (view === 'table') { navigate('/staff-select'); return; }
+    else if (view === 'table') { navigate(sessionStorage.getItem('wm_employee') ? '/staff-select' : '/'); return; }
     else if (view === 'sent') { clearCart(); setView('table'); }
     else if (view === 'history') setView('table');
     else if (view === 'payment') setView('table');

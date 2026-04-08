@@ -35,44 +35,49 @@ export default function SetupWizard() {
 
   const handleFinish = async () => {
     setSaving(true);
+    try {
+      // 1. Create owner account
+      const empRes = await fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: ownerName.trim(), pin: ownerPin, role: 'owner', hourly_rate: 0 }),
+      });
+      if (!empRes.ok) throw new Error(`Failed to create owner account: ${empRes.statusText}`);
 
-    // 1. Create owner account
-    await fetch('/api/employees', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: ownerName.trim(), pin: ownerPin, role: 'owner', hourly_rate: 0 }),
-    });
-
-    // 2. Upload logo
-    let logoFilename = '';
-    if (logo) {
-      const formData = new FormData();
-      formData.append('file', logo);
-      try {
+      // 2. Upload logo
+      let logoFilename = '';
+      if (logo) {
+        const formData = new FormData();
+        formData.append('file', logo);
         const res = await fetch('/api/uploads', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error(`Failed to upload logo: ${res.statusText}`);
         const data = await res.json();
         logoFilename = data.filename || '';
-      } catch {}
+      }
+
+      // 3. Save settings
+      const settings: Record<string, string> = {
+        restaurant_name: name,
+        native_language: nativeLang,
+        supported_languages: [...supportedLangs].join(','),
+        table_count: tableCount,
+        setup_complete: '1',
+      };
+      if (logoFilename) settings.logo = logoFilename;
+
+      const settingsRes = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      if (!settingsRes.ok) throw new Error(`Failed to save settings: ${settingsRes.statusText}`);
+
+      window.location.href = '/';
+    } catch (err: any) {
+      alert(`Setup failed: ${err.message || 'Unknown error'}. Please try again.`);
+    } finally {
+      setSaving(false);
     }
-
-    // 3. Save settings
-    const settings: Record<string, string> = {
-      restaurant_name: name,
-      native_language: nativeLang,
-      supported_languages: [...supportedLangs].join(','),
-      table_count: tableCount,
-      setup_complete: '1',
-    };
-    if (logoFilename) settings.logo = logoFilename;
-
-    await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
-    });
-
-    setSaving(false);
-    window.location.href = '/';
   };
 
   return (

@@ -362,14 +362,25 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
               <span className="text-lg font-bold text-gray-900 w-6 text-center">{quantity}</span>
               <button onClick={() => setQuantity(quantity + 1)} className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 font-bold">+</button>
             </div>
-            <button
-              onClick={handleAddToCart}
-              disabled={hasModifiers && (stepIdx < groups.length - 1 || (!!currentGroup?.required && currentSel.size === 0)) || (hasVariants && !selectedVariant)}
-              className="flex-1 py-3.5 rounded-xl font-bold text-white text-lg disabled:opacity-40 transition-all active:scale-[0.98]"
-              style={{ backgroundColor: themeColor }}
-            >
-              Add {currency}{totalPrice.toFixed(2)}
-            </button>
+            {hasModifiers && stepIdx < groups.length - 1 ? (
+              <button
+                onClick={() => setStepIdx(stepIdx + 1)}
+                disabled={!!currentGroup?.required && currentSel.size === 0}
+                className="flex-1 py-3.5 rounded-xl font-bold text-white text-lg disabled:opacity-40 transition-all active:scale-[0.98]"
+                style={{ backgroundColor: themeColor }}
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={handleAddToCart}
+                disabled={(hasModifiers && !!currentGroup?.required && currentSel.size === 0) || (hasVariants && !selectedVariant)}
+                className="flex-1 py-3.5 rounded-xl font-bold text-white text-lg disabled:opacity-40 transition-all active:scale-[0.98]"
+                style={{ backgroundColor: themeColor }}
+              >
+                Add {currency}{totalPrice.toFixed(2)}
+              </button>
+            )}
           </div>
         </div>
       </div>

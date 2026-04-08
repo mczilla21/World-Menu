@@ -276,12 +276,26 @@ export default function CustomerMenu() {
 
   if (orderSent) {
     return (
-      <OrderConfirmation
-        tableNumber={tableNumber || ''}
-        onAddMore={() => setOrderSent(false)}
-        restaurantName={settings.restaurant_name}
-        orderType={tableNumber ? 'dine_in' : 'takeout'}
-      />
+      <>
+        <OrderConfirmation
+          tableNumber={tableNumber || ''}
+          onAddMore={() => setOrderSent(false)}
+          restaurantName={settings.restaurant_name}
+          orderType={tableNumber ? 'dine_in' : 'takeout'}
+        />
+        {/* Idle screen must render even during orderSent so timeout can trigger */}
+        {settings.idle_screen_enabled === '1' && (
+          <IdleScreen
+            restaurantName={settings.restaurant_name}
+            logo={settings.logo}
+            message={settings.idle_screen_message || 'Welcome! Tap to start ordering'}
+            bgImage={settings.idle_screen_bg_image || ''}
+            themeColor={settings.theme_color}
+            timeoutMinutes={parseInt(settings.idle_screen_timeout || '3') || 3}
+            onDismiss={handleIdleDismiss}
+          />
+        )}
+      </>
     );
   }
 
@@ -398,7 +412,7 @@ export default function CustomerMenu() {
       </header>
 
       {/* Specials section */}
-      {specialItems.length > 0 && selectedCat === categories[0]?.id && (
+      {specialItems.length > 0 && !searchQuery.trim() && (
         <div className="px-4 pt-4">
           <h2 className="text-sm font-bold text-gray-900 mb-2">Today's Specials</h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
@@ -541,14 +555,7 @@ export default function CustomerMenu() {
       {/* Switch Role - at very bottom of menu, locked behind PIN */}
       <div className="py-6 flex justify-center">
         <button
-          onClick={() => {
-            if (settings.admin_pin) {
-              setShowPin(true);
-            } else {
-              localStorage.removeItem('role');
-              navigate('/');
-            }
-          }}
+          onClick={() => setShowPin(true)}
           className="text-[10px] text-gray-300 hover:text-gray-400"
         >
           Switch Role
@@ -595,6 +602,16 @@ export default function CustomerMenu() {
                 );
               })}
             </div>
+            {/* Dismiss button — continue in default language */}
+            <button
+              onClick={() => {
+                setCustomerLang(settings.native_language);
+                setLangSelected(true);
+              }}
+              className="w-full mt-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Continue in {LANGUAGE_OPTIONS.find(l => l.code === settings.native_language)?.name || settings.native_language}
+            </button>
           </div>
         </div>
       )}
@@ -723,6 +740,9 @@ export default function CustomerMenu() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
                 {splitMode && selectedItems.size > 0 && (
                   <button onClick={() => {
+                    // Compute expected paid count after this payment
+                    const nextPaidSize = paidItems.size + selectedItems.size;
+
                     // Mark selected items as paid
                     setPaidItems(prev => {
                       const next = new Set(prev);
@@ -733,7 +753,7 @@ export default function CustomerMenu() {
                     setTipAmount(0);
 
                     // If all items now paid, request check
-                    if (paidItems.size + selectedItems.size >= billItems.length) {
+                    if (nextPaidSize >= billItems.length) {
                       handleConfirmCheck();
                     }
                   }} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, background: '#8b5cf6', color: '#fff' }}>
