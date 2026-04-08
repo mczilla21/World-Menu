@@ -1,6 +1,7 @@
 @echo off
 title World Menu POS - Server
 color 0A
+mode con: cols=80 lines=35
 cd /d "%~dp0"
 
 :: Get local IP address
