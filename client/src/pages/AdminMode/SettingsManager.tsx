@@ -1066,16 +1066,7 @@ function UpdateChecker() {
         <div className="text-sm" style={{ color: '#94a3b8' }}>{result.message}</div>
       )}
 
-      <div>
-        <label className="text-xs text-slate-400 mb-1 block">GitHub Repository</label>
-        <input
-          value={settings.github_repo || ''}
-          onChange={e => updateSetting('github_repo', e.target.value.trim())}
-          placeholder="username/world-menu-pos"
-          className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-sm font-mono"
-        />
-        <p className="text-xs text-slate-500 mt-1">Format: username/repo-name (e.g. yourgithub/world-menu-pos)</p>
-      </div>
+      {/* GitHub repo is set internally — not shown to end users */}
     </div>
   );
 }

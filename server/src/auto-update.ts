@@ -24,10 +24,13 @@ function getLocalVersion(): string {
   } catch { return '0.0.0'; }
 }
 
+const DEFAULT_REPO = 'mczilla21/World-Menu';
+
 function getGithubRepo(): string {
   try {
-    return (getDb().prepare("SELECT value FROM settings WHERE key = 'github_repo'").get() as any)?.value || '';
-  } catch { return ''; }
+    const val = (getDb().prepare("SELECT value FROM settings WHERE key = 'github_repo'").get() as any)?.value;
+    return val || DEFAULT_REPO;
+  } catch { return DEFAULT_REPO; }
 }
 
 export async function checkForUpdate(): Promise<UpdateInfo> {
@@ -44,7 +47,7 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
     });
 
     if (!res.ok) {
-      return { available: false, currentVersion, latestVersion: '', downloadUrl: '', releaseName: '', releaseDate: '', releaseUrl: '' };
+      return { available: false, currentVersion, latestVersion: '', downloadUrl: '', releaseName: '', releaseDate: '', releaseUrl: '', message: `GitHub returned ${res.status}` };
     }
 
     const release = await res.json();
@@ -68,8 +71,8 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
       releaseDate: release.published_at || '',
       releaseUrl: release.html_url || '',
     };
-  } catch {
-    return { available: false, currentVersion, latestVersion: '', downloadUrl: '', releaseName: '', releaseDate: '', releaseUrl: '' };
+  } catch (err: any) {
+    return { available: false, currentVersion, latestVersion: '', downloadUrl: '', releaseName: '', releaseDate: '', releaseUrl: '', message: err.message || 'Network error' };
   }
 }
 
