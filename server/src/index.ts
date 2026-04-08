@@ -6,6 +6,7 @@ import fastifyMultipart from '@fastify/multipart';
 import fs from 'fs';
 import { config } from './config.js';
 import { getDb } from './db/connection.js';
+import { broadcastToAll } from './ws/broadcast.js';
 import { runMigrations } from './db/migrate.js';
 import { registerCategoryRoutes } from './routes/categories.js';
 import { registerMenuRoutes } from './routes/menu.js';
@@ -146,6 +147,20 @@ async function start() {
   app.post('/api/daily-reset', () => {
     runDailyReset();
     return { ok: true };
+  });
+
+  // Owner-only: wipe all financial/test data (keeps menu, employees, settings, floor plan)
+  app.post('/api/reset-financial-data', () => {
+    const db = getDb();
+    db.exec('DELETE FROM order_items');
+    db.exec('DELETE FROM orders');
+    db.exec('DELETE FROM daily_logs');
+    db.exec('DELETE FROM time_entries');
+    db.exec('DELETE FROM service_calls');
+    db.exec('DELETE FROM cash_drawer_log');
+    db.exec('DELETE FROM refunds');
+    broadcastToAll({ type: 'HISTORY_CLEARED' });
+    return { ok: true, message: 'All financial data cleared' };
   });
 
   // Start

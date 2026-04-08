@@ -729,6 +729,27 @@ export default function SettingsManager() {
       <EndOfDay />
       <DailyLogView />
 
+      {/* Reset Financial Data — owner only */}
+      <div className="bg-slate-800 rounded-xl p-4 space-y-3">
+        <h3 className="font-semibold text-slate-200">Reset Financial Data</h3>
+        <p className="text-xs text-slate-400">Clears all orders, daily logs, time entries, and cash drawer history. Keeps your menu, employees, settings, and floor plan.</p>
+        <button
+          onClick={async () => {
+            const confirm1 = confirm('Are you sure? This will permanently delete ALL orders, daily logs, time entries, and financial records.');
+            if (!confirm1) return;
+            const confirm2 = confirm('This cannot be undone. Type OK in the next prompt to confirm.');
+            if (!confirm2) return;
+            const typed = prompt('Type RESET to confirm:');
+            if (typed !== 'RESET') { alert('Cancelled.'); return; }
+            await fetch('/api/reset-financial-data', { method: 'POST' });
+            alert('All financial data has been cleared. Your menu, employees, and settings are untouched.');
+          }}
+          className="w-full bg-red-900/50 hover:bg-red-900/70 py-3 rounded-xl font-semibold text-sm text-red-400 transition-colors"
+        >
+          Reset All Financial Data
+        </button>
+      </div>
+
       {/* Save */}
       {dirty && (
         <button
