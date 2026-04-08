@@ -66,7 +66,7 @@ export function registerPosRoutes(app: FastifyInstance) {
   // Authenticate by PIN
   app.post<{ Body: { pin: string } }>('/api/employees/auth', (req, reply) => {
     const db = getDb();
-    const emp = db.prepare('SELECT id, name, role FROM employees WHERE pin = ? AND is_active = 1').get(req.body.pin) as any;
+    const emp = db.prepare('SELECT id, name, role, pin FROM employees WHERE pin = ? AND is_active = 1').get(req.body.pin) as any;
     if (!emp) return reply.code(401).send({ error: 'Invalid PIN' });
     return { ok: true, employee: emp };
   });

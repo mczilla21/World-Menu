@@ -39,6 +39,21 @@ export default function StaffSelect() {
 
   const visibleModes = getVisibleModes(employee.role);
 
+  const endShift = async () => {
+    if (!confirm(`End shift for ${employee.name}? This will clock you out.`)) return;
+    try {
+      await fetch('/api/employees/clock-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: employee.pin || '' }),
+      });
+    } catch {}
+    sessionStorage.removeItem('wm_employee');
+    sessionStorage.removeItem('wm_access');
+    localStorage.removeItem('role');
+    navigate('/');
+  };
+
   const logout = () => {
     sessionStorage.removeItem('wm_employee');
     sessionStorage.removeItem('wm_access');
@@ -77,9 +92,14 @@ export default function StaffSelect() {
           ))}
         </div>
 
-        <button onClick={logout} className="mt-6 text-sm mx-auto block" style={{ color: '#94a3b8' }}>
-          Logout
-        </button>
+        <div className="mt-6 flex justify-center gap-4">
+          <button onClick={endShift} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+            🕐 End Shift
+          </button>
+          <button onClick={logout} className="text-sm" style={{ color: '#94a3b8' }}>
+            Switch User
+          </button>
+        </div>
       </div>
     </div>
   );

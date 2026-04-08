@@ -37,6 +37,13 @@ export default function RoleSelect() {
         sessionStorage.setItem('wm_employee', JSON.stringify(data.employee));
         const role = data.employee.role;
 
+        // Auto clock-in
+        fetch('/api/employees/clock-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: pin.trim() }),
+        }).catch(() => {});
+
         // Route based on role
         if (role === 'owner' || role === 'manager') {
           // Owners/managers go to a role picker since they can access everything
