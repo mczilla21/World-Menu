@@ -530,6 +530,7 @@ export default function ServerMode() {
 // Wrapper that fetches order data and renders PaymentScreen
 function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDone: () => void }) {
   const [items, setItems] = useState<any[]>([]);
+  const [orderId, setOrderId] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
@@ -540,6 +541,7 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
         const res = await fetch('/api/orders/active');
         const orders = await res.json();
         const tableOrders = orders.filter((o: any) => String(o.table_number) === tableNumber);
+        if (tableOrders.length > 0) setOrderId(tableOrders[0].id);
         const allItems = tableOrders.flatMap((o: any) => (o.items || []).map((i: any) => ({
           id: i.id, item_name: i.item_name, variant_name: i.variant_name || '',
           quantity: i.quantity, item_price: i.item_price, notes: i.notes || '', is_done: i.is_done || 0,
@@ -557,6 +559,7 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
   return (
     <PaymentScreen
       tableNumber={tableNumber}
+      orderId={orderId}
       items={items}
       subtotal={subtotal}
       currency={currency}

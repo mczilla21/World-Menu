@@ -17,7 +17,6 @@ export default function SettingsManager() {
   const [orderPrefix, setOrderPrefix] = useState(settings.order_prefix);
   const [themeColor, setThemeColor] = useState(settings.theme_color);
   const [nativeLang, setNativeLang] = useState(settings.native_language);
-  const [supportedLangs, setSupportedLangs] = useState<Set<string>>(new Set(settings.supported_languages.split(',').filter(Boolean)));
   const [customerMode, setCustomerMode] = useState(settings.customer_mode_enabled === '1');
   const [qrTable, setQrTable] = useState('1');
   const [qrDataUrl, setQrDataUrl] = useState('');
@@ -67,7 +66,6 @@ export default function SettingsManager() {
     setOrderPrefix(settings.order_prefix);
     setThemeColor(settings.theme_color);
     setNativeLang(settings.native_language);
-    setSupportedLangs(new Set(settings.supported_languages.split(',').filter(Boolean)));
     setCustomerMode(settings.customer_mode_enabled === '1');
     setOrderTypesEnabled(new Set((settings.order_types_enabled || 'dine_in,takeout,pickup').split(',').filter(Boolean)));
     setTakeoutOnly(settings.takeout_only === '1');
@@ -109,18 +107,6 @@ export default function SettingsManager() {
       idle_screen_bg_image: idleBgImage,
     });
     setDirty(false);
-  };
-
-  const toggleLang = (code: string) => {
-    const next = new Set(supportedLangs);
-    if (next.has(code)) {
-      if (code === nativeLang) return;
-      next.delete(code);
-    } else {
-      next.add(code);
-    }
-    setSupportedLangs(next);
-    setDirty(true);
   };
 
   const toggleOrderType = (type: string) => {

@@ -385,7 +385,7 @@ export default function FloorPlanEditor() {
                   bg-gradient-to-b ${style.bg} border-2 ${style.border} ${style.shape}
                   transition-shadow
                   ${editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
-                  ${isSelected ? 'ring-3 ring-white/60 shadow-xl z-10' : 'shadow-md'}
+                  ${isSelected ? 'ring-2 ring-white/60 shadow-xl z-10' : 'shadow-md'}
                   ${isDragging ? 'opacity-80 scale-110 z-20' : ''}`}
                 style={{
                   left: table.x, top: table.y,
