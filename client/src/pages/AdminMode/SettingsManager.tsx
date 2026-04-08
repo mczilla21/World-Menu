@@ -220,7 +220,7 @@ export default function SettingsManager() {
       <div className="bg-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="font-semibold text-slate-200">Languages</h3>
         <div>
-          <label className="text-xs text-slate-400 mb-1 block">Native Language (kitchen language)</label>
+          <label className="text-xs text-slate-400 mb-1 block">System Default Language</label>
           <select
             value={nativeLang}
             onChange={e => { setNativeLang(e.target.value); setDirty(true); }}
@@ -230,7 +230,7 @@ export default function SettingsManager() {
               <option key={l.code} value={l.code}>{l.name} ({l.flag})</option>
             ))}
           </select>
-          <p className="text-[11px] text-slate-500 mt-1">Menu items and kitchen orders will be in this language</p>
+          <p className="text-[11px] text-slate-500 mt-1">Default language for the entire app. Staff can set their own language in their profile.</p>
         </div>
         <div className="bg-slate-700/30 rounded-lg p-3">
           <p className="text-xs text-slate-400">🌐 All 60+ languages are available for customers automatically. They pick their language when they sit down.</p>

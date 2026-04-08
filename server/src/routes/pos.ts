@@ -15,12 +15,12 @@ export function registerPosRoutes(app: FastifyInstance) {
     return getDb().prepare('SELECT * FROM employees ORDER BY name').all();
   });
 
-  app.post<{ Body: { name: string; pin: string; role?: string; hourly_rate?: number } }>('/api/employees', (req, reply) => {
+  app.post<{ Body: { name: string; pin: string; role?: string; hourly_rate?: number; language?: string } }>('/api/employees', (req, reply) => {
     const db = getDb();
-    const { name, pin, role = 'server', hourly_rate = 0 } = req.body;
+    const { name, pin, role = 'server', hourly_rate = 0, language = '' } = req.body;
     const existing = db.prepare('SELECT id FROM employees WHERE pin = ? AND is_active = 1').get(pin) as any;
     if (existing) return reply.code(409).send({ error: 'PIN already taken, pick another' });
-    const result = db.prepare('INSERT INTO employees (name, pin, role, hourly_rate) VALUES (?, ?, ?, ?)').run(name, pin, role, hourly_rate);
+    const result = db.prepare('INSERT INTO employees (name, pin, role, hourly_rate, language) VALUES (?, ?, ?, ?, ?)').run(name, pin, role, hourly_rate, language);
     return db.prepare('SELECT * FROM employees WHERE id = ?').get(result.lastInsertRowid);
   });
 
@@ -34,9 +34,9 @@ export function registerPosRoutes(app: FastifyInstance) {
       const dupe = db.prepare('SELECT id FROM employees WHERE pin = ? AND is_active = 1 AND id != ?').get(newPin, Number(req.params.id)) as any;
       if (dupe) return reply.code(409).send({ error: 'PIN already taken, pick another' });
     }
-    db.prepare('UPDATE employees SET name=?, pin=?, role=?, hourly_rate=?, is_active=? WHERE id=?')
+    db.prepare('UPDATE employees SET name=?, pin=?, role=?, hourly_rate=?, is_active=?, language=? WHERE id=?')
       .run(b.name ?? existing.name, newPin, b.role ?? existing.role,
-        b.hourly_rate ?? existing.hourly_rate, b.is_active ?? existing.is_active, req.params.id);
+        b.hourly_rate ?? existing.hourly_rate, b.is_active ?? existing.is_active, b.language ?? existing.language ?? '', req.params.id);
     return db.prepare('SELECT * FROM employees WHERE id = ?').get(req.params.id);
   });
 
@@ -66,7 +66,7 @@ export function registerPosRoutes(app: FastifyInstance) {
   // Authenticate by PIN
   app.post<{ Body: { pin: string } }>('/api/employees/auth', (req, reply) => {
     const db = getDb();
-    const emp = db.prepare('SELECT id, name, role, pin FROM employees WHERE pin = ? AND is_active = 1').get(req.body.pin) as any;
+    const emp = db.prepare('SELECT id, name, role, pin, language FROM employees WHERE pin = ? AND is_active = 1').get(req.body.pin) as any;
     if (!emp) return reply.code(401).send({ error: 'Invalid PIN' });
     return { ok: true, employee: emp };
   });

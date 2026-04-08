@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { LANGUAGE_OPTIONS } from '../../../hooks/useSettings';
 
-interface Employee { id: number; name: string; pin: string; role: string; hourly_rate: number; is_active: number; }
+interface Employee { id: number; name: string; pin: string; role: string; hourly_rate: number; is_active: number; language?: string; }
 interface TimeEntry { id: number; employee_name: string; employee_role: string; clock_in: string; clock_out: string; tips: number; hourly_rate: number; }
 
 export default function EmployeeManager() {
@@ -10,6 +11,7 @@ export default function EmployeeManager() {
   const [pin, setPin] = useState('');
   const [role, setRole] = useState('server');
   const [rate, setRate] = useState('');
+  const [empLang, setEmpLang] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
   const fetch_ = async () => {
@@ -24,8 +26,8 @@ export default function EmployeeManager() {
   const handleAdd = async () => {
     if (!name.trim() || !pin.trim()) return;
     await fetch('/api/employees', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), pin, role, hourly_rate: parseFloat(rate) || 0 }) });
-    setName(''); setPin(''); setRate('');
+      body: JSON.stringify({ name: name.trim(), pin, role, hourly_rate: parseFloat(rate) || 0, language: empLang }) });
+    setName(''); setPin(''); setRate(''); setEmpLang('');
     fetch_();
   };
 
@@ -63,7 +65,7 @@ export default function EmployeeManager() {
       {/* Add employee */}
       <div className="bg-slate-800 rounded-xl p-4">
         <h3 className="font-semibold text-slate-200 mb-3">Add Employee</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" className="bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-sm" />
           <input value={pin} onChange={e => setPin(e.target.value)} placeholder="PIN (4 digit)" maxLength={4} className="bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-sm" />
           <select value={role} onChange={e => setRole(e.target.value)} className="bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-sm">
@@ -71,6 +73,10 @@ export default function EmployeeManager() {
             <option value="kitchen">Kitchen</option>
             <option value="manager">Manager</option>
             <option value="host">Host</option>
+          </select>
+          <select value={empLang} onChange={e => setEmpLang(e.target.value)} className="bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-sm">
+            <option value="">System Default</option>
+            {LANGUAGE_OPTIONS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
           </select>
           <input value={rate} onChange={e => setRate(e.target.value)} placeholder="$/hr" type="number" className="bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-sm" />
           <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-500 rounded-lg px-4 py-2 text-sm font-medium">Add</button>
@@ -87,6 +93,7 @@ export default function EmployeeManager() {
                 <span className="text-sm font-medium text-white">{emp.name}</span>
                 <span className="text-xs text-slate-400 ml-2">{emp.role}</span>
                 <span className="text-xs text-slate-500 ml-2">PIN: {emp.pin}</span>
+                {emp.language && <span className="text-xs text-blue-400 ml-2">{LANGUAGE_OPTIONS.find(l => l.code === emp.language)?.name || emp.language}</span>}
               </div>
               <span className="text-xs text-emerald-400">${emp.hourly_rate}/hr</span>
               <button onClick={() => toggleActive(emp)} className={`text-xs px-2 py-1 rounded ${emp.is_active ? 'bg-red-900/50 text-red-400' : 'bg-emerald-900/50 text-emerald-400'}`}>

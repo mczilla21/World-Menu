@@ -37,6 +37,11 @@ export default function RoleSelect() {
         sessionStorage.setItem('wm_employee', JSON.stringify(data.employee));
         const role = data.employee.role;
 
+        // Set display language to employee's preference (or system default)
+        if (data.employee.language) {
+          localStorage.setItem('wm_display_lang', 'translated');
+        }
+
         // Auto clock-in for hourly staff only (not owners/managers)
         if (role !== 'owner' && role !== 'manager') try {
           const clockRes = await fetch('/api/employees/clock-in', {
