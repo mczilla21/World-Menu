@@ -374,10 +374,10 @@ export default function NoodleBowlBuilder({
       {/* Scrollable content */}
       <div className="flex-1 overflow-auto">
         {/* Bowl Visual */}
-        <div className="flex flex-col items-center pt-6 pb-4 px-4">
+        <div className="flex flex-col items-center pt-3 pb-2 px-4">
           <div
             className="relative"
-            style={{ width: 260, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
+            style={{ width: 160, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
           >
             {/* Steam */}
             {isComplete && <Steam />}
@@ -387,7 +387,7 @@ export default function NoodleBowlBuilder({
               className="relative z-10 mx-auto"
               style={{
                 width: '100%',
-                height: 22,
+                height: 14,
                 background: 'linear-gradient(to bottom, #C9A96E, #A88840)',
                 borderRadius: '50%',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
@@ -399,8 +399,8 @@ export default function NoodleBowlBuilder({
               className="relative mx-auto overflow-hidden"
               style={{
                 width: '94%',
-                height: 155,
-                marginTop: -11,
+                height: 95,
+                marginTop: -7,
                 background: '#FFF8F0',
                 borderRadius: '0 0 50% 50% / 0 0 100% 100%',
                 boxShadow: '0 8px 28px rgba(139,110,46,0.18), inset 0 -4px 12px rgba(139,110,46,0.08)',
@@ -471,7 +471,7 @@ export default function NoodleBowlBuilder({
               {/* Protein layer */}
               {selectedProtein && (
                 <div
-                  className="absolute top-[8%] left-1/2 -translate-x-1/2 text-[42px] leading-none transition-all duration-500"
+                  className="absolute top-[8%] left-1/2 -translate-x-1/2 text-[26px] leading-none transition-all duration-500"
                   style={{ animation: 'floatIn 0.4s ease-out' }}
                 >
                   {getProteinEmoji(selectedProtein.name)}
@@ -496,7 +496,7 @@ export default function NoodleBowlBuilder({
           </div>
 
           {/* Selection summary badges */}
-          <div className="flex gap-2 mt-4 flex-wrap justify-center">
+          <div className="flex gap-1.5 mt-2 flex-wrap justify-center">
             {selectedBroth && (
               <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: getBrothColor(selectedBroth.name) + '25', color: getBrothColor(selectedBroth.name) }}>
                 {translateModifier(selectedBroth.id, selectedBroth.name)}
@@ -515,7 +515,7 @@ export default function NoodleBowlBuilder({
           </div>
 
           {/* Price */}
-          <div className="text-2xl font-bold mt-3" style={{ color: themeColor }}>
+          <div className="text-xl font-bold mt-1" style={{ color: themeColor }}>
             {totalExtra > 0 && <span className="text-base text-gray-400 mr-2 line-through">{currency}{basePrice.toFixed(2)}</span>}
             {currency}{(basePrice + totalExtra).toFixed(2)}
           </div>
