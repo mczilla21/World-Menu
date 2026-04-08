@@ -36,10 +36,16 @@ export default function MenuItemManager({ items, categories, onUpdate }: Props) 
   const [showVariants, setShowVariants] = useState(false);
 
   // Modifier group assignment
-  const [allModifierGroups, setAllModifierGroups] = useState<{ id: number; name: string; category_id: number; selection_type: string }[]>([]);
+  const [allModifierGroups, setAllModifierGroups] = useState<{ id: number; name: string; category_id: number; selection_type: string; required: number; modifiers: { id: number; name: string; extra_price: number; default_on: number }[] }[]>([]);
   const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number>>(new Set());
   const [modGroupsLoading, setModGroupsLoading] = useState(false);
   const [modGroupsSaving, setModGroupsSaving] = useState(false);
+  // Inline modifier creation
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupType, setNewGroupType] = useState('single');
+  const [addingModToGroup, setAddingModToGroup] = useState<number | null>(null);
+  const [newModName, setNewModName] = useState('');
+  const [newModPrice, setNewModPrice] = useState('');
 
   const [uploading, setUploading] = useState(false);
   const { settings } = useSettings();
@@ -490,63 +496,93 @@ export default function MenuItemManager({ items, categories, onUpdate }: Props) 
                       )}
                     </div>
 
-                    {/* Customizations — per-item modifier group assignment */}
+                    {/* Customizations — inline modifier group management */}
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-1 block">Customizations</label>
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-2 block">Customizations</label>
                       {modGroupsLoading ? (
-                        <p className="text-xs text-slate-500">Loading modifier groups...</p>
-                      ) : allModifierGroups.length === 0 ? (
-                        <p className="text-xs text-slate-500">No modifier groups created yet. Add them in the Customizations tab.</p>
+                        <p className="text-xs text-slate-500">Loading...</p>
                       ) : (
-                        <div style={{ background: 'rgba(51,65,85,0.5)', borderRadius: 8, padding: 12 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            {allModifierGroups.map(group => {
-                              const checked = assignedGroupIds.has(group.id);
-                              const catName = categories.find(c => c.id === group.category_id)?.name;
-                              return (
-                                <label
-                                  key={group.id}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    cursor: 'pointer',
-                                    padding: '4px 6px',
-                                    borderRadius: 6,
-                                    background: checked ? 'rgba(139,92,246,0.15)' : 'transparent',
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => toggleModifierGroup(group.id)}
-                                    style={{ accentColor: '#8b5cf6', width: 16, height: 16 }}
-                                  />
-                                  <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500 }}>{group.name}</span>
-                                  <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 'auto' }}>
-                                    {group.selection_type}{catName ? ` · ${catName}` : ''}
-                                  </span>
-                                </label>
-                              );
-                            })}
+                        <div className="space-y-2">
+                          {/* Assigned groups with their options */}
+                          {allModifierGroups.filter(g => assignedGroupIds.has(g.id)).map(group => (
+                            <div key={group.id} className="rounded-lg p-3" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-purple-300">{group.name}</span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-700 text-slate-400">{group.selection_type}</span>
+                                </div>
+                                <button onClick={() => { toggleModifierGroup(group.id); saveModifierGroups(item.id); }} className="text-[10px] text-red-400 hover:text-red-300">Remove</button>
+                              </div>
+                              {/* Options list */}
+                              <div className="space-y-1 mb-2">
+                                {(group.modifiers || []).map(mod => (
+                                  <div key={mod.id} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-slate-800/50">
+                                    <span className="text-slate-300">{mod.name}</span>
+                                    <div className="flex items-center gap-2">
+                                      {mod.extra_price > 0 && <span className="text-slate-500">+{currency}{mod.extra_price.toFixed(2)}</span>}
+                                      <button onClick={async () => { await fetch(`/api/modifiers/${mod.id}`, { method: 'DELETE' }); startEdit(item); }} className="text-red-500 hover:text-red-400 text-[10px]">✕</button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              {/* Add option inline */}
+                              {addingModToGroup === group.id ? (
+                                <div className="flex gap-1">
+                                  <input value={newModName} onChange={e => setNewModName(e.target.value)} placeholder="Option name" className="flex-1 bg-slate-700 rounded px-2 py-1 text-white text-xs outline-none" />
+                                  <input value={newModPrice} onChange={e => setNewModPrice(e.target.value)} placeholder="$" type="number" className="w-14 bg-slate-700 rounded px-2 py-1 text-white text-xs outline-none" />
+                                  <button onClick={async () => {
+                                    if (!newModName.trim()) return;
+                                    await fetch('/api/modifiers', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ group_id: group.id, name: newModName.trim(), extra_price: parseFloat(newModPrice) || 0 }) });
+                                    setNewModName(''); setNewModPrice(''); setAddingModToGroup(null); startEdit(item);
+                                  }} className="px-2 py-1 bg-purple-600 rounded text-[10px] font-bold text-white">Add</button>
+                                  <button onClick={() => setAddingModToGroup(null)} className="px-2 py-1 bg-slate-700 rounded text-[10px] text-slate-400">✕</button>
+                                </div>
+                              ) : (
+                                <button onClick={() => { setAddingModToGroup(group.id); setNewModName(''); setNewModPrice(''); }} className="text-[10px] text-purple-400 hover:text-purple-300 font-medium">+ Add option</button>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Unassigned groups (collapsed, checkboxes) */}
+                          {allModifierGroups.filter(g => !assignedGroupIds.has(g.id)).length > 0 && (
+                            <div className="rounded-lg p-2" style={{ background: 'rgba(51,65,85,0.3)' }}>
+                              <span className="text-[10px] text-slate-500 block mb-1">Available groups:</span>
+                              <div className="flex flex-wrap gap-1">
+                                {allModifierGroups.filter(g => !assignedGroupIds.has(g.id)).map(group => (
+                                  <button key={group.id} onClick={() => { toggleModifierGroup(group.id); setTimeout(() => saveModifierGroups(item.id), 100); }}
+                                    className="px-2 py-1 rounded text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300">
+                                    + {group.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Create new group inline */}
+                          <div className="flex gap-1 items-center">
+                            <input value={newGroupName} onChange={e => setNewGroupName(e.target.value)} placeholder="New group name" className="flex-1 bg-slate-700 rounded px-2 py-1.5 text-white text-xs outline-none" />
+                            <select value={newGroupType} onChange={e => setNewGroupType(e.target.value)} className="bg-slate-700 rounded px-2 py-1.5 text-white text-xs outline-none">
+                              <option value="single">Pick One</option>
+                              <option value="multi">Pick Many</option>
+                              <option value="toggle">On/Off</option>
+                            </select>
+                            <button onClick={async () => {
+                              if (!newGroupName.trim()) return;
+                              const res = await fetch('/api/modifier-groups', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ category_id: item.category_id, name: newGroupName.trim(), selection_type: newGroupType }) });
+                              const created = await res.json();
+                              if (created.id) {
+                                setNewGroupName('');
+                                // Auto-assign to this item
+                                const newIds = [...assignedGroupIds, created.id];
+                                setAssignedGroupIds(new Set(newIds));
+                                await fetch(`/api/menu/${item.id}/modifier-groups`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ group_ids: newIds }) });
+                                startEdit(item);
+                              }
+                            }} className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 rounded text-xs font-bold text-white whitespace-nowrap">+ Create</button>
                           </div>
-                          <button
-                            onClick={() => saveModifierGroups(item.id)}
-                            disabled={modGroupsSaving}
-                            style={{
-                              marginTop: 10,
-                              padding: '6px 16px',
-                              background: modGroupsSaving ? '#475569' : '#7c3aed',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: 6,
-                              fontSize: 12,
-                              fontWeight: 600,
-                              cursor: modGroupsSaving ? 'default' : 'pointer',
-                            }}
-                          >
-                            {modGroupsSaving ? 'Saving...' : 'Save Customizations'}
-                          </button>
                         </div>
                       )}
                     </div>
