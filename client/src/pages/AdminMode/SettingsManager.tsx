@@ -94,7 +94,7 @@ export default function SettingsManager() {
       order_prefix: orderPrefix,
       theme_color: themeColor,
       native_language: nativeLang,
-      supported_languages: [...supportedLangs].join(','),
+      supported_languages: LANGUAGE_OPTIONS.map(l => l.code).join(','),
       customer_mode_enabled: customerMode ? '1' : '0',
       order_types_enabled: [...orderTypesEnabled].join(','),
       takeout_only: takeoutOnly ? '1' : '0',
@@ -232,30 +232,8 @@ export default function SettingsManager() {
           </select>
           <p className="text-[11px] text-slate-500 mt-1">Menu items and kitchen orders will be in this language</p>
         </div>
-        <div>
-          <label className="text-xs text-slate-400 mb-2 block">Customer Languages (translations available for)</label>
-          <div className="flex flex-wrap gap-2">
-            {LANGUAGE_OPTIONS.map(l => {
-              const isNative = l.code === nativeLang;
-              const isOn = supportedLangs.has(l.code);
-              return (
-                <button
-                  key={l.code}
-                  onClick={() => toggleLang(l.code)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    isNative
-                      ? 'bg-blue-600 text-white cursor-default'
-                      : isOn
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                  }`}
-                >
-                  {l.flag} {l.name}
-                  {isNative && <span className="ml-1 text-xs opacity-70">(native)</span>}
-                </button>
-              );
-            })}
-          </div>
+        <div className="bg-slate-700/30 rounded-lg p-3">
+          <p className="text-xs text-slate-400">🌐 All 60+ languages are available for customers automatically. They pick their language when they sit down.</p>
         </div>
       </div>
 
