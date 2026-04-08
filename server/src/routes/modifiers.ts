@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { getDb } from '../db/connection.js';
 import { broadcastToAll } from '../ws/broadcast.js';
 
@@ -92,10 +92,10 @@ export function registerModifierRoutes(app: FastifyInstance) {
 
   app.put<{ Params: { id: string }; Body: { name?: string; selection_type?: string; required?: boolean; sort_order?: number } }>(
     '/api/modifier-groups/:id',
-    (req) => {
+    (req, reply) => {
       const db = getDb();
       const existing = db.prepare('SELECT * FROM modifier_groups WHERE id = ?').get(Number(req.params.id)) as any;
-      if (!existing) return { error: 'Not found' };
+      if (!existing) return reply.code(404).send({ error: 'Not found' });
       const name = req.body.name ?? existing.name;
       const selection_type = req.body.selection_type ?? existing.selection_type;
       const required = req.body.required !== undefined ? (req.body.required ? 1 : 0) : existing.required;
@@ -130,10 +130,10 @@ export function registerModifierRoutes(app: FastifyInstance) {
 
   app.put<{ Params: { id: string }; Body: { name?: string; extra_price?: number; default_on?: boolean; sort_order?: number } }>(
     '/api/modifiers/:id',
-    (req) => {
+    (req, reply) => {
       const db = getDb();
       const existing = db.prepare('SELECT * FROM modifiers WHERE id = ?').get(Number(req.params.id)) as any;
-      if (!existing) return { error: 'Not found' };
+      if (!existing) return reply.code(404).send({ error: 'Not found' });
       const name = req.body.name ?? existing.name;
       const extra_price = req.body.extra_price ?? existing.extra_price;
       const default_on = req.body.default_on !== undefined ? (req.body.default_on ? 1 : 0) : existing.default_on;

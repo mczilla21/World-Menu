@@ -35,6 +35,14 @@ export default function EmployeeManager() {
     fetch_();
   };
 
+  const handleDelete = async (emp: Employee) => {
+    if (!confirm(`Delete ${emp.name}? If they have time entries, they'll be deactivated instead.`)) return;
+    const res = await fetch(`/api/employees/${emp.id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.deactivated) alert(`${emp.name} has clock-in history — deactivated instead of deleted to keep records.`);
+    fetch_();
+  };
+
   const getHours = (entry: TimeEntry) => {
     if (!entry.clock_out) return 'Active';
     const ms = new Date(entry.clock_out).getTime() - new Date(entry.clock_in).getTime();
@@ -83,6 +91,9 @@ export default function EmployeeManager() {
               <span className="text-xs text-emerald-400">${emp.hourly_rate}/hr</span>
               <button onClick={() => toggleActive(emp)} className={`text-xs px-2 py-1 rounded ${emp.is_active ? 'bg-red-900/50 text-red-400' : 'bg-emerald-900/50 text-emerald-400'}`}>
                 {emp.is_active ? 'Deactivate' : 'Activate'}
+              </button>
+              <button onClick={() => handleDelete(emp)} className="text-xs px-2 py-1 rounded bg-red-900/30 text-red-500 hover:bg-red-900/50">
+                Delete
               </button>
             </div>
           ))}

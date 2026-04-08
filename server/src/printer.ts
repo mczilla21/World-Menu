@@ -39,14 +39,14 @@ export async function printReceipt(ip: string, port: number, data: PrintData): P
 }
 
 async function printWithLibrary(ip: string, port: number, data: PrintData): Promise<boolean> {
-  const { ThermalPrinter, PrinterTypes } = await import('node-thermal-printer');
+  const { ThermalPrinter, PrinterTypes, CharacterSet } = await import('node-thermal-printer');
 
   const printer = new ThermalPrinter({
     type: PrinterTypes.EPSON,
     interface: `tcp://${ip}:${port}`,
     options: { timeout: 5000 },
     width: 42,
-    characterSet: 'CHARCODE_WPC1252',
+    characterSet: CharacterSet.WPC1252,
   });
 
   const connected = await printer.isPrinterConnected();

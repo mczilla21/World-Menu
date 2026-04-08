@@ -19,6 +19,15 @@ import { useI18n } from '../../i18n/useI18n';
 
 type View = 'order_type' | 'table' | 'menu' | 'review' | 'history' | 'sent' | 'overview';
 
+interface TableOrder {
+  id: number;
+  order_number: string;
+  table_number: string;
+  status: string;
+  created_at: string;
+  items: { item_name: string; quantity: number; item_price: number; is_done: number; notes: string }[];
+}
+
 function loadServerState() {
   try {
     const raw = sessionStorage.getItem('server_view_state');
@@ -34,6 +43,8 @@ export default function ServerMode() {
   const [variantTarget, setVariantTarget] = useState<MenuItem | null>(null);
   const [lastTable, setLastTable] = useState(saved?.lastTable || '');
   const [lastOrderType, setLastOrderType] = useState(saved?.lastOrderType || '');
+  const [tablePopup, setTablePopup] = useState<{ number: string; status: string; total: number; elapsed: number; orders: TableOrder[] } | null>(null);
+  const [loadingPopup, setLoadingPopup] = useState(false);
   // Wrap setView to persist state
   const setView = useCallback((v: View) => {
     setViewRaw(v);
@@ -177,6 +188,27 @@ export default function ServerMode() {
     setView('menu');
   };
 
+  // Table overview popup — fetch orders for a table
+  const handleOverviewTableClick = async (tableNum: string, status: string, total: number, elapsed: number) => {
+    setLoadingPopup(true);
+    try {
+      const res = await fetch(`/api/orders/active`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const allActive: TableOrder[] = await res.json();
+      const tableOrders = allActive.filter((o: any) => String(o.table_number) === tableNum);
+      setTablePopup({ number: tableNum, status, total, elapsed, orders: tableOrders });
+    } catch {
+      setTablePopup({ number: tableNum, status, total, elapsed, orders: [] });
+    }
+    setLoadingPopup(false);
+  };
+
+  const handleCloseTable = async (tableNum: string) => {
+    if (!confirm(`Close table ${tableNum}? All orders will be marked as finished.`)) return;
+    await fetch(`/api/tables/${encodeURIComponent(tableNum)}/close`, { method: 'POST' });
+    setTablePopup(null);
+  };
+
   const handleVariantSelect = (item: MenuItem, variant: ItemVariant) => {
     addSimpleItem(item.id, item.name, !!item.category_show_in_kitchen, variant.price, variant.name);
     setVariantTarget(null);
@@ -306,8 +338,8 @@ export default function ServerMode() {
         )}
         {view === 'overview' && (
           <FloorPlan
-            onSelectTable={(table) => handleTableSelect(table.number)}
-            selectedTable={null}
+            onSelectTable={(table) => handleOverviewTableClick(table.number, table.status, table.total, table.elapsed)}
+            selectedTable={tablePopup?.number || null}
           />
         )}
         {view === 'sent' && (
@@ -355,6 +387,99 @@ export default function ServerMode() {
           onSelect={(v) => handleVariantSelect(variantTarget, v)}
           onClose={() => setVariantTarget(null)}
         />
+      )}
+
+      {/* Table overview popup */}
+      {tablePopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setTablePopup(null)} />
+          <div className="relative bg-slate-800 rounded-2xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-lg font-bold text-white">Table {tablePopup.number}</h2>
+                <div className="flex gap-3 text-xs mt-1">
+                  <span className={`font-semibold ${tablePopup.status === 'empty' ? 'text-emerald-400' : tablePopup.status === 'check' ? 'text-red-400' : 'text-blue-400'}`}>
+                    {tablePopup.status === 'empty' ? 'Open' : tablePopup.status === 'ordering' ? 'Ordering' : tablePopup.status === 'eating' ? 'Eating' : tablePopup.status === 'check' ? 'Check Requested' : tablePopup.status}
+                  </span>
+                  {tablePopup.elapsed > 0 && <span className="text-slate-400">{tablePopup.elapsed}m</span>}
+                  {tablePopup.total > 0 && <span className="text-emerald-400 font-bold">${tablePopup.total.toFixed(2)}</span>}
+                </div>
+              </div>
+              <button onClick={() => setTablePopup(null)} className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* Orders */}
+            <div className="flex-1 overflow-auto p-5">
+              {tablePopup.orders.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">
+                  {tablePopup.status === 'empty' ? 'No active orders' : 'No orders found'}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {tablePopup.orders.map(order => (
+                    <div key={order.id} className="bg-slate-700/50 rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-white">#{order.order_number}</span>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {(order.items || []).map((item, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${item.is_done ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                              <span className="text-slate-200">{item.quantity}x {item.item_name}</span>
+                            </div>
+                            <span className="text-slate-400">${(item.item_price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {(order.items || []).some(i => i.notes) && (
+                          <div className="mt-1 text-[10px] text-slate-500">
+                            {(order.items || []).filter(i => i.notes).map((i, idx) => (
+                              <span key={idx}>{i.item_name}: {i.notes}{idx < (order.items || []).filter(x => x.notes).length - 1 ? ' · ' : ''}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="shrink-0 p-4 border-t border-slate-700/50 space-y-2">
+              {tablePopup.status !== 'empty' && (
+                <button
+                  onClick={() => { setTablePopup(null); handleTableSelect(tablePopup.number); }}
+                  className="w-full py-3 rounded-xl font-semibold text-sm bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                >
+                  Add to This Table
+                </button>
+              )}
+              {tablePopup.status === 'empty' && (
+                <button
+                  onClick={() => { setTablePopup(null); handleTableSelect(tablePopup.number); }}
+                  className="w-full py-3 rounded-xl font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                >
+                  Start Order
+                </button>
+              )}
+              {tablePopup.status !== 'empty' && (
+                <button
+                  onClick={() => handleCloseTable(tablePopup.number)}
+                  className="w-full py-3 rounded-xl font-semibold text-sm bg-red-600/80 hover:bg-red-600 text-white transition-colors"
+                >
+                  Close Table
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

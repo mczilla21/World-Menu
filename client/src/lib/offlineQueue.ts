@@ -32,7 +32,6 @@ export function enqueue(url: string, method: string, body: any) {
     timestamp: Date.now(),
   });
   saveQueue(queue);
-  console.log(`[Offline] Queued ${method} ${url} (${queue.length} pending)`);
 }
 
 export function getQueueLength(): number {
@@ -43,7 +42,6 @@ export async function flushQueue(): Promise<number> {
   const queue = getQueue();
   if (queue.length === 0) return 0;
 
-  console.log(`[Offline] Flushing ${queue.length} queued requests...`);
   const failed: QueuedRequest[] = [];
   let synced = 0;
 
@@ -56,7 +54,6 @@ export async function flushQueue(): Promise<number> {
       });
       if (res.ok) {
         synced++;
-        console.log(`[Offline] Synced: ${req.method} ${req.url}`);
       } else {
         failed.push(req);
       }
@@ -66,7 +63,6 @@ export async function flushQueue(): Promise<number> {
   }
 
   saveQueue(failed);
-  console.log(`[Offline] Synced ${synced}, ${failed.length} still pending`);
   return synced;
 }
 

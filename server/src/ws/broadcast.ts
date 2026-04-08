@@ -29,7 +29,7 @@ export function broadcastToAll(message: object) {
 
 export function broadcastToTable(tableNumber: string, message: object) {
   const payload = JSON.stringify(message);
-  const key = `customer:${tableNumber}`;
+  const key = `table-${tableNumber}`;
   clients.get(key)?.forEach(ws => {
     if (ws.readyState === 1) ws.send(payload);
   });

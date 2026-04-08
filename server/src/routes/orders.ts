@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { getDb } from '../db/connection.js';
 import { broadcastToRole, broadcastToAll, broadcastToTable } from '../ws/broadcast.js';
 import { getPrinterSettings, printReceipt } from '../printer.js';
@@ -98,8 +98,9 @@ export function registerOrderRoutes(app: FastifyInstance) {
       // Customer orders need server approval first
       broadcastToRole('server', { type: 'ORDER_NEEDS_APPROVAL', order });
     } else {
-      // Server/staff orders go straight to kitchen
+      // Server/staff orders go straight to kitchen + notify floor plan
       broadcastToRole('kitchen', { type: 'NEW_ORDER', order });
+      broadcastToRole('server', { type: 'NEW_ORDER', order });
     }
 
     // Auto-print kitchen ticket if configured (only for non-customer / approved orders)
@@ -134,6 +135,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
     const order = getOrderWithItems(orderId);
     broadcastToRole('kitchen', { type: 'NEW_ORDER', order });
+    broadcastToRole('server', { type: 'NEW_ORDER', order });
     broadcastToTable(order.table_number, { type: 'ORDER_APPROVED', orderId });
 
     // Auto-print kitchen ticket now that it's approved
@@ -204,10 +206,10 @@ export function registerOrderRoutes(app: FastifyInstance) {
   });
 
   // Remove item from order (server correction)
-  app.delete<{ Params: { id: string } }>('/api/order-items/:id', (req) => {
+  app.delete<{ Params: { id: string } }>('/api/order-items/:id', (req, reply) => {
     const db = getDb();
     const item = db.prepare('SELECT * FROM order_items WHERE id = ?').get(Number(req.params.id)) as any;
-    if (!item) return { error: 'Not found' };
+    if (!item) return reply.code(404).send({ error: 'Not found' });
 
     db.prepare('DELETE FROM order_items WHERE id = ?').run(req.params.id);
 
@@ -225,12 +227,12 @@ export function registerOrderRoutes(app: FastifyInstance) {
   });
 
   // Mark item as done
-  app.patch<{ Params: { id: string } }>('/api/order-items/:id/done', (req) => {
+  app.patch<{ Params: { id: string } }>('/api/order-items/:id/done', (req, reply) => {
     const db = getDb();
     db.prepare('UPDATE order_items SET is_done = 1 WHERE id = ?').run(req.params.id);
 
     const item = db.prepare('SELECT * FROM order_items WHERE id = ?').get(Number(req.params.id)) as any;
-    if (!item) return { error: 'Not found' };
+    if (!item) return reply.code(404).send({ error: 'Not found' });
 
     const allDone = allKitchenItemsDone(item.order_id);
     broadcastToRole('kitchen', { type: 'ITEM_DONE', itemId: item.id, orderId: item.order_id, allDone });
@@ -245,12 +247,12 @@ export function registerOrderRoutes(app: FastifyInstance) {
   });
 
   // Undo item done
-  app.patch<{ Params: { id: string } }>('/api/order-items/:id/undone', (req) => {
+  app.patch<{ Params: { id: string } }>('/api/order-items/:id/undone', (req, reply) => {
     const db = getDb();
     db.prepare('UPDATE order_items SET is_done = 0 WHERE id = ?').run(req.params.id);
 
     const item = db.prepare('SELECT * FROM order_items WHERE id = ?').get(Number(req.params.id)) as any;
-    if (!item) return { error: 'Not found' };
+    if (!item) return reply.code(404).send({ error: 'Not found' });
 
     db.prepare("UPDATE orders SET status = 'active', finished_at = NULL WHERE id = ? AND status = 'finished'")
       .run(item.order_id);
@@ -276,11 +278,11 @@ export function registerOrderRoutes(app: FastifyInstance) {
   });
 
   // Record payment method and tax on an order
-  app.patch<{ Params: { id: string }; Body: { payment_method?: string; tax_amount?: number; tip_amount?: number } }>('/api/orders/:id/payment', (req) => {
+  app.patch<{ Params: { id: string }; Body: { payment_method?: string; tax_amount?: number; tip_amount?: number } }>('/api/orders/:id/payment', (req, reply) => {
     const db = getDb();
     const b = req.body;
     const existing = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id)) as any;
-    if (!existing) return { error: 'Not found' };
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -368,13 +370,13 @@ export function registerOrderRoutes(app: FastifyInstance) {
         combo_id?: number; combo_slot_label?: string;
       }>;
     };
-  }>('/api/orders/:id/add-items', (req) => {
+  }>('/api/orders/:id/add-items', (req, reply) => {
     const db = getDb();
     const orderId = Number(req.params.id);
     const { items } = req.body;
 
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId) as any;
-    if (!order) return { error: 'Order not found' };
+    if (!order) return reply.code(404).send({ error: 'Order not found' });
 
     const insertItem = db.prepare(
       `INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, show_in_kitchen,

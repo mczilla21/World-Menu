@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import { useWebSocket } from '../../hooks/useWebSocket';
 
@@ -145,6 +145,37 @@ export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
   const useGrid = floorTables.length === 0;
   const gridCols = tableCount <= 8 ? 4 : tableCount <= 15 ? 5 : 6;
 
+  // Auto-scale custom floor plan to fit container
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ w: 800, h: 500 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Scale the admin layout to fit the display container
+  const floorLayout = (() => {
+    if (useGrid || floorTables.length === 0) return null;
+    const maxX = Math.max(...floorTables.map(t => t.x + t.width));
+    const maxY = Math.max(...floorTables.map(t => t.y + t.height));
+    const availW = containerSize.w - 40;
+    const availH = containerSize.h - 40;
+    const scale = Math.min(availW / maxX, availH / maxY, 2);
+    const scaledW = maxX * scale;
+    const scaledH = maxY * scale;
+    // Center offset
+    const offsetX = Math.max(0, (availW - scaledW) / 2) + 20;
+    const offsetY = Math.max(0, (availH - scaledH) / 2) + 20;
+    return { scale, offsetX, offsetY };
+  })();
+
   const renderTable = (label: string, type: string, style: React.CSSProperties, w: number, h: number) => {
     const s = tableStatus[label];
     const status = s?.status || 'empty';
@@ -221,7 +252,7 @@ export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
       </div>
 
       {/* Floor area */}
-      <div className="flex-1 overflow-auto relative" style={{ background: '#f1f5f9' }}>
+      <div ref={containerRef} className="flex-1 overflow-auto relative" style={{ background: '#f1f5f9' }}>
         {/* Subtle grid */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.15 }}>
           <defs>
@@ -246,16 +277,29 @@ export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
               })}
             </div>
           </div>
-        ) : (
-          // Custom floor plan
-          <div style={{ position: 'relative', minHeight: 500, padding: 20 }}>
-            {floorTables.map(ft => renderTable(
-              ft.label, ft.type,
-              { position: 'absolute', left: ft.x, top: ft.y } as any,
-              ft.width, ft.height
-            ))}
+        ) : floorLayout ? (
+          // Custom floor plan — exact mirror of admin editor, scaled to fit
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            minHeight: 400,
+          }}>
+            <div style={{
+              transform: `scale(${floorLayout.scale})`,
+              transformOrigin: 'top left',
+              position: 'absolute',
+              top: floorLayout.offsetY,
+              left: floorLayout.offsetX,
+            }}>
+              {floorTables.map(ft => renderTable(
+                ft.label, ft.type,
+                { position: 'absolute', left: ft.x, top: ft.y } as any,
+                ft.width, ft.height
+              ))}
+            </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

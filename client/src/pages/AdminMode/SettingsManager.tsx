@@ -31,6 +31,12 @@ export default function SettingsManager() {
   const [tipPercentages, setTipPercentages] = useState(settings.tip_percentages || '15,18,20');
   const [adminPin, setAdminPin] = useState(settings.admin_pin || '');
 
+  // Idle screen
+  const [idleEnabled, setIdleEnabled] = useState(settings.idle_screen_enabled === '1');
+  const [idleTimeout, setIdleTimeout] = useState(settings.idle_screen_timeout || '3');
+  const [idleMessage, setIdleMessage] = useState(settings.idle_screen_message || 'Welcome! Tap to start ordering');
+  const [idleBgImage, setIdleBgImage] = useState(settings.idle_screen_bg_image || '');
+
   // Server network URL
   const [serverUrl, setServerUrl] = useState('');
 
@@ -59,6 +65,10 @@ export default function SettingsManager() {
     setTippingEnabled(settings.tipping_enabled === '1');
     setTipPercentages(settings.tip_percentages || '15,18,20');
     setAdminPin(settings.admin_pin || '');
+    setIdleEnabled(settings.idle_screen_enabled === '1');
+    setIdleTimeout(settings.idle_screen_timeout || '3');
+    setIdleMessage(settings.idle_screen_message || 'Welcome! Tap to start ordering');
+    setIdleBgImage(settings.idle_screen_bg_image || '');
   }, [settings]);
 
   useEffect(() => {
@@ -81,6 +91,10 @@ export default function SettingsManager() {
       tipping_enabled: tippingEnabled ? '1' : '0',
       tip_percentages: tipPercentages,
       admin_pin: adminPin,
+      idle_screen_enabled: idleEnabled ? '1' : '0',
+      idle_screen_timeout: idleTimeout,
+      idle_screen_message: idleMessage,
+      idle_screen_bg_image: idleBgImage,
     });
     setDirty(false);
   };
@@ -541,6 +555,118 @@ export default function SettingsManager() {
           </button>
         </div>
       )}
+
+      {/* Idle / Welcome Screen */}
+      <div className="bg-slate-800 rounded-xl p-4 space-y-4">
+        <h3 className="font-semibold text-slate-200">Tablet Welcome Screen</h3>
+        <p className="text-xs text-slate-400">Show a welcome screen on table tablets when idle. Tap anywhere to dismiss and start ordering.</p>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-slate-200">Enable Welcome Screen</div>
+            <div className="text-xs text-slate-500">Shows after inactivity on customer tablets</div>
+          </div>
+          <button
+            onClick={() => { setIdleEnabled(!idleEnabled); setDirty(true); }}
+            className={`w-12 h-7 rounded-full transition-colors ${idleEnabled ? 'bg-green-600' : 'bg-slate-600'}`}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-1 ${idleEnabled ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+
+        {idleEnabled && (
+          <>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Timeout (minutes before showing)</label>
+              <select
+                value={idleTimeout}
+                onChange={e => { setIdleTimeout(e.target.value); setDirty(true); }}
+                className="w-full bg-slate-700 rounded-lg px-4 py-3 text-white outline-none"
+              >
+                {[1, 2, 3, 5, 10, 15].map(m => (
+                  <option key={m} value={m}>{m} {m === 1 ? 'minute' : 'minutes'}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Welcome Message</label>
+              <textarea
+                value={idleMessage}
+                onChange={e => { setIdleMessage(e.target.value); setDirty(true); }}
+                placeholder="Welcome! Tap to start ordering"
+                rows={2}
+                className="w-full bg-slate-700 rounded-lg px-4 py-3 text-white outline-none resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Background Image</label>
+              <div className="flex items-center gap-3">
+                {idleBgImage && (
+                  <img src={`/uploads/${idleBgImage}`} alt="Background" className="w-20 h-14 rounded-lg object-cover" />
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = async (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch('/api/uploads', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (data.filename) { setIdleBgImage(data.filename); await updateSetting('idle_screen_bg_image', data.filename); }
+                      };
+                      input.click();
+                    }}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm"
+                  >
+                    {idleBgImage ? 'Change' : 'Upload'}
+                  </button>
+                  {idleBgImage && (
+                    <button
+                      onClick={() => { setIdleBgImage(''); setDirty(true); }}
+                      className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-sm text-red-400"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1">Uses your restaurant logo + name automatically. Background image is optional.</p>
+            </div>
+
+            {/* Preview */}
+            <div
+              className="relative rounded-xl overflow-hidden h-40 flex items-center justify-center"
+              style={{
+                background: idleBgImage ? undefined : `linear-gradient(135deg, ${themeColor}dd, ${themeColor}44)`,
+              }}
+            >
+              {idleBgImage && (
+                <>
+                  <img src={`/uploads/${idleBgImage}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/50" />
+                </>
+              )}
+              <div className="relative z-10 text-center">
+                {settings.logo && (
+                  <img src={`/uploads/${settings.logo}`} alt="" className="w-12 h-12 rounded-xl object-contain mx-auto mb-2 bg-white/10" />
+                )}
+                <div className="text-white font-bold text-lg" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
+                  {restaurantName || 'Restaurant Name'}
+                </div>
+                <div className="text-white/80 text-xs mt-1">{idleMessage || 'Welcome message'}</div>
+                <div className="text-white/50 text-[10px] mt-2">Preview</div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Software Updates */}
       <UpdateChecker />

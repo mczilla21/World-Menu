@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { MenuItem, ItemVariant } from '../../hooks/useMenu';
 import { useCustomerStore } from '../../stores/customerStore';
 import { ALLERGEN_MAP } from '../../constants/allergens';
+import NoodleBowlBuilder from './NoodleBowlBuilder';
 
 const TAG_ICONS: Record<string, string> = {
   'Vegetarian': '🌿', 'Vegan': '🌱', 'Gluten-Free': 'GF', 'Spicy': '🌶',
@@ -37,6 +38,7 @@ interface Props {
 
 export default function ItemDetail({ item, translatedName, translatedDesc, currency, nativeName, themeColor, onClose, translateModGroup, translateModifier }: Props) {
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
+  const [groupsLoaded, setGroupsLoaded] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [selections, setSelections] = useState<Record<number, Set<number>>>({});
   const [quantity, setQuantity] = useState(1);
@@ -55,6 +57,7 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
   }, [item.is_alcohol, ageVerified]);
 
   useEffect(() => {
+    setGroupsLoaded(false);
     fetch(`/api/menu/${item.id}/modifier-groups`)
       .then(r => r.json())
       .then((data: ModifierGroup[]) => {
@@ -68,7 +71,9 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
           }
         }
         setSelections(initial);
-      });
+        setGroupsLoaded(true);
+      })
+      .catch(() => setGroupsLoaded(true));
   }, [item.category_id]);
 
   // Auto-select first variant if available
@@ -133,6 +138,30 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
     });
     onClose();
   };
+
+  // Detect bowl builder items — checks modifier group names for the step-based broth/noodle/protein pattern
+  // Works regardless of item name language (Thai, English, etc.)
+  const isBowlBuilder = groupsLoaded && groups.length >= 3
+    && groups.some(g => /broth|soup/i.test(g.name))
+    && groups.some(g => /noodle/i.test(g.name))
+    && groups.some(g => /protein|meat/i.test(g.name));
+
+  // Bowl builder gets its own full-screen experience
+  if (isBowlBuilder && !showAgeCheck) {
+    return (
+      <NoodleBowlBuilder
+        item={item}
+        translatedName={translatedName}
+        translatedDesc={translatedDesc}
+        currency={currency}
+        nativeName={nativeName}
+        themeColor={themeColor}
+        onClose={onClose}
+        translateModGroup={translateModGroup}
+        translateModifier={translateModifier}
+      />
+    );
+  }
 
   // Age verification modal
   if (showAgeCheck) {

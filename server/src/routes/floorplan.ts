@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { getDb } from '../db/connection.js';
 
 export function registerFloorPlanRoutes(app: FastifyInstance) {
@@ -26,10 +26,10 @@ export function registerFloorPlanRoutes(app: FastifyInstance) {
     return db.prepare('SELECT * FROM floor_tables WHERE id = ?').get(result.lastInsertRowid);
   });
 
-  app.put<{ Params: { id: string }; Body: any }>('/api/floor-tables/:id', (req) => {
+  app.put<{ Params: { id: string }; Body: Record<string, any> }>('/api/floor-tables/:id', (req, reply) => {
     const db = getDb();
     const existing = db.prepare('SELECT * FROM floor_tables WHERE id = ?').get(Number(req.params.id)) as any;
-    if (!existing) return { error: 'Not found' };
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
     const b = req.body;
     db.prepare('UPDATE floor_tables SET label=?, type=?, x=?, y=?, width=?, height=?, rotation=?, capacity=?, is_active=? WHERE id=?')
       .run(b.label ?? existing.label, b.type ?? existing.type, b.x ?? existing.x, b.y ?? existing.y,

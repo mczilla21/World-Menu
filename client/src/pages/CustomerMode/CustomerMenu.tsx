@@ -10,6 +10,7 @@ import OrderConfirmation from './OrderConfirmation';
 import AllergenFilter from './AllergenFilter';
 import IngredientPopup from '../../components/IngredientPopup';
 import PinGate from '../../components/PinGate';
+import IdleScreen from './IdleScreen';
 import { useWebSocket } from '../../hooks/useWebSocket';
 
 interface TranslationMap {
@@ -41,6 +42,16 @@ export default function CustomerMenu() {
   const [showPin, setShowPin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [orderStatus, setOrderStatus] = useState('');
+
+  // Stable callback for idle screen dismiss — resets all state for next customer
+  const handleIdleDismiss = useCallback(() => {
+    setLangSelected(false);
+    setHasOrdered(false);
+    setOrderSent(false);
+    setCheckRequested(false);
+    setSearchQuery('');
+    clearCart();
+  }, [clearCart]);
 
   useEffect(() => {
     if (tableNumber) {
@@ -725,6 +736,19 @@ export default function CustomerMenu() {
             navigate('/');
           }}
           onCancel={() => setShowPin(false)}
+        />
+      )}
+
+      {/* Idle / Welcome Screen */}
+      {settings.idle_screen_enabled === '1' && (
+        <IdleScreen
+          restaurantName={settings.restaurant_name}
+          logo={settings.logo}
+          message={settings.idle_screen_message || 'Welcome! Tap to start ordering'}
+          bgImage={settings.idle_screen_bg_image || ''}
+          themeColor={settings.theme_color}
+          timeoutMinutes={parseInt(settings.idle_screen_timeout || '3') || 3}
+          onDismiss={handleIdleDismiss}
         />
       )}
     </div>

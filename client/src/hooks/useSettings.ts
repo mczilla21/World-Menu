@@ -31,6 +31,11 @@ const defaultSettings: Settings = {
   call_waiter_enabled: '1',
   tipping_enabled: '0',
   tip_percentages: '15,18,20',
+  // Idle screen
+  idle_screen_enabled: '0',
+  idle_screen_timeout: '3',
+  idle_screen_message: 'Welcome! Tap to start ordering',
+  idle_screen_bg_image: '',
 };
 
 let cachedSettings: Settings | null = null;

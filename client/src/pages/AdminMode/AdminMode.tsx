@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMenu } from '../../hooks/useMenu';
-import CategoryManager from './CategoryManager';
-import MenuItemManager from './MenuItemManager';
-import ModifierManager from './ModifierManager';
-import ComboManager from './ComboManager';
-import TranslationManager from './TranslationManager';
-import SettingsManager from './SettingsManager';
-import ReportsDashboard from './ReportsDashboard';
-import TaxReports from './TaxReports';
-import PosManager from './PosManager';
-import FloorPlanEditor from './FloorPlanEditor';
 import { useI18n } from '../../i18n/useI18n';
+
+const CategoryManager = lazy(() => import('./CategoryManager'));
+const MenuItemManager = lazy(() => import('./MenuItemManager'));
+const ModifierManager = lazy(() => import('./ModifierManager'));
+const TranslationManager = lazy(() => import('./TranslationManager'));
+const SettingsManager = lazy(() => import('./SettingsManager'));
+const ReportsDashboard = lazy(() => import('./ReportsDashboard'));
+const TaxReports = lazy(() => import('./TaxReports'));
+const PosManager = lazy(() => import('./PosManager'));
+const FloorPlanEditor = lazy(() => import('./FloorPlanEditor'));
 
 type Section = 'menu' | 'floorplan' | 'staff' | 'business';
 type SubTab = string;
@@ -51,7 +51,7 @@ const sections: { key: Section; label: string; icon: string; color: string; acti
 export default function AdminMode() {
   const [section, setSection] = useState<Section>('menu');
   const [subTab, setSubTab] = useState<SubTab>('items');
-  const { items, categories, combos, refresh } = useMenu();
+  const { items, categories, refresh } = useMenu();
   const navigate = useNavigate();
   const { t } = useI18n();
 
@@ -132,28 +132,30 @@ export default function AdminMode() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
-        {/* Menu section */}
-        {subTab === 'items' && (
-          <div className="space-y-4">
-            <CategoryManager categories={categories} onUpdate={refresh} />
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16 }} />
-            <MenuItemManager items={items} categories={categories} onUpdate={refresh} />
-          </div>
-        )}
-        {subTab === 'modifiers' && <ModifierManager categories={categories} />}
-        {subTab === 'translations' && <TranslationManager items={items} categories={categories} />}
+        <Suspense fallback={<div style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>Loading...</div>}>
+          {/* Menu section */}
+          {subTab === 'items' && (
+            <div className="space-y-4">
+              <CategoryManager categories={categories} onUpdate={refresh} />
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16 }} />
+              <MenuItemManager items={items} categories={categories} onUpdate={refresh} />
+            </div>
+          )}
+          {subTab === 'modifiers' && <ModifierManager categories={categories} />}
+          {subTab === 'translations' && <TranslationManager items={items} categories={categories} />}
 
-        {/* Floor Plan */}
-        {subTab === 'floorplan' && <FloorPlanEditor />}
+          {/* Floor Plan */}
+          {subTab === 'floorplan' && <FloorPlanEditor />}
 
-        {/* Staff */}
-        {subTab === 'employees' && <PosManager />}
+          {/* Staff */}
+          {subTab === 'employees' && <PosManager />}
 
-        {/* Business */}
-        {subTab === 'reports' && <ReportsDashboard />}
-        {subTab === 'tax' && <TaxReports />}
-        {subTab === 'pos' && <PosManager />}
-        {subTab === 'settings' && <SettingsManager />}
+          {/* Business */}
+          {subTab === 'reports' && <ReportsDashboard />}
+          {subTab === 'tax' && <TaxReports />}
+          {subTab === 'pos' && <PosManager />}
+          {subTab === 'settings' && <SettingsManager />}
+        </Suspense>
       </div>
     </div>
   );
