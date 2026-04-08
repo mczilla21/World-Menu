@@ -37,8 +37,8 @@ export default function RoleSelect() {
         sessionStorage.setItem('wm_employee', JSON.stringify(data.employee));
         const role = data.employee.role;
 
-        // Auto clock-in (non-blocking — 409 "already clocked in" is fine)
-        try {
+        // Auto clock-in for hourly staff only (not owners/managers)
+        if (role !== 'owner' && role !== 'manager') try {
           const clockRes = await fetch('/api/employees/clock-in', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

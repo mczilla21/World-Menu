@@ -101,11 +101,13 @@ export default function StaffSelect() {
         </div>
 
         <div className="mt-6 flex justify-center gap-4">
-          <button onClick={endShift} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
-            🕐 End Shift
-          </button>
+          {employee.role !== 'owner' && employee.role !== 'manager' && (
+            <button onClick={endShift} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+              🕐 End Shift
+            </button>
+          )}
           <button onClick={logout} className="text-sm" style={{ color: '#94a3b8' }}>
-            Switch User
+            {employee.role === 'owner' || employee.role === 'manager' ? 'Logout' : 'Switch User'}
           </button>
         </div>
       </div>
