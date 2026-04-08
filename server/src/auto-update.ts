@@ -135,9 +135,10 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
         const srcPath = path.join(src, entry.name);
         const destPath = path.join(dest, entry.name);
 
-        // Skip these
-        if (['node_modules', '.git', 'restaurant.db', 'restaurant.db-shm', 'restaurant.db-wal', 'update-download.zip', 'update-temp'].includes(entry.name)) continue;
-        if (entry.name === 'uploads' && src.includes('data')) continue;
+        // Skip these — protect user data
+        if (['node_modules', '.git', 'restaurant.db', 'restaurant.db-shm', 'restaurant.db-wal', 'update-download.zip', 'update-temp', 'data'].includes(entry.name)) continue;
+        // Skip uploads folder inside server/ (user's food photos)
+        if (entry.name === 'uploads' && (src.includes('server') || src.includes('data'))) continue;
 
         if (entry.isDirectory()) {
           if (!fs.existsSync(destPath)) fs.mkdirSync(destPath, { recursive: true });

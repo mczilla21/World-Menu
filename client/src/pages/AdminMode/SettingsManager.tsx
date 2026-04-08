@@ -726,21 +726,8 @@ export default function SettingsManager() {
       </div>
 
       {/* Close Day */}
-      <div className="bg-slate-800 rounded-xl p-4 space-y-4">
-        <h3 className="font-semibold text-slate-200">End of Day</h3>
-        <p className="text-xs text-slate-400">Archives all orders, saves a daily log, and resets all tablets for the next business day.</p>
-        <button
-          onClick={async () => {
-            if (!confirm('Close the day? This will archive all current orders and reset all tablets.')) return;
-            await fetch('/api/daily-reset', { method: 'POST' });
-            alert('Day closed! All tablets have been reset.');
-          }}
-          className="w-full bg-red-600 hover:bg-red-500 py-3 rounded-xl font-semibold text-base transition-colors"
-        >
-          Close Day
-        </button>
-        <DailyLogView />
-      </div>
+      <EndOfDay />
+      <DailyLogView />
 
       {/* Save */}
       {dirty && (
@@ -1103,4 +1090,168 @@ function AutoReloadOnUpdate({ trigger }: { trigger: boolean }) {
     return () => clearTimeout(timer);
   }, [trigger]);
   return null;
+}
+
+function EndOfDay() {
+  const { settings } = useSettings();
+  const currency = settings.currency_symbol || '$';
+  const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [closed, setClosed] = useState(false);
+
+  const loadSummary = async () => {
+    setLoading(true);
+    try {
+      const [activeRes, finishedRes, timeRes] = await Promise.all([
+        fetch('/api/orders/active').then(r => r.json()),
+        fetch('/api/orders/finished').then(r => r.json()),
+        fetch(`/api/time-entries?date=${new Date().toISOString().slice(0, 10)}`).then(r => r.json()),
+      ]);
+      const allOrders = [...activeRes, ...finishedRes];
+      const totalRevenue = allOrders.reduce((s: number, o: any) =>
+        s + (o.items || []).reduce((is: number, i: any) => is + (i.item_price || 0) * i.quantity, 0), 0);
+      const totalOrders = allOrders.length;
+      const totalItems = allOrders.reduce((s: number, o: any) => s + (o.items || []).length, 0);
+      const totalTips = allOrders.reduce((s: number, o: any) => s + (o.tip_amount || 0), 0);
+      const voidedCount = allOrders.filter((o: any) => o.status === 'voided').length;
+
+      // Time entries
+      const clockedOut = timeRes.filter((e: any) => e.clock_out);
+      const totalHours = clockedOut.reduce((s: number, e: any) =>
+        s + (new Date(e.clock_out).getTime() - new Date(e.clock_in).getTime()) / 3600000, 0);
+      const totalLabor = clockedOut.reduce((s: number, e: any) => {
+        const hours = (new Date(e.clock_out).getTime() - new Date(e.clock_in).getTime()) / 3600000;
+        return s + hours * (e.hourly_rate || 0);
+      }, 0);
+
+      setSummary({ totalRevenue, totalOrders, totalItems, totalTips, voidedCount, totalHours, totalLabor, timeEntries: timeRes });
+    } catch {}
+    setLoading(false);
+  };
+
+  const handleCloseDay = async () => {
+    if (!confirm('Close the day? This will archive all orders, save the daily log, and reset for tomorrow.')) return;
+    await fetch('/api/daily-reset', { method: 'POST' });
+    setClosed(true);
+  };
+
+  const handlePrint = () => {
+    if (!summary) return;
+    const date = new Date().toLocaleDateString();
+    const win = window.open('', '_blank', 'width=400,height=600');
+    if (!win) return;
+    win.document.write(`<html><head><title>Daily Report — ${date}</title>
+      <style>body{font-family:monospace;font-size:12px;padding:20px;max-width:300px;margin:0 auto}
+      h1{font-size:16px;text-align:center;border-bottom:2px solid #000;padding-bottom:8px}
+      h2{font-size:13px;margin-top:16px;border-bottom:1px dashed #999;padding-bottom:4px}
+      .row{display:flex;justify-content:space-between;padding:2px 0}
+      .total{font-weight:bold;font-size:14px;border-top:2px solid #000;padding-top:8px;margin-top:8px}
+      .center{text-align:center}</style></head><body>
+      <h1>${settings.restaurant_name || 'Restaurant'}</h1>
+      <div class="center">${date}</div>
+      <h2>Sales Summary</h2>
+      <div class="row"><span>Orders</span><span>${summary.totalOrders}</span></div>
+      <div class="row"><span>Items Sold</span><span>${summary.totalItems}</span></div>
+      <div class="row"><span>Voided</span><span>${summary.voidedCount}</span></div>
+      <div class="row"><span>Tips</span><span>${currency}${summary.totalTips.toFixed(2)}</span></div>
+      <div class="row total"><span>TOTAL REVENUE</span><span>${currency}${summary.totalRevenue.toFixed(2)}</span></div>
+      <h2>Labor</h2>
+      <div class="row"><span>Total Hours</span><span>${summary.totalHours.toFixed(1)}h</span></div>
+      <div class="row"><span>Labor Cost</span><span>${currency}${summary.totalLabor.toFixed(2)}</span></div>
+      ${(summary.timeEntries || []).map((e: any) =>
+        `<div class="row"><span>${e.employee_name}</span><span>${e.clock_in?.slice(11, 16)} → ${e.clock_out?.slice(11, 16) || '...'}</span></div>`
+      ).join('')}
+      <div class="center" style="margin-top:20px;font-size:10px;color:#999">Generated by World Menu POS</div>
+      </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  };
+
+  if (closed) {
+    return (
+      <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl p-6 text-center">
+        <div className="text-4xl mb-3">✅</div>
+        <h3 className="text-lg font-bold text-emerald-400">Day Closed!</h3>
+        <p className="text-sm text-emerald-300/70 mt-1">All orders archived. Ready for tomorrow.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-slate-800 rounded-xl p-4 space-y-4">
+      <h3 className="font-semibold text-slate-200">End of Day</h3>
+      <p className="text-xs text-slate-400">Review today's numbers, print a report, then close out for the day.</p>
+
+      {!summary ? (
+        <button
+          onClick={loadSummary}
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-semibold text-base transition-colors"
+        >
+          {loading ? 'Loading...' : 'Review & Close Day'}
+        </button>
+      ) : (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-white">{summary.totalOrders}</div>
+              <div className="text-[10px] text-slate-500 uppercase">Orders</div>
+            </div>
+            <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-emerald-400">{currency}{summary.totalRevenue.toFixed(2)}</div>
+              <div className="text-[10px] text-slate-500 uppercase">Revenue</div>
+            </div>
+            <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-amber-400">{currency}{summary.totalTips.toFixed(2)}</div>
+              <div className="text-[10px] text-slate-500 uppercase">Tips</div>
+            </div>
+            <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-blue-400">{summary.totalHours.toFixed(1)}h</div>
+              <div className="text-[10px] text-slate-500 uppercase">Labor Hours</div>
+            </div>
+          </div>
+
+          {summary.voidedCount > 0 && (
+            <div className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2">
+              {summary.voidedCount} voided order(s) today
+            </div>
+          )}
+
+          {/* Labor breakdown */}
+          {summary.timeEntries && summary.timeEntries.length > 0 && (
+            <div className="bg-slate-700/30 rounded-lg p-3">
+              <div className="text-xs font-semibold text-slate-400 mb-2 uppercase">Staff Hours</div>
+              {summary.timeEntries.map((e: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-xs py-1">
+                  <span className="text-slate-300">{e.employee_name}</span>
+                  <span className="text-slate-500">{e.clock_in?.slice(11, 16)} → {e.clock_out?.slice(11, 16) || 'Still clocked in'}</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-xs mt-2 pt-2 border-t border-slate-700/50">
+                <span className="text-slate-400">Labor Cost</span>
+                <span className="text-emerald-400 font-bold">{currency}{summary.totalLabor.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <button onClick={handlePrint} className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-semibold text-sm transition-colors">
+              🖨 Print Report
+            </button>
+            <button
+              onClick={handleCloseDay}
+              className="flex-1 bg-red-600 hover:bg-red-500 py-3 rounded-xl font-semibold text-sm transition-colors"
+            >
+              Close Day
+            </button>
+          </div>
+          <button onClick={() => setSummary(null)} className="w-full text-xs text-slate-500 hover:text-slate-300 py-1">
+            Cancel
+          </button>
+        </>
+      )}
+    </div>
+  );
 }
