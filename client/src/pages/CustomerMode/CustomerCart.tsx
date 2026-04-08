@@ -28,14 +28,18 @@ export default function CustomerCart({ currency, themeColor, onClose, onOrderSen
       <div className="relative mt-auto bg-white rounded-t-3xl max-h-[85vh] flex flex-col animate-slide-up">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h2 className="text-xl font-bold text-gray-900">Your Order</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+          <button onClick={onClose} aria-label="Close cart" className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
         <div className="flex-1 overflow-auto p-5">
           {cart.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">Your cart is empty</p>
+            <div className="text-center py-8">
+              <div className="text-5xl mb-3">{'\uD83D\uDED2'}</div>
+              <p className="text-gray-500 font-medium">Nothing here yet!</p>
+              <p className="text-gray-400 text-sm mt-1">Browse the menu to add items</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {cart.map(item => (

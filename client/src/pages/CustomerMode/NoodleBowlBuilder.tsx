@@ -362,7 +362,7 @@ export default function NoodleBowlBuilder({
 
       {/* Header */}
       <div className="shrink-0 px-4 py-3 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-orange-100">
-        <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <button onClick={onClose} aria-label="Go back" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5" strokeLinecap="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>

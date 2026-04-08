@@ -169,6 +169,7 @@ export default function RoleSelect() {
             {['1','2','3','4','5','6','7','8','9','','0','⌫'].map(key => (
               <button
                 key={key || 'empty'}
+                aria-label={key === '⌫' ? 'Delete last digit' : key ? `Digit ${key}` : undefined}
                 onClick={() => {
                   if (key === '⌫') { setPin(prev => prev.slice(0, -1)); setError(''); }
                   else if (key && pin.length < 4) { setPin(prev => prev + key); setError(''); }

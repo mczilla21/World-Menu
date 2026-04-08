@@ -249,11 +249,21 @@ export default function KitchenMode() {
 
       <div className="flex-1 overflow-auto p-4">
         {displayOrders.length === 0 && (
-          <div className="flex flex-col items-center justify-center mt-20 text-slate-600">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <p className="mt-3 text-sm">
-              {showHistory ? t('History') : t('Waiting for orders...')}
+          <div className="flex flex-col items-center justify-center h-full p-8 mt-20">
+            <div className="text-6xl mb-4">{showHistory ? '\uD83D\uDCCB' : '\uD83D\uDC68\u200D\uD83C\uDF73'}</div>
+            <h2 className="text-xl font-bold text-slate-300 mb-2">
+              {showHistory ? t('No finished orders yet') : t('All quiet in the kitchen!')}
+            </h2>
+            <p className="text-slate-500 text-sm">
+              {showHistory ? t('History') : t('Orders will appear here when they come in')}
             </p>
+            {!showHistory && (
+              <div className="mt-4 flex gap-2">
+                <span className="w-2 h-2 bg-slate-600 rounded-full animate-bounce" style={{animationDelay:'0s'}} />
+                <span className="w-2 h-2 bg-slate-600 rounded-full animate-bounce" style={{animationDelay:'0.2s'}} />
+                <span className="w-2 h-2 bg-slate-600 rounded-full animate-bounce" style={{animationDelay:'0.4s'}} />
+              </div>
+            )}
           </div>
         )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

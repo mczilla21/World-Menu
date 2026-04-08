@@ -249,7 +249,18 @@ export default function ServerMode() {
     else if (view === 'overview') setView('table');
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><div className="text-slate-400">Loading...</div></div>;
+  if (loading) return (
+    <div className="min-h-screen bg-slate-900 p-4">
+      <div className="animate-pulse space-y-4 pt-4">
+        <div className="h-10 bg-slate-800 rounded-xl w-full" />
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {[1,2,3,4,5,6,7,8].map(i => (
+            <div key={i} className="aspect-square bg-slate-800 rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   const viewTitle: Record<View, string> = {
     table: t('Tables'),
@@ -279,7 +290,7 @@ export default function ServerMode() {
         <div className="px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {view !== 'table' && (
-              <button onClick={handleBack} className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+              <button onClick={handleBack} aria-label="Go back" className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
             )}
@@ -420,7 +431,7 @@ export default function ServerMode() {
                   {tablePopup.total > 0 && <span className="text-emerald-400 font-bold">${tablePopup.total.toFixed(2)}</span>}
                 </div>
               </div>
-              <button onClick={() => setTablePopup(null)} className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white">
+              <button onClick={() => setTablePopup(null)} aria-label="Close table details" className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>

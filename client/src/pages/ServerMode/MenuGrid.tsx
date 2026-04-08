@@ -169,7 +169,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
               >
                 {item.image && (
                   <div className="w-full h-16 mb-2 rounded-lg overflow-hidden bg-slate-700">
-                    <img src={`/uploads/${item.image}`} alt="" className="w-full h-full object-cover" />
+                    <img src={`/uploads/${item.image}`} alt="" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                 )}
                 <div className="font-medium text-sm leading-tight">

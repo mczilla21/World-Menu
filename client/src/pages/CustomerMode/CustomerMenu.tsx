@@ -255,8 +255,26 @@ export default function CustomerMenu() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-gray-400">Loading menu...</div>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="animate-pulse space-y-4 max-w-lg mx-auto pt-8">
+          <div className="h-8 bg-gray-200 rounded-xl w-48 mx-auto" />
+          <div className="h-4 bg-gray-100 rounded w-32 mx-auto" />
+          <div className="flex gap-2 overflow-hidden py-2">
+            {[1,2,3,4].map(i => <div key={i} className="h-9 w-24 bg-gray-200 rounded-full shrink-0" />)}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                <div className="h-32 bg-gray-200" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  <div className="h-5 bg-gray-200 rounded w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
