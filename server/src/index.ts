@@ -186,6 +186,15 @@ async function start() {
     console.log('');
   }
 
+  // Ensure github_repo setting exists for auto-updates
+  try {
+    const db = getDb();
+    const existing = db.prepare("SELECT value FROM settings WHERE key = 'github_repo'").get() as any;
+    if (!existing || !existing.value) {
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('github_repo', 'mczilla21/World-Menu')").run();
+    }
+  } catch {}
+
   // Start automatic daily log bookkeeping
   startAutoDailyLog();
 
