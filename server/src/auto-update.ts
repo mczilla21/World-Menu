@@ -15,6 +15,7 @@ interface UpdateInfo {
   releaseName: string;
   releaseDate: string;
   releaseUrl: string;
+  message?: string;
 }
 
 function getLocalVersion(): string {
@@ -174,11 +175,11 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     broadcastToAll({ type: 'APP_UPDATED', version: info.latestVersion });
 
     // Auto-restart the server after a short delay
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log('Restarting server to apply update...');
-      const { spawn } = require('child_process');
+      const cp = await import('child_process');
       const args = process.argv.slice(1);
-      spawn(process.argv[0], args, {
+      cp.spawn(process.argv[0], args, {
         cwd: process.cwd(),
         detached: true,
         stdio: 'inherit',

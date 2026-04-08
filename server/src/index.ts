@@ -163,8 +163,6 @@ async function start() {
     if (localIp !== 'localhost') break;
   }
 
-  console.log('');
-  console.log('  World Menu POS is running!');
   // Advertise on local network via mDNS
   try {
     const { Bonjour } = await import('bonjour-service');

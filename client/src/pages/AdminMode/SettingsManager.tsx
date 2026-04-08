@@ -1080,11 +1080,7 @@ function UpdateChecker() {
         </div>
       )}
 
-      {updateResult?.ok && (() => {
-        // Auto-reload page after server restarts (~8 seconds)
-        setTimeout(() => window.location.reload(), 8000);
-        return null;
-      })()}
+      <AutoReloadOnUpdate trigger={!!updateResult?.ok} />
 
       {result && result.message && (
         <div className="text-sm" style={{ color: '#94a3b8' }}>{result.message}</div>
@@ -1093,4 +1089,13 @@ function UpdateChecker() {
       {/* GitHub repo is set internally — not shown to end users */}
     </div>
   );
+}
+
+function AutoReloadOnUpdate({ trigger }: { trigger: boolean }) {
+  useEffect(() => {
+    if (!trigger) return;
+    const timer = setTimeout(() => window.location.reload(), 8000);
+    return () => clearTimeout(timer);
+  }, [trigger]);
+  return null;
 }

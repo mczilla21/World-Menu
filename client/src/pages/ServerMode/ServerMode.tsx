@@ -5,7 +5,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useOrderStore } from '../../stores/orderStore';
 import { useSettings } from '../../hooks/useSettings';
 import FloorPlan from '../KioskMode/FloorPlan';
-import OrderTypeSelect from './OrderTypeSelect';
+import PaymentScreen from '../KioskMode/PaymentScreen';
 import MenuGrid from './MenuGrid';
 import OrderReview from './OrderReview';
 import OrderHistory from './OrderHistory';
@@ -17,7 +17,7 @@ import LangToggle from '../../components/LangToggle';
 import type { MenuItem, ItemVariant } from '../../hooks/useMenu';
 import { useI18n } from '../../i18n/useI18n';
 
-type View = 'order_type' | 'table' | 'menu' | 'review' | 'history' | 'sent' | 'overview';
+type View = 'table' | 'menu' | 'review' | 'history' | 'sent' | 'overview' | 'payment';
 
 interface TableOrder {
   id: number;
@@ -38,13 +38,14 @@ function loadServerState() {
 
 export default function ServerMode() {
   const saved = loadServerState();
-  const [view, setViewRaw] = useState<View>(saved?.view || 'order_type');
+  const [view, setViewRaw] = useState<View>(saved?.view === 'menu' || saved?.view === 'review' ? saved.view : 'table');
   const [builderTarget, setBuilderTarget] = useState<{ categoryId: number; item: { id: number; name: string }; price: number } | null>(null);
   const [variantTarget, setVariantTarget] = useState<MenuItem | null>(null);
   const [lastTable, setLastTable] = useState(saved?.lastTable || '');
   const [lastOrderType, setLastOrderType] = useState(saved?.lastOrderType || '');
   const [tablePopup, setTablePopup] = useState<{ number: string; status: string; total: number; elapsed: number; orders: TableOrder[] } | null>(null);
   const [loadingPopup, setLoadingPopup] = useState(false);
+  const [paymentTable, setPaymentTable] = useState<string>('');
   // Wrap setView to persist state
   const setView = useCallback((v: View) => {
     setViewRaw(v);
@@ -63,8 +64,7 @@ export default function ServerMode() {
     }));
   }, [view, lastTable, lastOrderType]);
 
-  const enabledTypes = (settings.order_types_enabled || 'dine_in,takeout,pickup').split(',').filter(Boolean);
-  const takeoutOnly = settings.takeout_only === '1';
+  const currency = settings.currency_symbol || '$';
 
   // Auto-return to menu after order sent (2s flash)
   const sentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,20 +119,8 @@ export default function ServerMode() {
 
   useWebSocket('server', handleWsMessage);
 
-  const handleOrderTypeSelect = (type: 'dine_in' | 'takeout' | 'pickup', name?: string) => {
-    setOrderType(type);
-    if (name) setCustomerName(name);
-    if (type === 'dine_in') {
-      setView('table');
-    } else {
-      // Takeout/pickup — go straight to menu
-      setTable('');
-      setExistingOrder(null);
-      setView('menu');
-    }
-  };
-
   const handleTableSelect = async (t: string) => {
+    setOrderType('dine_in');
     setTable(t);
     try {
       const res = await fetch(`/api/orders/table/${encodeURIComponent(t)}/current`);
@@ -150,6 +138,14 @@ export default function ServerMode() {
     setView('menu');
   };
 
+  const handleToGoOrder = () => {
+    setOrderType('takeout');
+    setTable('');
+    setExistingOrder(null);
+    setCustomerName('');
+    setView('menu');
+  };
+
   const handleSend = async () => {
     const savedTable = tableNumber;
     const savedType = orderType;
@@ -158,17 +154,18 @@ export default function ServerMode() {
     if (ok) {
       setLastTable(savedTable);
       setLastOrderType(savedType);
-      // Stay on the same table — go right back to menu
       setTable(savedTable);
       setOrderType(savedType as any);
       if (savedName) setCustomerName(savedName);
-      try {
-        const res = await fetch(`/api/orders/table/${encodeURIComponent(savedTable)}/current`);
-        if (res.ok) {
-          const order = await res.json();
-          if (order && order.id) setExistingOrder(order.id);
-        }
-      } catch {}
+      if (savedTable) {
+        try {
+          const res = await fetch(`/api/orders/table/${encodeURIComponent(savedTable)}/current`);
+          if (res.ok) {
+            const order = await res.json();
+            if (order && order.id) setExistingOrder(order.id);
+          }
+        } catch {}
+      }
       setView('sent');
     }
   };
@@ -223,40 +220,31 @@ export default function ServerMode() {
     if (view === 'review') setView('menu');
     else if (view === 'menu') {
       if (cart.length > 0) {
-        if (confirm('Leave this table? Cart will be cleared.')) {
+        if (confirm('Leave? Cart will be cleared.')) {
           clearCart();
-          if (orderType === 'dine_in') setView('table');
-          else setView('order_type');
+          setView('table');
         }
       } else {
-        if (orderType === 'dine_in') { setView('table'); }
-        else { setView('order_type'); }
+        setView('table');
       }
     }
-    else if (view === 'table') { setView('order_type'); }
-    else if (view === 'history') setView('order_type');
-    else if (view === 'overview') setView('order_type');
+    else if (view === 'table') { navigate('/staff-select'); return; }
+    else if (view === 'sent') { clearCart(); setView('table'); }
+    else if (view === 'history') setView('table');
+    else if (view === 'payment') setView('table');
+    else if (view === 'overview') setView('table');
   };
-
-  // Auto-select order type if only one option
-  useEffect(() => {
-    if (view === 'order_type' && takeoutOnly) {
-      handleOrderTypeSelect('takeout');
-    } else if (view === 'order_type' && enabledTypes.length === 1) {
-      handleOrderTypeSelect(enabledTypes[0] as 'dine_in' | 'takeout' | 'pickup');
-    }
-  }, [view, takeoutOnly, enabledTypes.length]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><div className="text-slate-400">Loading...</div></div>;
 
   const viewTitle: Record<View, string> = {
-    order_type: t('New Order'),
-    table: t('Select Table'),
-    menu: orderType === 'dine_in' ? `${t('Table')} ${tableNumber}` : (customerName ? `${t(orderType === 'takeout' ? 'Takeout' : 'Pickup')} — ${customerName}` : t(orderType === 'takeout' ? 'Takeout' : 'Pickup')),
+    table: t('Tables'),
+    menu: orderType === 'dine_in' ? `${t('Table')} ${tableNumber}` : t('To-Go Order'),
     review: t('Review Order'),
     history: t('Order History'),
     sent: t('Order Sent'),
-    overview: t('Table Overview'),
+    overview: t('Tables'),
+    payment: `${t('Payment')} — ${t('Table')} ${paymentTable}`,
   };
 
   return (
@@ -274,8 +262,8 @@ export default function ServerMode() {
       )}
       <header className="bg-slate-800 border-b border-slate-700/50 px-4 py-2.5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          {view !== 'order_type' && (
-            <button onClick={view === 'sent' ? () => { clearCart(); setView('order_type'); } : handleBack} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+          {view !== 'table' && (
+            <button onClick={handleBack} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
           )}
@@ -285,10 +273,13 @@ export default function ServerMode() {
           <ApprovalBadge />
           <ServiceCallBadge />
           <LangToggle />
-          {(view === 'order_type' || view === 'table' || view === 'menu' || view === 'overview') && (
+          {(view === 'table' || view === 'menu') && (
             <>
-              {view !== 'overview' && (
-                <button onClick={() => setView('overview')} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-700 hover:bg-blue-600 text-blue-100 transition-colors">
+              <button onClick={handleToGoOrder} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-500 text-white transition-colors">
+                🛍 {t('To-Go')}
+              </button>
+              {view !== 'table' && (
+                <button onClick={() => setView('table')} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-700 hover:bg-blue-600 text-blue-100 transition-colors">
                   {t('Tables')}
                 </button>
               )}
@@ -303,8 +294,7 @@ export default function ServerMode() {
       </header>
 
       <div className="flex-1 overflow-auto">
-        {view === 'order_type' && <OrderTypeSelect onSelect={handleOrderTypeSelect} />}
-        {view === 'table' && (
+        {(view === 'table' || view === 'overview') && (
           <FloorPlan
             onSelectTable={(table) => {
               if (table.status !== 'empty') {
@@ -342,13 +332,10 @@ export default function ServerMode() {
           />
         )}
         {view === 'history' && (
-          <OrderHistory onBack={() => setView('order_type')} onGoToTable={(t) => handleTableSelect(t)} />
+          <OrderHistory onBack={() => setView('table')} onGoToTable={(t) => handleTableSelect(t)} />
         )}
-        {view === 'overview' && (
-          <FloorPlan
-            onSelectTable={(table) => handleOverviewTableClick(table.number, table.status, table.total, table.elapsed)}
-            selectedTable={tablePopup?.number || null}
-          />
+        {view === 'payment' && paymentTable && (
+          <ServerPaymentView tableNumber={paymentTable} onDone={() => setView('table')} />
         )}
         {view === 'sent' && (
           <div className="flex flex-col items-center justify-center h-full p-8">
@@ -369,7 +356,7 @@ export default function ServerMode() {
                 Continue Ordering
               </button>
               <button
-                onClick={() => { clearCart(); setView('order_type'); }}
+                onClick={() => { clearCart(); setView('table'); }}
                 className="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-xl font-medium text-sm transition-colors text-slate-300"
               >
                 Different Table / New Order
@@ -477,6 +464,14 @@ export default function ServerMode() {
                   Start Order
                 </button>
               )}
+              {tablePopup.status !== 'empty' && tablePopup.total > 0 && (
+                <button
+                  onClick={() => { setPaymentTable(tablePopup.number); setTablePopup(null); setView('payment'); }}
+                  className="w-full py-3 rounded-xl font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                >
+                  💳 Process Payment — ${tablePopup.total.toFixed(2)}
+                </button>
+              )}
               {tablePopup.status !== 'empty' && (
                 <button
                   onClick={() => handleCloseTable(tablePopup.number)}
@@ -490,5 +485,47 @@ export default function ServerMode() {
         </div>
       )}
     </div>
+  );
+}
+
+// Wrapper that fetches order data and renders PaymentScreen
+function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDone: () => void }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { settings } = useSettings();
+  const currency = settings.currency_symbol || '$';
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/orders/active');
+        const orders = await res.json();
+        const tableOrders = orders.filter((o: any) => String(o.table_number) === tableNumber);
+        const allItems = tableOrders.flatMap((o: any) => (o.items || []).map((i: any) => ({
+          id: i.id, item_name: i.item_name, variant_name: i.variant_name || '',
+          quantity: i.quantity, item_price: i.item_price, notes: i.notes || '', is_done: i.is_done || 0,
+        })));
+        setItems(allItems);
+      } catch {}
+      setLoading(false);
+    })();
+  }, [tableNumber]);
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 48, color: '#94a3b8' }}>Loading...</div>;
+
+  const subtotal = items.reduce((s, i) => s + i.item_price * i.quantity, 0);
+
+  return (
+    <PaymentScreen
+      tableNumber={tableNumber}
+      items={items}
+      subtotal={subtotal}
+      currency={currency}
+      onComplete={() => {
+        fetch(`/api/tables/${encodeURIComponent(tableNumber)}/close`, { method: 'POST' }).catch(() => {});
+        onDone();
+      }}
+      onBack={onDone}
+    />
   );
 }

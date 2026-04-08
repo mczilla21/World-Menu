@@ -3,10 +3,9 @@ import { useSettings } from '../hooks/useSettings';
 import { useI18n } from '../i18n/useI18n';
 
 const modes = [
-  { id: 'server', label: 'Server', desc: 'Take & manage orders', icon: '📋', color: '#3b82f6' },
+  { id: 'server', label: 'Server', desc: 'Orders, tables, & payments', icon: '📋', color: '#3b82f6' },
   { id: 'kitchen', label: 'Chef / Kitchen', desc: 'View & complete orders', icon: '👨‍🍳', color: '#f97316' },
-  { id: 'kiosk', label: 'POS / Register', desc: 'Floor plan & payments', icon: '💰', color: '#8b5cf6' },
-  { id: 'admin', label: 'Admin Panel', desc: 'Menu, settings, reports', icon: '⚙️', color: '#475569' },
+  { id: 'admin', label: 'Admin Panel', desc: 'Menu, team, finance, settings', icon: '⚙️', color: '#475569' },
 ];
 
 export default function StaffSelect() {
@@ -44,7 +43,7 @@ export default function StaffSelect() {
           <div className="mt-3 inline-block px-5 py-2.5 rounded-2xl" style={{ background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
             <span style={{ fontSize: 14, color: '#64748b' }}>Hey </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{employee.name}!</span>
-            <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${modes.find(m=>m.id==='admin')?.color || '#f1f5f9'}20`, color: modes.find(m=>m.id==='admin')?.color || '#64748b' }}>{employee.role}</span>
+            <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${modes.find(m=>m.id===employee.role)?.color || '#64748b'}20`, color: modes.find(m=>m.id===employee.role)?.color || '#64748b' }}>{employee.role}</span>
           </div>
         </div>
 

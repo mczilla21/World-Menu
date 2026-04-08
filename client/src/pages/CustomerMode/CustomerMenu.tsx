@@ -85,7 +85,7 @@ export default function CustomerMenu() {
     if (msg.type === 'ORDER_REJECTED') {
       alert(msg.reason || 'Your order was declined. Please ask your server.');
     }
-  }, [tableNumber, settings.native_language, setCustomerLang]);
+  }, [tableNumber, settings.native_language, setCustomerLang, clearCart]);
 
   useWebSocket(tableNumber ? `table-${tableNumber}` : '', handleWs);
 

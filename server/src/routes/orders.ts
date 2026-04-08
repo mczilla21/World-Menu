@@ -405,6 +405,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
     const updated = getOrderWithItems(orderId);
     broadcastToRole('kitchen', { type: 'ORDER_UPDATED', order: updated, newItemIds });
+    broadcastToRole('server', { type: 'ORDER_UPDATED', order: updated });
     return updated;
   });
 
