@@ -30,6 +30,7 @@ export default function SettingsManager() {
   const [tippingEnabled, setTippingEnabled] = useState(settings.tipping_enabled === '1');
   const [tipPercentages, setTipPercentages] = useState(settings.tip_percentages || '15,18,20');
   const [adminPin, setAdminPin] = useState(settings.admin_pin || '');
+  const [cardSurcharge, setCardSurcharge] = useState(settings.card_surcharge || '3');
 
   // Idle screen
   const [idleEnabled, setIdleEnabled] = useState(settings.idle_screen_enabled === '1');
@@ -65,6 +66,7 @@ export default function SettingsManager() {
     setTippingEnabled(settings.tipping_enabled === '1');
     setTipPercentages(settings.tip_percentages || '15,18,20');
     setAdminPin(settings.admin_pin || '');
+    setCardSurcharge(settings.card_surcharge || '3');
     setIdleEnabled(settings.idle_screen_enabled === '1');
     setIdleTimeout(settings.idle_screen_timeout || '3');
     setIdleMessage(settings.idle_screen_message || 'Welcome! Tap to start ordering');
@@ -91,6 +93,7 @@ export default function SettingsManager() {
       tipping_enabled: tippingEnabled ? '1' : '0',
       tip_percentages: tipPercentages,
       admin_pin: adminPin,
+      card_surcharge: cardSurcharge,
       idle_screen_enabled: idleEnabled ? '1' : '0',
       idle_screen_timeout: idleTimeout,
       idle_screen_message: idleMessage,
@@ -324,6 +327,22 @@ export default function SettingsManager() {
             />
           </div>
         )}
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Card Processing Surcharge (%)</label>
+          <div className="flex items-center gap-3">
+            <input
+              value={cardSurcharge}
+              onChange={e => { setCardSurcharge(e.target.value); setDirty(true); }}
+              placeholder="3"
+              type="number"
+              min="0"
+              max="10"
+              step="0.5"
+              className="w-24 bg-slate-700 rounded-lg px-4 py-2 text-white outline-none"
+            />
+            <span className="text-xs text-slate-500">Set to 0 to disable. Customers see both cash and card prices at checkout.</span>
+          </div>
+        </div>
       </div>
 
       {/* Website Integration */}

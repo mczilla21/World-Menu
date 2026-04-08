@@ -38,10 +38,14 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const [cardDone, setCardDone] = useState(false);
   const [splitWays, setSplitWays] = useState(2);
   const [splitPaid, setSplitPaid] = useState(0);
+  const [cardSurcharge, setCardSurcharge] = useState(3);
 
   useEffect(() => {
     fetch('/api/tax-rates').then(r => r.json()).then(setTaxRates).catch(() => {});
     fetch('/api/discounts').then(r => r.json()).then(d => setDiscounts(d.filter((x: any) => x.is_active))).catch(() => {});
+    fetch('/api/settings').then(r => r.json()).then(s => {
+      if (s.card_surcharge) setCardSurcharge(parseFloat(s.card_surcharge) || 3);
+    }).catch(() => {});
   }, []);
 
   // Calculations
@@ -50,9 +54,12 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const afterDiscount = Math.max(0, subtotal - discountAmount);
   const tax = afterDiscount * (taxRate / 100);
   const tip = customTip ? parseFloat(customTip) || 0 : afterDiscount * (tipPercent / 100);
-  const total = afterDiscount + tax + tip;
-  const changeDue = parseFloat(cashGiven) - total;
-  const splitAmount = total / splitWays;
+  const cashTotal = afterDiscount + tax + tip;
+  const surchargeAmount = afterDiscount * (cardSurcharge / 100);
+  const cardTotal = afterDiscount + surchargeAmount + tax + tip;
+  const total = view === 'card' ? cardTotal : cashTotal;
+  const changeDue = parseFloat(cashGiven) - cashTotal;
+  const splitAmount = cashTotal / splitWays;
 
   const applyDiscount = async (discountId?: number) => {
     const body: any = {};
@@ -83,17 +90,17 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
     try {
       const res = await fetch('/api/payments/create-intent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table_number: tableNumber, amount: Math.round(total * 100) }),
+        body: JSON.stringify({ table_number: tableNumber, amount: Math.round(cardTotal * 100) }),
       });
       const data = await res.json();
       // Simulated or real — either way mark as done
       await new Promise(r => setTimeout(r, 2000));
       setCardDone(true);
-      setTimeout(() => onComplete('card', total), 1500);
+      setTimeout(() => onComplete('card', cardTotal), 1500);
     } catch {
       await new Promise(r => setTimeout(r, 2000));
       setCardDone(true);
-      setTimeout(() => onComplete('card', total), 1500);
+      setTimeout(() => onComplete('card', cardTotal), 1500);
     }
     setCardProcessing(false);
   };
@@ -160,6 +167,11 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
           <div className="flex justify-between" style={{ color: '#94a3b8' }}>
             <span>Tax ({taxRate}%)</span><span>{currency}{tax.toFixed(2)}</span>
           </div>
+          {view === 'card' && cardSurcharge > 0 && (
+            <div className="flex justify-between" style={{ color: '#f59e0b' }}>
+              <span>Card processing ({cardSurcharge}%)</span><span>+{currency}{surchargeAmount.toFixed(2)}</span>
+            </div>
+          )}
           {tip > 0 && (
             <div className="flex justify-between" style={{ color: '#60a5fa' }}>
               <span>Tip</span><span>{currency}{tip.toFixed(2)}</span>
@@ -212,13 +224,16 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
             <div className="w-full space-y-3">
               <button onClick={() => setView('cash')} className="w-full bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg shadow-emerald-500/20">
                 <span className="text-4xl">💵</span>
-                <div className="text-left"><div className="text-xl font-bold text-white">Cash</div><div className="text-emerald-200 text-xs">Pay with cash</div></div>
-                <span className="ml-auto text-xl font-black text-white">{currency}{total.toFixed(2)}</span>
+                <div className="text-left"><div className="text-xl font-bold text-white">Cash</div><div className="text-emerald-200 text-xs">No processing fee</div></div>
+                <span className="ml-auto text-xl font-black text-white">{currency}{cashTotal.toFixed(2)}</span>
               </button>
               <button onClick={() => { setView('card'); handleCardPay(); }} className="w-full bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg shadow-blue-500/20">
                 <span className="text-4xl">💳</span>
-                <div className="text-left"><div className="text-xl font-bold text-white">Card</div><div className="text-blue-200 text-xs">Credit, debit, tap</div></div>
-                <span className="ml-auto text-xl font-black text-white">{currency}{total.toFixed(2)}</span>
+                <div className="text-left">
+                  <div className="text-xl font-bold text-white">Card</div>
+                  <div className="text-blue-200 text-xs">Includes {cardSurcharge}% processing fee</div>
+                </div>
+                <span className="ml-auto text-xl font-black text-white">{currency}{cardTotal.toFixed(2)}</span>
               </button>
               <div className="flex gap-3">
                 <button onClick={() => setView('gift')} className="flex-1 bg-gradient-to-b from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 rounded-xl p-4 flex items-center gap-3 transition-all active:scale-[0.98]">
