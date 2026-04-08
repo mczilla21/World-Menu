@@ -285,11 +285,13 @@ export default function ServerMode() {
           <ApprovalBadge />
           <ServiceCallBadge />
           <LangToggle />
-          {(view === 'order_type' || view === 'table') && (
+          {(view === 'order_type' || view === 'table' || view === 'menu' || view === 'overview') && (
             <>
-              <button onClick={() => setView('overview')} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-700 hover:bg-blue-600 text-blue-100 transition-colors">
-                {t('Tables')}
-              </button>
+              {view !== 'overview' && (
+                <button onClick={() => setView('overview')} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-700 hover:bg-blue-600 text-blue-100 transition-colors">
+                  {t('Tables')}
+                </button>
+              )}
               <button onClick={() => setView('history')} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors">
                 {t('History')}
               </button>
@@ -304,8 +306,14 @@ export default function ServerMode() {
         {view === 'order_type' && <OrderTypeSelect onSelect={handleOrderTypeSelect} />}
         {view === 'table' && (
           <FloorPlan
-            onSelectTable={(table) => handleTableSelect(table.number)}
-            selectedTable={null}
+            onSelectTable={(table) => {
+              if (table.status !== 'empty') {
+                handleOverviewTableClick(table.number, table.status, table.total, table.elapsed);
+              } else {
+                handleTableSelect(table.number);
+              }
+            }}
+            selectedTable={tablePopup?.number || null}
           />
         )}
         {view === 'menu' && (
