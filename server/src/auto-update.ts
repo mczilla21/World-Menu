@@ -105,15 +105,22 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true });
 
     const { execSync } = await import('child_process');
-    try {
-      execSync(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force"`, { timeout: 60000 });
-    } catch {
+    fs.mkdirSync(extractDir, { recursive: true });
+    // Try tar first (built into Windows 10/11), then PowerShell, then unzip
+    let extracted = false;
+    for (const cmd of [
+      `tar -xf "${zipPath}" -C "${extractDir}"`,
+      `powershell -ExecutionPolicy Bypass -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force"`,
+      `unzip -o "${zipPath}" -d "${extractDir}"`,
+    ]) {
       try {
-        execSync(`unzip -o "${zipPath}" -d "${extractDir}"`, { timeout: 60000 });
-      } catch {
-        return { ok: false, message: 'Failed to extract update' };
-      }
+        execSync(cmd, { timeout: 120000, stdio: 'pipe' });
+        extracted = true;
+        console.log('Extracted with: ' + cmd.split(' ')[0]);
+        break;
+      } catch { continue; }
     }
+    if (!extracted) return { ok: false, message: 'Failed to extract update — no extraction tool available' };
 
     // Find the extracted folder (GitHub zips have a subfolder)
     const extracted = fs.readdirSync(extractDir);
