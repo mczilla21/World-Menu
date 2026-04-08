@@ -79,12 +79,37 @@ function getProteinEmoji(name: string): string {
   return '🍖';
 }
 
-function getStepType(groupName: string): 'broth' | 'noodle' | 'protein' | 'other' {
+function getStepType(groupName: string): 'broth' | 'noodle' | 'protein' | 'topping' | 'other' {
   const n = groupName.toLowerCase();
   if (n.includes('broth') || n.includes('soup')) return 'broth';
   if (n.includes('noodle')) return 'noodle';
   if (n.includes('protein') || n.includes('meat')) return 'protein';
+  if (n.includes('topping') || n.includes('extra') || n.includes('customize') || n.includes('add-on') || n.includes('garnish')) return 'topping';
   return 'other';
+}
+
+function getToppingEmoji(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('bean sprout')) return '🌱';
+  if (n.includes('green onion') || n.includes('scallion')) return '🧅';
+  if (n.includes('cilantro') || n.includes('coriander')) return '🌿';
+  if (n.includes('spinach') || n.includes('watercress') || n.includes('water spinach')) return '🥬';
+  if (n.includes('peanut')) return '🥜';
+  if (n.includes('soy sauce') || n.includes('sauce')) return '🫗';
+  if (n.includes('egg')) return '🥚';
+  if (n.includes('lime')) return '🍋';
+  if (n.includes('chili') || n.includes('spicy') || n.includes('pepper')) return '🌶️';
+  if (n.includes('garlic')) return '🧄';
+  if (n.includes('mushroom')) return '🍄';
+  if (n.includes('corn')) return '🌽';
+  if (n.includes('seaweed') || n.includes('nori')) return '🍃';
+  if (n.includes('chicken')) return '🍗';
+  if (n.includes('pork')) return '🥩';
+  if (n.includes('beef')) return '🥩';
+  if (n.includes('shrimp') || n.includes('seafood')) return '🦐';
+  if (n.includes('tofu')) return '🫘';
+  if (n.includes('fish')) return '🐟';
+  return '✨';
 }
 
 // Get a friendly step label from group name (strip "Step X:" prefix)
@@ -186,7 +211,7 @@ export default function NoodleBowlBuilder({
 }: Props) {
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
   const [stepIdx, setStepIdx] = useState(0);
-  const [selections, setSelections] = useState<Record<number, number | null>>({});
+  const [selections, setSelections] = useState<Record<number, Set<number>>>({});
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [selectedVariant, setSelectedVariant] = useState<ItemVariant | null>(null);
@@ -200,8 +225,14 @@ export default function NoodleBowlBuilder({
       .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
       .then((data: ModifierGroup[]) => {
         setGroups(data);
-        const initial: Record<number, number | null> = {};
-        for (const g of data) initial[g.id] = null;
+        const initial: Record<number, Set<number>> = {};
+        for (const g of data) {
+          if (g.selection_type === 'toggle') {
+            initial[g.id] = new Set(g.modifiers.filter(m => m.default_on).map(m => m.id));
+          } else {
+            initial[g.id] = new Set();
+          }
+        }
         setSelections(initial);
       })
       .catch(() => {});
@@ -216,14 +247,23 @@ export default function NoodleBowlBuilder({
 
   // Current selection helpers
   const currentGroup = groups[stepIdx] || null;
-  const selectedModId = currentGroup ? selections[currentGroup.id] : null;
+  const currentSel = currentGroup ? (selections[currentGroup.id] || new Set<number>()) : new Set<number>();
 
-  // Get selected modifier objects for visualization
+  // Get first selected modifier for visualization (broth/noodle/protein)
   const getSelectedMod = (groupId: number) => {
-    const modId = selections[groupId];
-    if (modId == null) return null;
+    const sel = selections[groupId];
+    if (!sel || sel.size === 0) return null;
+    const firstId = sel.values().next().value;
     const g = groups.find(gr => gr.id === groupId);
-    return g?.modifiers.find(m => m.id === modId) || null;
+    return g?.modifiers.find(m => m.id === firstId) || null;
+  };
+
+  // Get all selected modifiers for a group
+  const getSelectedMods = (groupId: number) => {
+    const sel = selections[groupId];
+    if (!sel || sel.size === 0) return [];
+    const g = groups.find(gr => gr.id === groupId);
+    return g?.modifiers.filter(m => sel.has(m.id)) || [];
   };
 
   // Visual state derived from selections
@@ -235,27 +275,39 @@ export default function NoodleBowlBuilder({
   const selectedNoodle = noodleGroup ? getSelectedMod(noodleGroup.id) : null;
   const selectedProtein = proteinGroup ? getSelectedMod(proteinGroup.id) : null;
 
-  const isComplete = groups.length > 0 && groups.every(g => !g.required || selections[g.id] != null);
+  const isComplete = groups.length > 0 && groups.every(g => !g.required || (selections[g.id] && selections[g.id].size > 0));
 
   // Auto-advance timer ref (cleanup on unmount)
   const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current); }, []);
 
-  // Select a modifier (single-select per group, auto-advance)
+  // Select a modifier — single-select for 'single', multi for 'multi'/'toggle'
   const handleSelect = (modId: number) => {
     if (!currentGroup) return;
-    setSelections(prev => ({ ...prev, [currentGroup.id]: modId }));
-    // Auto-advance after short delay
-    if (stepIdx < groups.length - 1) {
+    const isSingle = currentGroup.selection_type === 'single';
+    setSelections(prev => {
+      const current = new Set(prev[currentGroup.id] || []);
+      if (isSingle) {
+        // Replace selection
+        return { ...prev, [currentGroup.id]: new Set([modId]) };
+      } else {
+        // Toggle in/out
+        if (current.has(modId)) current.delete(modId);
+        else current.add(modId);
+        return { ...prev, [currentGroup.id]: current };
+      }
+    });
+    // Auto-advance only for single-select groups
+    if (isSingle && stepIdx < groups.length - 1) {
       if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
       autoAdvanceRef.current = setTimeout(() => setStepIdx(s => Math.min(s + 1, groups.length - 1)), 400);
     }
   };
 
-  // Price calculation
+  // Price calculation — sum all selected modifiers across all groups
   const totalExtra = groups.reduce((sum, g) => {
-    const mod = getSelectedMod(g.id);
-    return sum + (mod?.extra_price || 0);
+    const mods = getSelectedMods(g.id);
+    return sum + mods.reduce((s, m) => s + m.extra_price, 0);
   }, 0);
 
   const basePrice = hasVariants && selectedVariant ? selectedVariant.price
@@ -264,11 +316,11 @@ export default function NoodleBowlBuilder({
 
   // Add to cart
   const handleAddToCart = () => {
-    if (groups.some(g => g.required && selections[g.id] == null)) return;
+    if (groups.some(g => g.required && (!selections[g.id] || selections[g.id].size === 0))) return;
     const notesParts: string[] = [];
     for (const g of groups) {
-      const mod = getSelectedMod(g.id);
-      if (mod) notesParts.push(mod.name);
+      const mods = getSelectedMods(g.id);
+      if (mods.length > 0) notesParts.push(mods.map(m => m.name).join(', '));
     }
     if (notes.trim()) notesParts.push(notes.trim());
 
@@ -356,8 +408,18 @@ export default function NoodleBowlBuilder({
                 borderTop: 'none',
               }}
             >
-              {/* Empty state text */}
-              {!selectedBroth && !selectedNoodle && !selectedProtein && (
+              {/* Empty state — show pre-filled for ramen, empty for build-your-own */}
+              {!selectedBroth && !selectedNoodle && !selectedProtein && !brothGroup && (
+                // Ramen/fixed recipe — show a pre-filled bowl
+                <div className="absolute inset-0" style={{
+                  background: 'linear-gradient(to bottom, transparent 15%, #D4A84360 30%, #B8862D90 100%)',
+                  borderRadius: '0 0 50% 50% / 0 0 100% 100%',
+                }}>
+                  <div className="absolute top-[20%] left-1/2 -translate-x-1/2 text-[36px]">🍜</div>
+                  <NoodleLines color="#F5DEB3" thick={false} />
+                </div>
+              )}
+              {!selectedBroth && !selectedNoodle && !selectedProtein && brothGroup && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-gray-300 text-sm font-medium">Pick your ingredients!</span>
                 </div>
@@ -454,8 +516,8 @@ export default function NoodleBowlBuilder({
 
           {/* Price */}
           <div className="text-2xl font-bold mt-3" style={{ color: themeColor }}>
+            {totalExtra > 0 && <span className="text-base text-gray-400 mr-2 line-through">{currency}{basePrice.toFixed(2)}</span>}
             {currency}{(basePrice + totalExtra).toFixed(2)}
-            {totalExtra > 0 && <span className="text-base text-gray-400 ml-1 line-through">{currency}{basePrice.toFixed(2)}</span>}
           </div>
         </div>
 
@@ -463,7 +525,7 @@ export default function NoodleBowlBuilder({
         {groups.length > 0 && (
           <div className="flex items-center justify-center gap-2 px-4 pb-3">
             {groups.map((g, i) => {
-              const done = selections[g.id] != null;
+              const done = selections[g.id] && selections[g.id].size > 0;
               const active = i === stepIdx;
               return (
                 <button
@@ -494,13 +556,17 @@ export default function NoodleBowlBuilder({
               {getStepType(currentGroup.name) === 'broth' && 'Pick your soup base'}
               {getStepType(currentGroup.name) === 'noodle' && 'Choose your noodles'}
               {getStepType(currentGroup.name) === 'protein' && 'Add your protein'}
-              {getStepType(currentGroup.name) === 'other' && 'Make your selection'}
+              {getStepType(currentGroup.name) === 'topping' && 'Pick as many as you like'}
+              {getStepType(currentGroup.name) === 'other' && (currentGroup.selection_type === 'single' ? 'Select one' : 'Pick as many as you like')}
               {currentGroup.required ? '' : ' (optional)'}
+              {currentSel.size > 0 && currentGroup.selection_type !== 'single' && (
+                <span className="ml-2 font-semibold" style={{ color: themeColor }}>{currentSel.size} selected</span>
+              )}
             </p>
 
             <div className="grid grid-cols-2 gap-2">
               {currentGroup.modifiers.map(mod => {
-                const isSelected = selectedModId === mod.id;
+                const isSelected = currentSel.has(mod.id);
                 const stepType = getStepType(currentGroup.name);
                 return (
                   <button
@@ -524,6 +590,7 @@ export default function NoodleBowlBuilder({
                         )
                       )}
                       {stepType === 'protein' && getProteinEmoji(mod.name)}
+                      {stepType === 'topping' && getToppingEmoji(mod.name)}
                       {stepType === 'other' && '🍽'}
                     </div>
                     <span className="text-sm font-semibold text-gray-900 text-center leading-tight">
@@ -544,6 +611,17 @@ export default function NoodleBowlBuilder({
                 );
               })}
             </div>
+
+            {/* Next button for multi-select steps */}
+            {currentGroup.selection_type !== 'single' && stepIdx < groups.length - 1 && (
+              <button
+                onClick={() => setStepIdx(s => s + 1)}
+                className="w-full mt-3 py-3 rounded-xl font-bold text-white text-sm"
+                style={{ backgroundColor: themeColor }}
+              >
+                Next →
+              </button>
+            )}
           </div>
         )}
 
@@ -602,7 +680,7 @@ export default function NoodleBowlBuilder({
           </div>
           <button
             onClick={handleAddToCart}
-            disabled={groups.some(g => g.required && selections[g.id] == null)}
+            disabled={groups.some(g => g.required && (!selections[g.id] || selections[g.id].size === 0))}
             className="flex-1 py-3.5 rounded-2xl font-bold text-white text-lg disabled:opacity-40 transition-all active:scale-[0.98]"
             style={{ backgroundColor: themeColor }}
           >

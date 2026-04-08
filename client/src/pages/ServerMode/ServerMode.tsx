@@ -46,6 +46,11 @@ export default function ServerMode() {
   const [tablePopup, setTablePopup] = useState<{ number: string; status: string; total: number; elapsed: number; orders: TableOrder[] } | null>(null);
   const [loadingPopup, setLoadingPopup] = useState(false);
   const [paymentTable, setPaymentTable] = useState<string>('');
+
+  // Get employee role for permission checks
+  const employee = (() => { try { return JSON.parse(sessionStorage.getItem('wm_employee') || ''); } catch { return null; } })();
+  const isManager = employee?.role === 'manager' || employee?.role === 'owner';
+
   // Wrap setView to persist state
   const setView = useCallback((v: View) => {
     setViewRaw(v);
@@ -173,15 +178,17 @@ export default function ServerMode() {
   const handleAddMore = async () => {
     setTable(lastTable);
     setOrderType(lastOrderType as any);
-    try {
-      const res = await fetch(`/api/orders/table/${encodeURIComponent(lastTable)}/current`);
-      if (res.ok) {
-        const order = await res.json();
-        if (order && order.id) {
-          setExistingOrder(order.id);
+    if (lastTable) {
+      try {
+        const res = await fetch(`/api/orders/table/${encodeURIComponent(lastTable)}/current`);
+        if (res.ok) {
+          const order = await res.json();
+          if (order && order.id) {
+            setExistingOrder(order.id);
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }
     setView('menu');
   };
 
@@ -200,9 +207,16 @@ export default function ServerMode() {
     setLoadingPopup(false);
   };
 
-  const handleCloseTable = async (tableNum: string) => {
-    if (!confirm(`Close table ${tableNum}? All orders will be marked as finished.`)) return;
-    await fetch(`/api/tables/${encodeURIComponent(tableNum)}/close`, { method: 'POST' });
+  const handleCloseTable = async (tableNum: string, mode: 'complete' | 'cancel') => {
+    const msg = mode === 'cancel'
+      ? `Cancel all orders on table ${tableNum}? They will be voided and won't count in reports.`
+      : `Close table ${tableNum}? Orders will be marked as completed.`;
+    if (!confirm(msg)) return;
+    await fetch(`/api/tables/${encodeURIComponent(tableNum)}/close`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    });
     setTablePopup(null);
   };
 
@@ -260,37 +274,41 @@ export default function ServerMode() {
           ))}
         </div>
       )}
-      <header className="bg-slate-800 border-b border-slate-700/50 px-4 py-2.5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          {view !== 'table' && (
-            <button onClick={handleBack} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <header className="bg-slate-800 border-b border-slate-700/50 shrink-0">
+        {/* Top row — title + nav */}
+        <div className="px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {view !== 'table' && (
+              <button onClick={handleBack} className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+            )}
+            <h1 className="font-bold text-base text-white">{viewTitle[view]}</h1>
+            <ApprovalBadge />
+            <ServiceCallBadge />
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/staff-select')} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300">← Back</button>
+            <button onClick={switchRole} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300">Logout</button>
+          </div>
+        </div>
+        {/* Bottom row — action buttons (bigger, easier to tap) */}
+        {(view === 'table' || view === 'menu' || view === 'history') && (
+          <div className="px-4 pb-2 flex gap-2 flex-wrap">
+            <button onClick={handleToGoOrder} className="px-4 py-2.5 rounded-xl text-sm font-bold bg-orange-600 hover:bg-orange-500 text-white transition-colors">
+              🛍 To-Go Order
             </button>
-          )}
-          <h1 className="font-semibold text-base text-white">{viewTitle[view]}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <ApprovalBadge />
-          <ServiceCallBadge />
-          <LangToggle />
-          {(view === 'table' || view === 'menu') && (
-            <>
-              <button onClick={handleToGoOrder} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-500 text-white transition-colors">
-                🛍 {t('To-Go')}
+            {view !== 'table' && (
+              <button onClick={() => setView('table')} className="px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors">
+                🗺 Tables
               </button>
-              {view !== 'table' && (
-                <button onClick={() => setView('table')} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-700 hover:bg-blue-600 text-blue-100 transition-colors">
-                  {t('Tables')}
-                </button>
-              )}
-              <button onClick={() => setView('history')} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors">
-                {t('History')}
-              </button>
-            </>
-          )}
-          <button onClick={() => navigate('/staff-select')} style={{ fontSize: 12, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>← Back</button>
-          <button onClick={switchRole} style={{ fontSize: 11, color: '#cbd5e1', background: 'none', border: 'none', cursor: 'pointer' }}>Logout</button>
-        </div>
+            )}
+            <button onClick={() => setView('history')} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${view === 'history' ? 'bg-slate-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
+              📋 Orders
+            </button>
+            <LangToggle />
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-auto">
@@ -304,6 +322,7 @@ export default function ServerMode() {
               }
             }}
             selectedTable={tablePopup?.number || null}
+            showTotals={isManager}
           />
         )}
         {view === 'menu' && (
@@ -332,7 +351,7 @@ export default function ServerMode() {
           />
         )}
         {view === 'history' && (
-          <OrderHistory onBack={() => setView('table')} onGoToTable={(t) => handleTableSelect(t)} />
+          <OrderHistory onBack={() => setView('table')} onGoToTable={(t) => handleTableSelect(t)} canVoid={isManager} />
         )}
         {view === 'payment' && paymentTable && (
           <ServerPaymentView tableNumber={paymentTable} onDone={() => setView('table')} />
@@ -464,21 +483,31 @@ export default function ServerMode() {
                   Start Order
                 </button>
               )}
-              {tablePopup.status !== 'empty' && tablePopup.total > 0 && (
+              {tablePopup.status !== 'empty' && (
                 <button
                   onClick={() => { setPaymentTable(tablePopup.number); setTablePopup(null); setView('payment'); }}
                   className="w-full py-3 rounded-xl font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
                 >
-                  💳 Process Payment — ${tablePopup.total.toFixed(2)}
+                  💳 Process Payment{tablePopup.total > 0 ? ` — $${tablePopup.total.toFixed(2)}` : ''}
                 </button>
               )}
               {tablePopup.status !== 'empty' && (
-                <button
-                  onClick={() => handleCloseTable(tablePopup.number)}
-                  className="w-full py-3 rounded-xl font-semibold text-sm bg-red-600/80 hover:bg-red-600 text-white transition-colors"
-                >
-                  Close Table
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCloseTable(tablePopup.number, 'complete')}
+                    className="flex-1 py-3 rounded-xl font-semibold text-sm bg-slate-600 hover:bg-slate-500 text-white transition-colors"
+                  >
+                    Close Table
+                  </button>
+                  {isManager && (
+                    <button
+                      onClick={() => handleCloseTable(tablePopup.number, 'cancel')}
+                      className="flex-1 py-3 rounded-xl font-semibold text-sm bg-red-600/80 hover:bg-red-600 text-white transition-colors"
+                    >
+                      Cancel Orders
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -522,7 +551,11 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
       subtotal={subtotal}
       currency={currency}
       onComplete={() => {
-        fetch(`/api/tables/${encodeURIComponent(tableNumber)}/close`, { method: 'POST' }).catch(() => {});
+        fetch(`/api/tables/${encodeURIComponent(tableNumber)}/close`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'complete' }),
+        }).catch(() => {});
         onDone();
       }}
       onBack={onDone}

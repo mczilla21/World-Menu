@@ -5,6 +5,7 @@ import { useSettings } from '../../hooks/useSettings';
 interface Props {
   onBack: () => void;
   onGoToTable?: (tableNumber: string) => void;
+  canVoid?: boolean;
 }
 
 function formatDateLabel(dateStr: string): string {
@@ -37,7 +38,7 @@ function groupByDate(orders: Order[]): { label: string; orders: Order[] }[] {
   }));
 }
 
-export default function OrderHistory({ onBack, onGoToTable }: Props) {
+export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: Props) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
@@ -68,6 +69,23 @@ export default function OrderHistory({ onBack, onGoToTable }: Props) {
     await fetch('/api/orders/clear-history', { method: 'POST' });
     setOrders([]);
     setClearing(false);
+  };
+
+  const handleVoidItem = async (itemId: number, itemName: string) => {
+    if (!confirm(`Void "${itemName}" from order?`)) return;
+    await fetch(`/api/order-items/${itemId}`, { method: 'DELETE' });
+    fetchOrders();
+  };
+
+  const handleVoidOrder = async (orderId: number, orderNumber: string) => {
+    if (!confirm(`Void entire order ${orderNumber}? It will be marked as voided and won't count in reports.`)) return;
+    const emp = (() => { try { return JSON.parse(sessionStorage.getItem('wm_employee') || ''); } catch { return null; } })();
+    await fetch(`/api/orders/${orderId}/void`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_name: emp?.name || 'Unknown' }),
+    });
+    fetchOrders();
   };
 
   if (loading) return <div className="p-8 text-center text-slate-500">Loading...</div>;
@@ -153,10 +171,17 @@ export default function OrderHistory({ onBack, onGoToTable }: Props) {
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-600">{time}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          order.status === 'voided' ? 'bg-red-900/40 text-red-400' :
                           order.status === 'finished' ? 'bg-emerald-900/40 text-emerald-400' : 'bg-amber-900/40 text-amber-400'
                         }`}>
-                          {order.status === 'finished' ? 'Done' : 'Active'}
+                          {order.status === 'voided' ? 'Voided' : order.status === 'finished' ? 'Done' : 'Active'}
                         </span>
+                        {canVoid && order.status !== 'voided' && (
+                          <button onClick={() => handleVoidOrder(order.id, order.order_number)}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-red-900/20 text-red-500 hover:bg-red-900/40 font-medium">
+                            Void
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-0.5">
@@ -164,9 +189,17 @@ export default function OrderHistory({ onBack, onGoToTable }: Props) {
                         <div key={item.id}>
                           <div className="text-sm text-slate-300 flex items-center justify-between">
                             <span>{item.quantity > 1 ? `${item.quantity}x ` : ''}{item.item_name}{item.variant_name ? ` (${item.variant_name})` : ''}</span>
-                            {(item.item_price || 0) * item.quantity > 0 && (
-                              <span className="text-[11px] text-slate-600 ml-2 shrink-0">{currency}{((item.item_price || 0) * item.quantity).toFixed(2)}</span>
-                            )}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {(item.item_price || 0) * item.quantity > 0 && (
+                                <span className="text-[11px] text-slate-600">{currency}{((item.item_price || 0) * item.quantity).toFixed(2)}</span>
+                              )}
+                              {canVoid && order.status === 'active' && (
+                                <button onClick={() => handleVoidItem(item.id, item.item_name)}
+                                  className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/20 text-red-500 hover:bg-red-900/40">
+                                  ✕
+                                </button>
+                              )}
+                            </div>
                           </div>
                           {item.notes && (
                             <div className="text-[11px] text-slate-600 pl-3">
@@ -180,6 +213,11 @@ export default function OrderHistory({ onBack, onGoToTable }: Props) {
                         </div>
                       ))}
                     </div>
+                    {order.status === 'voided' && order.notes && (
+                      <div className="mt-2 text-[10px] text-red-400 bg-red-900/20 rounded-lg px-3 py-1.5">
+                        {order.notes.split(' | ').filter((n: string) => n.startsWith('VOIDED')).join(' ')}
+                      </div>
+                    )}
                     {(orderTotal > 0 || order.tip_amount > 0) && (
                       <div className="flex justify-between mt-2 pt-2 border-t border-slate-700/40">
                         <span className="text-xs font-semibold text-slate-500">Total</span>

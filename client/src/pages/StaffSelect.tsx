@@ -8,6 +8,14 @@ const modes = [
   { id: 'admin', label: 'Admin Panel', desc: 'Menu, team, finance, settings', icon: '⚙️', color: '#475569' },
 ];
 
+// Manager and owner see all modes; server/kitchen only see their own + admin if owner
+const getVisibleModes = (role: string) => {
+  if (role === 'owner' || role === 'manager') return modes;
+  if (role === 'server') return modes.filter(m => m.id === 'server');
+  if (role === 'kitchen') return modes.filter(m => m.id === 'kitchen');
+  return modes;
+};
+
 export default function StaffSelect() {
   const navigate = useNavigate();
   const { settings } = useSettings();
@@ -23,9 +31,13 @@ export default function StaffSelect() {
   }
 
   const pick = (mode: string) => {
-    localStorage.setItem('role', mode);
-    navigate('/' + mode);
+    // Manager uses server interface with elevated permissions
+    const route = mode === 'server' || mode === 'manager' ? 'server' : mode;
+    localStorage.setItem('role', route);
+    navigate('/' + route);
   };
+
+  const visibleModes = getVisibleModes(employee.role);
 
   const logout = () => {
     sessionStorage.removeItem('wm_employee');
@@ -43,12 +55,12 @@ export default function StaffSelect() {
           <div className="mt-3 inline-block px-5 py-2.5 rounded-2xl" style={{ background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
             <span style={{ fontSize: 14, color: '#64748b' }}>Hey </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{employee.name}!</span>
-            <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${modes.find(m=>m.id===employee.role)?.color || '#64748b'}20`, color: modes.find(m=>m.id===employee.role)?.color || '#64748b' }}>{employee.role}</span>
+            <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${({owner:'#8b5cf6',manager:'#8b5cf6',server:'#3b82f6',kitchen:'#f97316',host:'#14b8a6'} as Record<string,string>)[employee.role] || '#64748b'}20`, color: ({owner:'#8b5cf6',manager:'#8b5cf6',server:'#3b82f6',kitchen:'#f97316',host:'#14b8a6'} as Record<string,string>)[employee.role] || '#64748b' }}>{employee.role}</span>
           </div>
         </div>
 
         <div className="space-y-3">
-          {modes.map(mode => (
+          {visibleModes.map(mode => (
             <button
               key={mode.id}
               onClick={() => pick(mode.id)}

@@ -312,34 +312,46 @@ export default function CustomerMenu() {
             {allLangs.length > 1 && (
               <button
                 onClick={() => setShowLangPicker(!showLangPicker)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5"
               >
-                {LANGUAGE_OPTIONS.find(l => l.code === customerLang)?.flag || customerLang.toUpperCase()}
+                <span>🌐</span>
+                <span>{LANGUAGE_OPTIONS.find(l => l.code === customerLang)?.name || 'Language'}</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Language picker */}
+        {/* Language picker popup */}
         {showLangPicker && (
-          <div className="px-4 pb-3 flex gap-2 flex-wrap">
-            {allLangs.map(code => {
-              const langInfo = LANGUAGE_OPTIONS.find(l => l.code === code);
-              return (
-                <button
-                  key={code}
-                  onClick={() => { setCustomerLang(code); setShowLangPicker(false); }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    customerLang === code
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {langInfo?.name || code}
-                </button>
-              );
-            })}
-          </div>
+          <>
+            <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setShowLangPicker(false)} />
+            <div className="fixed inset-x-4 top-24 z-50 max-w-sm mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900 text-center">🌐 Choose Language</h3>
+              </div>
+              <div className="max-h-80 overflow-auto p-2">
+                {allLangs.map(code => {
+                  const langInfo = LANGUAGE_OPTIONS.find(l => l.code === code);
+                  const isActive = customerLang === code;
+                  return (
+                    <button
+                      key={code}
+                      onClick={() => { setCustomerLang(code); setShowLangPicker(false); }}
+                      className={`w-full text-left px-4 py-3.5 rounded-xl mb-1 flex items-center gap-3 transition-all active:scale-[0.97] ${
+                        isActive ? 'bg-blue-600 text-white' : 'hover:bg-gray-50 text-gray-900'
+                      }`}
+                    >
+                      <span className={`text-lg font-bold w-10 text-center ${isActive ? 'text-blue-200' : 'text-gray-400'}`}>
+                        {langInfo?.flag || code.toUpperCase()}
+                      </span>
+                      <span className="text-base font-semibold">{langInfo?.name || code}</span>
+                      {isActive && <span className="ml-auto">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
 
         {/* Search */}

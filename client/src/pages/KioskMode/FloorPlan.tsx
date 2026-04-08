@@ -26,57 +26,45 @@ interface TableData {
 interface Props {
   onSelectTable: (table: TableData) => void;
   selectedTable: string | null;
+  showTotals?: boolean;
 }
 
-// Friendly POS color scheme
-const statusColors: Record<string, { bg: string; border: string; text: string; label: string; labelBg: string }> = {
-  empty:    { bg: '#dcfce7', border: '#86efac', text: '#166534', label: 'Open', labelBg: '#bbf7d0' },
-  ordering: { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', label: 'Ordering', labelBg: '#bfdbfe' },
-  eating:   { bg: '#fef3c7', border: '#fcd34d', text: '#92400e', label: 'Eating', labelBg: '#fde68a' },
-  check:    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b', label: 'Check!', labelBg: '#fecaca' },
-  seated:   { bg: '#e0e7ff', border: '#a5b4fc', text: '#3730a3', label: 'Seated', labelBg: '#c7d2fe' },
-  paid:     { bg: '#f1f5f9', border: '#cbd5e1', text: '#475569', label: 'Paid', labelBg: '#e2e8f0' },
+// Premium dark color scheme
+const statusColors: Record<string, { bg: string; border: string; text: string; label: string; labelBg: string; glow: string }> = {
+  empty:    { bg: 'linear-gradient(135deg, #1a3a2a, #1e4d35)', border: '#2dd4bf40', text: '#5eead4', label: 'Open', labelBg: '#0d9488', glow: 'none' },
+  ordering: { bg: 'linear-gradient(135deg, #1e2a4a, #1e3a6e)', border: '#60a5fa50', text: '#93c5fd', label: 'Ordering', labelBg: '#2563eb', glow: '0 0 12px rgba(59,130,246,0.2)' },
+  eating:   { bg: 'linear-gradient(135deg, #3a2a10, #4a3518)', border: '#fbbf2450', text: '#fcd34d', label: 'Eating', labelBg: '#d97706', glow: '0 0 12px rgba(251,191,36,0.15)' },
+  check:    { bg: 'linear-gradient(135deg, #4a1515, #5c1a1a)', border: '#f8717150', text: '#fca5a5', label: 'Check!', labelBg: '#dc2626', glow: '0 0 16px rgba(239,68,68,0.3)' },
+  seated:   { bg: 'linear-gradient(135deg, #1e1a3a, #2a2050)', border: '#a78bfa40', text: '#c4b5fd', label: 'Seated', labelBg: '#7c3aed', glow: '0 0 10px rgba(167,139,250,0.15)' },
+  paid:     { bg: 'linear-gradient(135deg, #1a1a1a, #252525)', border: '#52525240', text: '#a3a3a3', label: 'Paid', labelBg: '#525252', glow: 'none' },
 };
 
-// Table shape renderers
-function TableShape({ type, width, height }: { type: string; width: number; height: number }) {
-  if (type === 'bar') {
-    return (
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-        <circle cx={width/2} cy={height/2} r={Math.min(width, height)/2 - 2} fill="none" stroke="currentColor" strokeWidth="2" opacity="0.3" />
-      </svg>
-    );
-  }
+// Chair SVG shapes for different table types
+function TableChairs({ type, width, height }: { type: string; width: number; height: number }) {
+  const chairColor = 'rgba(255,255,255,0.15)';
+  const chairSize = 5;
+  if (type === 'bar' || type === 'patio') return null;
   if (type === 'booth') {
+    // Bench seats on top and bottom
     return (
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-        <rect x="2" y="2" width={width-4} height={height-4} rx="6" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.3" />
-        {/* Booth back */}
-        <rect x="0" y="0" width={width} height="8" rx="4" fill="currentColor" opacity="0.15" />
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+        <rect x={width * 0.15} y={-2} width={width * 0.7} height={6} rx={3} fill={chairColor} />
+        <rect x={width * 0.15} y={height - 4} width={width * 0.7} height={6} rx={3} fill={chairColor} />
       </svg>
     );
   }
-  if (type === 'patio') {
-    return (
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-        <rect x="2" y="2" width={width-4} height={height-4} rx="16" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="6 3" opacity="0.3" />
-      </svg>
-    );
-  }
-  // Default table — rounded rect with "chairs"
+  // Default table — 4 chairs
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-      <rect x="8" y="8" width={width-16} height={height-16} rx="8" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.2" />
-      {/* Chair dots */}
-      <circle cx={width/2} cy="4" r="3" fill="currentColor" opacity="0.2" />
-      <circle cx={width/2} cy={height-4} r="3" fill="currentColor" opacity="0.2" />
-      <circle cx="4" cy={height/2} r="3" fill="currentColor" opacity="0.2" />
-      <circle cx={width-4} cy={height/2} r="3" fill="currentColor" opacity="0.2" />
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+      <circle cx={width/2} cy={-1} r={chairSize} fill={chairColor} />
+      <circle cx={width/2} cy={height + 1} r={chairSize} fill={chairColor} />
+      <circle cx={-1} cy={height/2} r={chairSize} fill={chairColor} />
+      <circle cx={width + 1} cy={height/2} r={chairSize} fill={chairColor} />
     </svg>
   );
 }
 
-export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
+export default function FloorPlan({ onSelectTable, selectedTable, showTotals = false }: Props) {
   const [floorTables, setFloorTables] = useState<FloorTable[]>([]);
   const [tableStatus, setTableStatus] = useState<Record<string, TableData>>({});
   const { settings } = useSettings();
@@ -99,7 +87,9 @@ export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
       );
 
       const status: Record<string, TableData> = {};
-      for (const order of activeRes) {
+      // Filter out orders waiting for approval — they shouldn't affect table status yet
+      const approvedOrders = activeRes.filter((o: any) => !o.needs_approval);
+      for (const order of approvedOrders) {
         const t = String(order.table_number);
         const elapsed = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
         const itemTotal = (order.items || []).reduce((s: number, i: any) => s + i.item_price * i.quantity, 0);
@@ -181,6 +171,7 @@ export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
     const status = s?.status || 'empty';
     const colors = statusColors[status];
     const isSelected = selectedTable === label;
+    const radius = type === 'bar' ? '50%' : type === 'patio' ? 16 : type === 'booth' ? '8px 8px 18px 18px' : 10;
 
     return (
       <button
@@ -190,37 +181,38 @@ export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
           ...style,
           width: w, height: h,
           background: colors.bg,
-          borderWidth: isSelected ? 3 : 2,
-          borderStyle: 'solid',
-          borderColor: isSelected ? '#3b82f6' : colors.border,
+          border: `2px solid ${isSelected ? '#fff' : colors.border}`,
           color: colors.text,
-          borderRadius: type === 'bar' ? '50%' : type === 'patio' ? 16 : type === 'booth' ? '8px 8px 20px 20px' : 12,
+          borderRadius: radius,
           cursor: 'pointer',
           display: 'flex',
           flexDirection: 'column' as const,
           alignItems: 'center',
           justifyContent: 'center',
           padding: 4,
-          transition: 'all 0.15s',
-          boxShadow: isSelected ? '0 0 0 3px rgba(59,130,246,0.3)' : status === 'check' ? '0 0 12px rgba(239,68,68,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+          transition: 'all 0.2s',
+          boxShadow: isSelected
+            ? '0 0 0 3px rgba(255,255,255,0.4), 0 4px 20px rgba(0,0,0,0.4)'
+            : `${colors.glow}, 0 4px 12px rgba(0,0,0,0.3)`,
           position: style.position || 'relative' as const,
+          overflow: 'visible',
         }}
-        className={`active:scale-95 ${status === 'check' ? 'animate-pulse' : ''}`}
+        className={`active:scale-95 hover:brightness-125 ${status === 'check' ? 'animate-pulse' : ''}`}
       >
-        <TableShape type={type} width={w} height={h} />
-        <span style={{ fontSize: type === 'bar' ? 11 : 15, fontWeight: 800, position: 'relative', zIndex: 1 }}>{label}</span>
+        <TableChairs type={type} width={w} height={h} />
+        <span style={{ fontSize: type === 'bar' ? 11 : 15, fontWeight: 800, position: 'relative', zIndex: 1, textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>{label}</span>
         {status !== 'empty' && (
-          <span style={{ fontSize: 9, fontWeight: 700, background: colors.labelBg, padding: '1px 6px', borderRadius: 4, position: 'relative', zIndex: 1, marginTop: 2 }}>
-            {colors.label}
+          <span style={{ fontSize: 8, fontWeight: 700, background: colors.labelBg, color: '#fff', padding: '2px 6px', borderRadius: 4, position: 'relative', zIndex: 1, marginTop: 2, letterSpacing: 0.5 }}>
+            {colors.label.toUpperCase()}
           </span>
         )}
-        {s && s.total > 0 && (
-          <span style={{ fontSize: 10, fontWeight: 600, position: 'relative', zIndex: 1, marginTop: 1, opacity: 0.7 }}>
+        {showTotals && s && s.total > 0 && (
+          <span style={{ fontSize: 10, fontWeight: 700, position: 'relative', zIndex: 1, marginTop: 1 }}>
             ${s.total.toFixed(2)}
           </span>
         )}
         {s && s.elapsed > 0 && status !== 'empty' && (
-          <span style={{ fontSize: 9, position: 'relative', zIndex: 1, opacity: 0.5, color: s.elapsed >= 30 ? '#dc2626' : colors.text }}>
+          <span style={{ fontSize: 8, position: 'relative', zIndex: 1, opacity: 0.6, color: s.elapsed >= 30 ? '#fca5a5' : colors.text }}>
             {s.elapsed}m
           </span>
         )}
@@ -229,44 +221,45 @@ export default function FloorPlan({ onSelectTable, selectedTable }: Props) {
   };
 
   return (
-    <div className="h-full flex flex-col" style={{ background: '#f8fafc' }}>
+    <div className="h-full flex flex-col" style={{ background: '#111' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3" style={{ background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
+      <div className="flex items-center justify-between px-5 py-2.5" style={{ background: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
         <div className="flex items-center gap-4">
-          <h2 className="text-base font-bold" style={{ color: '#1e293b' }}>Floor Plan</h2>
+          <h2 className="text-sm font-bold" style={{ color: '#e5e5e5' }}>Floor Plan</h2>
           <div className="flex gap-3 text-xs">
             {[['empty', 'Open'], ['ordering', 'Ordering'], ['eating', 'Eating'], ['check', 'Check']].map(([k, l]) => (
               <span key={k} className="flex items-center gap-1.5">
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: statusColors[k].bg, border: `2px solid ${statusColors[k].border}`, display: 'inline-block' }} />
-                <span style={{ color: '#64748b' }}>{l}</span>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: statusColors[k].labelBg, display: 'inline-block', boxShadow: `0 0 6px ${statusColors[k].labelBg}60` }} />
+                <span style={{ color: '#888' }}>{l}</span>
               </span>
             ))}
           </div>
         </div>
-        <div className="flex gap-5 text-xs" style={{ color: '#64748b' }}>
-          <span>Open <b style={{ color: '#16a34a' }}>{counts.open}</b></span>
-          <span>Occupied <b style={{ color: '#2563eb' }}>{counts.occupied}</b></span>
-          {counts.attention > 0 && <span>Attention <b style={{ color: '#dc2626' }}>{counts.attention}</b></span>}
-          <span>Total <b style={{ color: '#059669' }}>${counts.total.toFixed(2)}</b></span>
+        <div className="flex gap-5 text-xs" style={{ color: '#777' }}>
+          <span>Open <b style={{ color: '#2dd4bf' }}>{counts.open}</b></span>
+          <span>Occupied <b style={{ color: '#60a5fa' }}>{counts.occupied}</b></span>
+          {counts.attention > 0 && <span className="animate-pulse">Attention <b style={{ color: '#f87171' }}>{counts.attention}</b></span>}
+          {showTotals && <span>Total <b style={{ color: '#34d399' }}>${counts.total.toFixed(2)}</b></span>}
         </div>
       </div>
 
-      {/* Floor area */}
-      <div ref={containerRef} className="flex-1 overflow-auto relative" style={{ background: '#f1f5f9' }}>
-        {/* Subtle grid */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.15 }}>
-          <defs>
-            <pattern id="pos-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#94a3b8" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#pos-grid)" />
-        </svg>
+      {/* Floor area — dark wood grain */}
+      <div ref={containerRef} className="flex-1 overflow-auto relative" style={{
+        background: `
+          linear-gradient(90deg, rgba(30,20,12,0.5) 0%, transparent 50%, rgba(30,20,12,0.5) 100%),
+          repeating-linear-gradient(90deg, #1c1510 0px, #1c1510 28px, #211a14 28px, #211a14 30px, #1e1612 30px, #1e1612 55px, #221c15 55px, #221c15 57px),
+          #1a1410
+        `,
+      }}>
+        {/* Subtle floor texture overlay */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(ellipse at 30% 20%, rgba(255,200,100,0.03) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(255,200,100,0.02) 0%, transparent 50%)',
+        }} />
 
         {useGrid ? (
           <div className="p-6">
             {floorTables.length === 0 && (
-              <p className="text-center text-sm mb-4" style={{ color: '#94a3b8' }}>
+              <p className="text-center text-sm mb-4" style={{ color: '#666' }}>
                 No floor plan set up. Go to Admin → Floor Plan to create your layout.
               </p>
             )}

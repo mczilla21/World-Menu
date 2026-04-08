@@ -32,6 +32,7 @@ export interface Order {
   customer_status: string;
   tip_amount: number;
   packaging?: string[];
+  notes?: string;
 }
 
 export function useOrders() {

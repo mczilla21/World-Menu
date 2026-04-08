@@ -435,16 +435,42 @@ export function registerOrderRoutes(app: FastifyInstance) {
   });
 
   // Close table
-  app.post<{ Params: { tableNumber: string } }>('/api/tables/:tableNumber/close', (req) => {
+  app.post<{ Params: { tableNumber: string }; Body: { mode?: string } }>('/api/tables/:tableNumber/close', (req) => {
     const db = getDb();
     const { tableNumber } = req.params;
+    const mode = req.body?.mode || 'complete';
 
-    db.prepare(
-      "UPDATE orders SET closed = 1, status = 'finished', finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0"
-    ).run(tableNumber);
+    if (mode === 'cancel') {
+      // Cancel/void — orders were NOT served, don't count in revenue
+      db.prepare(
+        "UPDATE orders SET closed = 1, status = 'voided', is_archived = 1 WHERE table_number = ? AND closed = 0"
+      ).run(tableNumber);
+    } else {
+      // Complete — orders were served, count in revenue
+      db.prepare(
+        "UPDATE orders SET closed = 1, status = 'finished', finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0"
+      ).run(tableNumber);
+    }
 
     broadcastToAll({ type: 'TABLE_CLOSED', tableNumber });
     return { ok: true };
+  });
+
+  // Void a single order — records who voided and when
+  app.post<{ Params: { id: string }; Body: { employee_name?: string } }>('/api/orders/:id/void', (req, reply) => {
+    const db = getDb();
+    const id = Number(req.params.id);
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id) as any;
+    if (!order) return reply.code(404).send({ error: 'Order not found' });
+    const voidedBy = req.body?.employee_name || 'Unknown';
+    const voidedAt = new Date().toISOString();
+    // Store void info in the notes field
+    const voidNote = `VOIDED by ${voidedBy} at ${new Date().toLocaleString()}`;
+    const existingNotes = order.notes || '';
+    db.prepare("UPDATE orders SET status = 'voided', is_archived = 1, closed = 1, notes = ? WHERE id = ?")
+      .run(existingNotes ? `${existingNotes} | ${voidNote}` : voidNote, id);
+    broadcastToAll({ type: 'ORDER_UPDATED', order: getOrderWithItems(id) });
+    return { ok: true, voided_by: voidedBy, voided_at: voidedAt };
   });
 
   // Settle all

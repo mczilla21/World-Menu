@@ -139,12 +139,15 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
     onClose();
   };
 
-  // Detect bowl builder items — checks modifier group names for the step-based broth/noodle/protein pattern
-  // Works regardless of item name language (Thai, English, etc.)
-  const isBowlBuilder = groupsLoaded && groups.length >= 3
+  // Detect bowl builder items:
+  // 1. Build-your-own: has broth + noodle + protein modifier groups
+  // 2. Ramen/noodle items: category contains "ramen" or "noodle" and has modifiers
+  const hasBuildSteps = groups.length >= 3
     && groups.some(g => /broth|soup/i.test(g.name))
     && groups.some(g => /noodle/i.test(g.name))
     && groups.some(g => /protein|meat/i.test(g.name));
+  const isNoodleCategory = /ramen|noodle/i.test(item.category_name || '');
+  const isBowlBuilder = groupsLoaded && (hasBuildSteps || (isNoodleCategory && groups.length > 0));
 
   // Bowl builder gets its own full-screen experience
   if (isBowlBuilder && !showAgeCheck) {
