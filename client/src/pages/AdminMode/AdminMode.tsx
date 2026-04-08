@@ -10,10 +10,21 @@ const TranslationManager = lazy(() => import('./TranslationManager'));
 const SettingsManager = lazy(() => import('./SettingsManager'));
 const ReportsDashboard = lazy(() => import('./ReportsDashboard'));
 const TaxReports = lazy(() => import('./TaxReports'));
-const PosManager = lazy(() => import('./PosManager'));
 const FloorPlanEditor = lazy(() => import('./FloorPlanEditor'));
 
-type Section = 'menu' | 'floorplan' | 'staff' | 'business';
+// Lazy-load individual POS managers directly (no more PosManager wrapper duplication)
+const EmployeeManager = lazy(() => import('./pos/EmployeeManager'));
+const DiscountManager = lazy(() => import('./pos/DiscountManager'));
+const TaxManager = lazy(() => import('./pos/TaxManager'));
+const InventoryManager = lazy(() => import('./pos/InventoryManager'));
+const CustomerManager = lazy(() => import('./pos/CustomerManager'));
+const ReservationManager = lazy(() => import('./pos/ReservationManager'));
+const GiftCardManager = lazy(() => import('./pos/GiftCardManager'));
+const ScheduleManager = lazy(() => import('./pos/ScheduleManager'));
+const CashDrawerManager = lazy(() => import('./pos/CashDrawerManager'));
+const RefundManager = lazy(() => import('./pos/RefundManager'));
+
+type Section = 'menu' | 'floorplan' | 'team' | 'finance' | 'operations' | 'settings';
 type SubTab = string;
 
 const sections: { key: Section; label: string; icon: string; color: string; activeColor: string; subtabs: { key: string; label: string; emoji: string; color: string }[] }[] = [
@@ -26,24 +37,42 @@ const sections: { key: Section; label: string; icon: string; color: string; acti
     ],
   },
   {
-    key: 'floorplan', label: 'Floor Plan', icon: '🪑', color: '#dcfce7', activeColor: '#22c55e',
+    key: 'floorplan', label: 'Floor Plan', icon: '🗺️', color: '#dcfce7', activeColor: '#22c55e',
     subtabs: [
-      { key: 'floorplan', label: 'Layout', emoji: '🗺️', color: '#22c55e' },
+      { key: 'floorplan', label: 'Layout', emoji: '🪑', color: '#22c55e' },
     ],
   },
   {
-    key: 'staff', label: 'Staff', icon: '👥', color: '#dbeafe', activeColor: '#3b82f6',
+    key: 'team', label: 'Team', icon: '👥', color: '#dbeafe', activeColor: '#3b82f6',
     subtabs: [
-      { key: 'employees', label: 'Employees & Time', emoji: '⏰', color: '#3b82f6' },
+      { key: 'employees', label: 'Employees & Time', emoji: '👥', color: '#3b82f6' },
+      { key: 'schedules', label: 'Schedules', emoji: '🕐', color: '#6366f1' },
+      { key: 'customers', label: 'Customers', emoji: '⭐', color: '#0ea5e9' },
     ],
   },
   {
-    key: 'business', label: 'Business', icon: '📊', color: '#ede9fe', activeColor: '#8b5cf6',
+    key: 'finance', label: 'Finance', icon: '💰', color: '#ede9fe', activeColor: '#8b5cf6',
     subtabs: [
       { key: 'reports', label: 'Dashboard', emoji: '📈', color: '#8b5cf6' },
-      { key: 'tax', label: 'Tax & Export', emoji: '🧾', color: '#059669' },
-      { key: 'pos', label: 'Discounts & More', emoji: '🎁', color: '#ec4899' },
-      { key: 'settings', label: 'Settings', emoji: '⚙️', color: '#64748b' },
+      { key: 'tax_reports', label: 'Tax & Export', emoji: '🧾', color: '#059669' },
+      { key: 'discounts', label: 'Discounts & Promos', emoji: '🏷️', color: '#ec4899' },
+      { key: 'gift_cards', label: 'Gift Cards', emoji: '🎁', color: '#f59e0b' },
+      { key: 'tax_rates', label: 'Tax Rates', emoji: '📊', color: '#14b8a6' },
+      { key: 'cash_drawer', label: 'Cash Drawer', emoji: '💵', color: '#22c55e' },
+    ],
+  },
+  {
+    key: 'operations', label: 'Operations', icon: '📦', color: '#fee2e2', activeColor: '#ef4444',
+    subtabs: [
+      { key: 'inventory', label: 'Inventory', emoji: '📦', color: '#ef4444' },
+      { key: 'reservations', label: 'Reservations', emoji: '📅', color: '#f97316' },
+      { key: 'refunds', label: 'Refunds', emoji: '↩️', color: '#64748b' },
+    ],
+  },
+  {
+    key: 'settings', label: 'Settings', icon: '⚙️', color: '#f1f5f9', activeColor: '#64748b',
+    subtabs: [
+      { key: 'settings', label: 'Restaurant Settings', emoji: '⚙️', color: '#64748b' },
     ],
   },
 ];
@@ -79,8 +108,8 @@ export default function AdminMode() {
         <button onClick={switchRole} style={{ fontSize: 12, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>Logout</button>
       </header>
 
-      {/* Main sections — 4 colorful bubble cards */}
-      <div style={{ display: 'flex', gap: 8, padding: '12px 16px', background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
+      {/* Main sections — colorful bubble cards */}
+      <div style={{ display: 'flex', gap: 6, padding: '10px 12px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
         {sections.map(s => {
           const isActive = section === s.key;
           return (
@@ -88,9 +117,9 @@ export default function AdminMode() {
               key={s.key}
               onClick={() => handleSectionChange(s.key)}
               style={{
-                flex: 1, padding: '12px 8px', border: 'none', cursor: 'pointer',
-                borderRadius: 16,
-                fontSize: 13, fontWeight: 700,
+                flex: '1 1 auto', minWidth: 70, padding: '10px 6px', border: 'none', cursor: 'pointer',
+                borderRadius: 14,
+                fontSize: 11, fontWeight: 700,
                 background: isActive ? s.activeColor : s.color,
                 color: isActive ? '#fff' : '#0f172a',
                 boxShadow: isActive ? `0 4px 12px ${s.activeColor}40` : 'none',
@@ -98,7 +127,7 @@ export default function AdminMode() {
                 transition: 'all 0.2s',
               }}
             >
-              <span style={{ fontSize: 24, display: 'block', marginBottom: 4 }}>{s.icon}</span>
+              <span style={{ fontSize: 20, display: 'block', marginBottom: 2 }}>{s.icon}</span>
               {s.label}
             </button>
           );
@@ -115,8 +144,8 @@ export default function AdminMode() {
                 key={st.key}
                 onClick={() => setSubTab(st.key)}
                 style={{
-                  padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                  fontSize: 13, fontWeight: 600,
+                  padding: '8px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600,
                   background: isActive ? st.color : '#f1f5f9',
                   color: isActive ? '#fff' : '#475569',
                   boxShadow: isActive ? `0 2px 8px ${st.color}30` : 'none',
@@ -133,7 +162,7 @@ export default function AdminMode() {
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
         <Suspense fallback={<div style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>Loading...</div>}>
-          {/* Menu section */}
+          {/* Menu */}
           {subTab === 'items' && (
             <div className="space-y-4">
               <CategoryManager categories={categories} onUpdate={refresh} />
@@ -147,13 +176,25 @@ export default function AdminMode() {
           {/* Floor Plan */}
           {subTab === 'floorplan' && <FloorPlanEditor />}
 
-          {/* Staff */}
-          {subTab === 'employees' && <PosManager />}
+          {/* Team */}
+          {subTab === 'employees' && <EmployeeManager />}
+          {subTab === 'schedules' && <ScheduleManager />}
+          {subTab === 'customers' && <CustomerManager />}
 
-          {/* Business */}
+          {/* Finance */}
           {subTab === 'reports' && <ReportsDashboard />}
-          {subTab === 'tax' && <TaxReports />}
-          {subTab === 'pos' && <PosManager />}
+          {subTab === 'tax_reports' && <TaxReports />}
+          {subTab === 'discounts' && <DiscountManager />}
+          {subTab === 'gift_cards' && <GiftCardManager />}
+          {subTab === 'tax_rates' && <TaxManager />}
+          {subTab === 'cash_drawer' && <CashDrawerManager />}
+
+          {/* Operations */}
+          {subTab === 'inventory' && <InventoryManager />}
+          {subTab === 'reservations' && <ReservationManager />}
+          {subTab === 'refunds' && <RefundManager />}
+
+          {/* Settings */}
           {subTab === 'settings' && <SettingsManager />}
         </Suspense>
       </div>

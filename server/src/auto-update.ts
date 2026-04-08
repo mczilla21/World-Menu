@@ -123,8 +123,8 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     if (!extracted) return { ok: false, message: 'Failed to extract update — no extraction tool available' };
 
     // Find the extracted folder (GitHub zips have a subfolder)
-    const extracted = fs.readdirSync(extractDir);
-    const subDir = extracted.length === 1 ? path.join(extractDir, extracted[0]) : extractDir;
+    const extractedEntries = fs.readdirSync(extractDir);
+    const subDir = extractedEntries.length === 1 ? path.join(extractDir, extractedEntries[0]) : extractDir;
 
     // Copy new files over (skip node_modules, database, uploads)
     const copyRecursive = (src: string, dest: string) => {
