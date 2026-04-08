@@ -1069,18 +1069,17 @@ function UpdateChecker() {
         <div className="p-4 rounded-lg" style={{ background: updateResult.ok ? '#dcfce7' : '#fee2e2', border: `1px solid ${updateResult.ok ? '#86efac' : '#fca5a5'}` }}>
           <div style={{ color: updateResult.ok ? '#166534' : '#991b1b', fontWeight: 600, fontSize: 15 }}>{updateResult.message}</div>
           {updateResult.ok && (
-            <div className="mt-2">
-              <p className="text-sm" style={{ color: '#15803d' }}>The server is restarting automatically. This page will reload in a few seconds...</p>
-              <div style={{ marginTop: 8, width: '100%', height: 4, background: '#bbf7d0', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ width: '100%', height: '100%', background: '#22c55e', borderRadius: 2, animation: 'reloadBar 8s linear forwards' }} />
-              </div>
-              <style>{`@keyframes reloadBar { 0% { width: 0%; } 100% { width: 100%; } }`}</style>
+            <div className="mt-3 p-3 rounded-lg" style={{ background: '#f0fdf4' }}>
+              <p className="text-sm font-semibold" style={{ color: '#166534' }}>To finish the update:</p>
+              <ol className="text-sm mt-1 space-y-1" style={{ color: '#15803d', paddingLeft: 20 }}>
+                <li>Close the server window (the black command prompt)</li>
+                <li>Double-click <b>START.bat</b> to restart</li>
+                <li>Refresh this page</li>
+              </ol>
             </div>
           )}
         </div>
       )}
-
-      <AutoReloadOnUpdate trigger={!!updateResult?.ok} />
 
       {result && result.message && (
         <div className="text-sm" style={{ color: '#94a3b8' }}>{result.message}</div>

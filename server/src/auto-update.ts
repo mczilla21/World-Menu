@@ -171,23 +171,10 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
       console.error('Client rebuild failed — update applied but needs manual build');
     }
 
-    // Broadcast to all clients to refresh
+    // Broadcast to all clients
     broadcastToAll({ type: 'APP_UPDATED', version: info.latestVersion });
 
-    // Auto-restart the server after a short delay
-    setTimeout(async () => {
-      console.log('Restarting server to apply update...');
-      const cp = await import('child_process');
-      const args = process.argv.slice(1);
-      cp.spawn(process.argv[0], args, {
-        cwd: process.cwd(),
-        detached: true,
-        stdio: 'inherit',
-      }).unref();
-      process.exit(0);
-    }, 3000);
-
-    return { ok: true, message: `Updated to v${info.latestVersion}. Server is restarting...` };
+    return { ok: true, message: `Updated to v${info.latestVersion}! Close this window and reopen START.bat to finish.` };
   } catch (err: any) {
     return { ok: false, message: err.message || 'Update failed' };
   }
