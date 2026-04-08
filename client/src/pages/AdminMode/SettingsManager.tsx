@@ -1010,6 +1010,7 @@ function UpdateChecker() {
   const applyUpdate = async () => {
     if (!confirm('Update World Menu POS? Your data will be kept. The server will need a restart after.')) return;
     setUpdating(true);
+    setUpdateResult(null);
     try {
       const res = await fetch('/api/apply-update', { method: 'POST' });
       setUpdateResult(await res.json());
@@ -1033,21 +1034,30 @@ function UpdateChecker() {
         </button>
       </div>
 
-      {result && result.available && (
+      {result && result.available && !updating && !updateResult && (
         <div className="p-4 rounded-lg" style={{ background: '#dcfce7', border: '1px solid #86efac' }}>
           <div className="font-bold" style={{ color: '#166534', fontSize: 16 }}>Update available: v{result.latestVersion}</div>
           <div className="text-sm" style={{ color: '#15803d' }}>{result.releaseName}</div>
           {result.releaseDate && <div className="text-xs mt-1" style={{ color: '#16a34a' }}>{result.releaseDate.slice(0, 10)}</div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button onClick={applyUpdate} disabled={updating}
-              style={{ padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, background: updating ? '#94a3b8' : '#22c55e', color: '#fff' }}>
-              {updating ? 'Updating...' : 'Update Now'}
+            <button onClick={applyUpdate}
+              style={{ padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, background: '#22c55e', color: '#fff' }}>
+              Update Now
             </button>
-            <a href={result.releaseUrl} target="_blank" rel="noopener noreferrer"
-              style={{ padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, color: '#15803d', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-              View on GitHub
-            </a>
           </div>
+        </div>
+      )}
+
+      {updating && (
+        <div className="p-5 rounded-lg text-center" style={{ background: '#eff6ff', border: '1px solid #93c5fd' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
+          <div className="font-bold" style={{ color: '#1e40af', fontSize: 16 }}>Updating World Menu POS...</div>
+          <div className="text-sm mt-2" style={{ color: '#3b82f6' }}>Downloading and installing. Please wait, this may take a minute.</div>
+          <div className="text-xs mt-2" style={{ color: '#93c5fd' }}>Do not close this page or turn off the computer.</div>
+          <div style={{ marginTop: 12, width: '100%', height: 4, background: '#bfdbfe', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: '60%', height: '100%', background: '#3b82f6', borderRadius: 2, animation: 'updatePulse 1.5s ease-in-out infinite' }} />
+          </div>
+          <style>{`@keyframes updatePulse { 0%,100% { width: 30%; } 50% { width: 80%; } }`}</style>
         </div>
       )}
 
@@ -1056,11 +1066,25 @@ function UpdateChecker() {
       )}
 
       {updateResult && (
-        <div className="p-3 rounded-lg" style={{ background: updateResult.ok ? '#dcfce7' : '#fee2e2', border: `1px solid ${updateResult.ok ? '#86efac' : '#fca5a5'}` }}>
-          <div style={{ color: updateResult.ok ? '#166534' : '#991b1b', fontWeight: 600 }}>{updateResult.message}</div>
-          {updateResult.ok && <p className="text-xs mt-1" style={{ color: '#15803d' }}>Restart START.bat to apply the update.</p>}
+        <div className="p-4 rounded-lg" style={{ background: updateResult.ok ? '#dcfce7' : '#fee2e2', border: `1px solid ${updateResult.ok ? '#86efac' : '#fca5a5'}` }}>
+          <div style={{ color: updateResult.ok ? '#166534' : '#991b1b', fontWeight: 600, fontSize: 15 }}>{updateResult.message}</div>
+          {updateResult.ok && (
+            <div className="mt-2">
+              <p className="text-sm" style={{ color: '#15803d' }}>The server is restarting automatically. This page will reload in a few seconds...</p>
+              <div style={{ marginTop: 8, width: '100%', height: 4, background: '#bbf7d0', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: '100%', height: '100%', background: '#22c55e', borderRadius: 2, animation: 'reloadBar 8s linear forwards' }} />
+              </div>
+              <style>{`@keyframes reloadBar { 0% { width: 0%; } 100% { width: 100%; } }`}</style>
+            </div>
+          )}
         </div>
       )}
+
+      {updateResult?.ok && (() => {
+        // Auto-reload page after server restarts (~8 seconds)
+        setTimeout(() => window.location.reload(), 8000);
+        return null;
+      })()}
 
       {result && result.message && (
         <div className="text-sm" style={{ color: '#94a3b8' }}>{result.message}</div>

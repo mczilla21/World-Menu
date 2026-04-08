@@ -173,7 +173,20 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     // Broadcast to all clients to refresh
     broadcastToAll({ type: 'APP_UPDATED', version: info.latestVersion });
 
-    return { ok: true, message: `Updated to v${info.latestVersion}. Restart the server to apply.` };
+    // Auto-restart the server after a short delay
+    setTimeout(() => {
+      console.log('Restarting server to apply update...');
+      const { spawn } = require('child_process');
+      const args = process.argv.slice(1);
+      spawn(process.argv[0], args, {
+        cwd: process.cwd(),
+        detached: true,
+        stdio: 'inherit',
+      }).unref();
+      process.exit(0);
+    }, 3000);
+
+    return { ok: true, message: `Updated to v${info.latestVersion}. Server is restarting...` };
   } catch (err: any) {
     return { ok: false, message: err.message || 'Update failed' };
   }
