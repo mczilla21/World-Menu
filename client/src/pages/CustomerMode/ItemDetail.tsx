@@ -74,7 +74,7 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
         setGroupsLoaded(true);
       })
       .catch(() => setGroupsLoaded(true));
-  }, [item.category_id]);
+  }, [item.id]);
 
   // Auto-select first variant if available
   useEffect(() => {

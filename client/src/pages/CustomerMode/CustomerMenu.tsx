@@ -42,6 +42,7 @@ export default function CustomerMenu() {
   const [showPin, setShowPin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [orderStatus, setOrderStatus] = useState('');
+  const [customTipInput, setCustomTipInput] = useState<string | null>(null);
 
   // Stable callback for idle screen dismiss — resets all state for next customer
   const handleIdleDismiss = useCallback(() => {
@@ -213,12 +214,6 @@ export default function CustomerMenu() {
         body: JSON.stringify({ table_number: tableNumber, type: 'check_requested' }),
       });
     } catch {}
-    setTimeout(() => {
-      setCheckRequested(false);
-      setHasOrdered(false);
-      setOrderSent(false);
-      setLangSelected(false);
-    }, 5000);
   };
 
   const handleCallWaiter = async () => {
@@ -696,10 +691,24 @@ export default function CustomerMenu() {
                         </button>
                       );
                     })}
-                    <button onClick={() => { const c = prompt('Enter tip:'); if (c) setTipAmount(parseFloat(c) || 0); }}
-                      style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: '#e2e8f0', color: '#475569' }}>
-                      Custom
-                    </button>
+                    {customTipInput !== null ? (
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        autoFocus
+                        value={customTipInput}
+                        onChange={e => setCustomTipInput(e.target.value)}
+                        onBlur={() => { setTipAmount(parseFloat(customTipInput) || 0); setCustomTipInput(null); }}
+                        onKeyDown={e => { if (e.key === 'Enter') { setTipAmount(parseFloat(customTipInput) || 0); setCustomTipInput(null); } }}
+                        style={{ flex: 1, width: 0, minWidth: 0, padding: '6px 4px', borderRadius: 10, border: '2px solid #3b82f6', fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none', background: '#fff', color: '#0f172a' }}
+                        placeholder="$"
+                      />
+                    ) : (
+                      <button onClick={() => setCustomTipInput('')}
+                        style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: '#e2e8f0', color: '#475569' }}>
+                        Custom
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

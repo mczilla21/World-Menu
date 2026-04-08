@@ -299,7 +299,6 @@ export default function ServerMode() {
             <ServiceCallBadge />
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/staff-select')} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300">← Back</button>
             <button onClick={switchRole} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300">Logout</button>
           </div>
         </div>
@@ -386,7 +385,7 @@ export default function ServerMode() {
                 Continue Ordering
               </button>
               <button
-                onClick={() => { clearCart(); setView('table'); }}
+                onClick={() => { if (sentTimer.current) clearTimeout(sentTimer.current); clearCart(); setView('table'); }}
                 className="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-xl font-medium text-sm transition-colors text-slate-300"
               >
                 Different Table / New Order
@@ -428,7 +427,7 @@ export default function ServerMode() {
                     {tablePopup.status === 'empty' ? 'Open' : tablePopup.status === 'ordering' ? 'Ordering' : tablePopup.status === 'eating' ? 'Eating' : tablePopup.status === 'check' ? 'Check Requested' : tablePopup.status}
                   </span>
                   {tablePopup.elapsed > 0 && <span className="text-slate-400">{tablePopup.elapsed}m</span>}
-                  {tablePopup.total > 0 && <span className="text-emerald-400 font-bold">${tablePopup.total.toFixed(2)}</span>}
+                  {tablePopup.total > 0 && <span className="text-emerald-400 font-bold">{currency}{tablePopup.total.toFixed(2)}</span>}
                 </div>
               </div>
               <button onClick={() => setTablePopup(null)} aria-label="Close table details" className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white">
@@ -459,7 +458,7 @@ export default function ServerMode() {
                               <span className={`w-2 h-2 rounded-full ${item.is_done ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                               <span className="text-slate-200">{item.quantity}x {item.item_name}</span>
                             </div>
-                            <span className="text-slate-400">${(item.item_price * item.quantity).toFixed(2)}</span>
+                            <span className="text-slate-400">{currency}{(item.item_price * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
                         {(order.items || []).some(i => i.notes) && (
@@ -499,7 +498,7 @@ export default function ServerMode() {
                   onClick={() => { setPaymentTable(tablePopup.number); setTablePopup(null); setView('payment'); }}
                   className="w-full py-3 rounded-xl font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
                 >
-                  💳 Process Payment{tablePopup.total > 0 ? ` — $${tablePopup.total.toFixed(2)}` : ''}
+                  💳 Process Payment{tablePopup.total > 0 ? ` — ${currency}${tablePopup.total.toFixed(2)}` : ''}
                 </button>
               )}
               {tablePopup.status !== 'empty' && (

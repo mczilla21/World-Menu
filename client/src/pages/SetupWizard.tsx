@@ -9,6 +9,7 @@ export default function SetupWizard() {
   const [ownerName, setOwnerName] = useState('');
   const [ownerPin, setOwnerPin] = useState('');
   const [ownerPinConfirm, setOwnerPinConfirm] = useState('');
+  const [langSearch, setLangSearch] = useState('');
   // Restaurant
   const [name, setName] = useState('');
   const [nativeLang, setNativeLang] = useState('en');
@@ -165,8 +166,14 @@ export default function SetupWizard() {
             <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>Default Language</h2>
             <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>This sets the language for menus, kitchen tickets, and admin screens. Add more languages later in Settings.</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 24, textAlign: 'left' }}>
-              {LANGUAGE_OPTIONS.slice(0, 20).map(lang => (
+            <input
+              value={langSearch}
+              onChange={e => setLangSearch(e.target.value)}
+              placeholder="Search languages..."
+              style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '2px solid #e2e8f0', borderRadius: 10, marginBottom: 12, outline: 'none', color: '#0f172a' }}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 24, textAlign: 'left', maxHeight: 320, overflowY: 'auto' }}>
+              {LANGUAGE_OPTIONS.filter(lang => !langSearch || lang.name.toLowerCase().includes(langSearch.toLowerCase()) || lang.code.toLowerCase().includes(langSearch.toLowerCase())).map(lang => (
                 <button key={lang.code} onClick={() => { setNativeLang(lang.code); setSupportedLangs(new Set([lang.code])); }}
                   style={{ padding: '12px 14px', borderRadius: 10, border: nativeLang === lang.code ? '2px solid #3b82f6' : '2px solid #e2e8f0', background: nativeLang === lang.code ? '#dbeafe' : '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#0f172a' }}>
                   <b style={{ marginRight: 6, color: '#94a3b8' }}>{lang.flag}</b>{lang.name}

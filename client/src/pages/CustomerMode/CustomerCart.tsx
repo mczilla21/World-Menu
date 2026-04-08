@@ -1,6 +1,6 @@
 import { useCustomerStore } from '../../stores/customerStore';
 import { useSettings } from '../../hooks/useSettings';
-import TipSelector from './TipSelector';
+
 
 interface Props {
   currency: string;

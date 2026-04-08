@@ -158,7 +158,7 @@ export default function OrderReview({ cart, tableNumber, orderType, customerName
 
       <div className="flex gap-2.5">
         <button onClick={onBack} className="flex-1 py-3.5 rounded-xl font-semibold transition-colors" style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0' }}>
-          + Add More
+          ← Back to Menu
         </button>
         <button onClick={onSend} className="flex-1 bg-green-600 hover:bg-green-500 active:bg-green-700 py-3.5 rounded-xl font-semibold transition-colors shadow-lg shadow-green-600/20">
           Send to Kitchen
