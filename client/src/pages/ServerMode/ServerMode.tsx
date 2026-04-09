@@ -565,6 +565,7 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
       items={items}
       subtotal={subtotal}
       currency={currency}
+      enableReceiptPrompt={true}
       onComplete={(method, amount) => {
         if (orderId) {
           fetch(`/api/orders/${orderId}/payment`, {

@@ -145,6 +145,31 @@ async function start() {
     return { ip: localIp, port: config.port, url: `http://${localIp}:${config.port}` };
   });
 
+  // License validation
+  app.get('/api/license', () => {
+    const db = getDb();
+    const row = db.prepare("SELECT value FROM settings WHERE key = 'license_key'").get() as any;
+    const key = row?.value || '';
+    if (!key) {
+      return { valid: false, plan: 'demo', expires: '', demo: true };
+    }
+    if (key === 'OWNER') {
+      return { valid: true, plan: 'owner', expires: '2099-12-31', demo: false };
+    }
+    if (key.startsWith('WM-')) {
+      return { valid: true, plan: 'pro', expires: '2099-12-31', demo: false };
+    }
+    return { valid: false, plan: 'demo', expires: '', demo: true };
+  });
+
+  // License key generation (owner only)
+  app.post('/api/license/generate', () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const segment = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const key = `WM-${segment()}-${segment()}-${segment()}`;
+    return { key };
+  });
+
   // Daily log routes
   app.get('/api/daily-logs', () => {
     return getDb().prepare('SELECT * FROM daily_logs ORDER BY date DESC LIMIT 30').all();
@@ -217,6 +242,8 @@ async function start() {
     ensure('app_theme', 'warm-night');
     ensure('floor_theme', 'dark-wood');
     ensure('card_surcharge', '3');
+    ensure('license_key', '');
+    ensure('license_status', 'demo');
   } catch {}
 
   // Auto-close stale orders older than 48 hours (runs on startup + every 6 hours)

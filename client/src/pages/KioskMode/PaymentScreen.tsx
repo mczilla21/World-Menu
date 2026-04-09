@@ -19,12 +19,14 @@ interface Props {
   currency: string;
   onComplete: (method: 'cash' | 'card' | 'gift_card' | 'split', amountPaid: number) => void;
   onBack: () => void;
+  /** When true, enables receipt prompt flow after card payment */
+  enableReceiptPrompt?: boolean;
 }
 
 interface TaxRate { id: number; name: string; rate: number; applies_to: string; is_active: number; }
 interface Discount { id: number; name: string; type: string; value: number; code: string; }
 
-export default function PaymentScreen({ tableNumber, orderId, items, subtotal, currency, onComplete, onBack }: Props) {
+export default function PaymentScreen({ tableNumber, orderId, items, subtotal, currency, onComplete, onBack, enableReceiptPrompt = false }: Props) {
   const theme = useTheme();
   const [view, setView] = useState<'summary' | 'cash' | 'card' | 'gift' | 'split'>('summary');
   const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
@@ -41,6 +43,40 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const [splitWays, setSplitWays] = useState(2);
   const [splitPaid, setSplitPaid] = useState(0);
   const [cardSurcharge, setCardSurcharge] = useState(3);
+  const [receiptPrompt, setReceiptPrompt] = useState(false);
+  const [receiptPrinting, setReceiptPrinting] = useState(false);
+
+  const printReceiptCopy = async (type: 'merchant' | 'customer' | 'both') => {
+    try {
+      const res = await fetch('/api/printer/receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table_number: tableNumber,
+          order_id: orderId || 0,
+          type,
+          payment_method: view === 'card' ? 'card' : view === 'gift' ? 'gift_card' : 'cash',
+          amount_paid: total,
+          tip_amount: tip,
+          card_surcharge: view === 'card' ? surchargeAmount : 0,
+        }),
+      });
+      const data = await res.json();
+      if (data.html && type !== 'merchant') {
+        // Open browser print dialog for customer copy
+        const w = window.open('', '_blank', 'width=400,height=600');
+        if (w) {
+          w.document.write(data.html);
+          w.document.close();
+          w.focus();
+          w.print();
+          setTimeout(() => w.close(), 2000);
+        }
+      }
+    } catch {
+      // Silently fail — receipt printing is best-effort
+    }
+  };
 
   useEffect(() => {
     fetch('/api/tax-rates').then(r => r.json()).then(setTaxRates).catch(() => {});
@@ -94,15 +130,26 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_number: tableNumber, amount: Math.round(cardTotal * 100) }),
       });
-      const data = await res.json();
-      // Simulated or real — either way mark as done
+      await res.json();
       await new Promise(r => setTimeout(r, 2000));
       setCardDone(true);
-      setTimeout(() => onComplete('card', cardTotal), 1500);
+      if (enableReceiptPrompt) {
+        // Auto-print merchant copy immediately
+        printReceiptCopy('merchant');
+        // Show receipt prompt instead of auto-completing
+        setReceiptPrompt(true);
+      } else {
+        setTimeout(() => onComplete('card', cardTotal), 1500);
+      }
     } catch {
       await new Promise(r => setTimeout(r, 2000));
       setCardDone(true);
-      setTimeout(() => onComplete('card', cardTotal), 1500);
+      if (enableReceiptPrompt) {
+        printReceiptCopy('merchant');
+        setReceiptPrompt(true);
+      } else {
+        setTimeout(() => onComplete('card', cardTotal), 1500);
+      }
     }
     setCardProcessing(false);
   };
@@ -300,6 +347,36 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                   <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>Processing...</h2>
                   <p style={{ color: theme.textMuted }}>Tap, insert, or swipe card</p>
                   <button onClick={() => setView('summary')} className="mt-8 px-8 py-3 rounded-xl" style={{ background: theme.bgCardHover, color: theme.textSecondary }}>Cancel</button>
+                </>
+              ) : receiptPrompt ? (
+                <>
+                  <div className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: `${theme.success}20` }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={theme.success} strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>Payment Complete!</h2>
+                  <p className="text-lg font-bold mb-6" style={{ color: theme.success }}>{currency}{total.toFixed(2)}</p>
+                  <div className="flex flex-col gap-3 w-72 mx-auto">
+                    <button
+                      onClick={async () => {
+                        setReceiptPrinting(true);
+                        await printReceiptCopy('customer');
+                        setReceiptPrinting(false);
+                        onComplete('card', cardTotal);
+                      }}
+                      disabled={receiptPrinting}
+                      className="w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-60"
+                      style={{ background: theme.info, color: '#fff', boxShadow: `0 4px 12px ${theme.info}30` }}
+                    >
+                      {receiptPrinting ? 'Printing...' : '\uD83D\uDDA8 Print Receipt'}
+                    </button>
+                    <button
+                      onClick={() => onComplete('card', cardTotal)}
+                      className="w-full py-4 rounded-2xl font-semibold text-base transition-all active:scale-[0.98]"
+                      style={{ background: theme.bgCardHover, color: theme.textSecondary }}
+                    >
+                      No Receipt
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>

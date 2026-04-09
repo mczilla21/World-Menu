@@ -17,6 +17,7 @@ export default function SetupWizard() {
   const [tableCount, setTableCount] = useState('10');
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState('');
+  const [licenseKey, setLicenseKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [pinError, setPinError] = useState('');
 
@@ -63,6 +64,8 @@ export default function SetupWizard() {
         table_count: tableCount,
         setup_complete: '1',
         sandbox_mode: '1',
+        license_key: licenseKey.trim(),
+        license_status: licenseKey.trim().startsWith('WM-') || licenseKey.trim() === 'OWNER' ? (licenseKey.trim() === 'OWNER' ? 'owner' : 'active') : 'demo',
       };
       if (logoFilename) settings.logo = logoFilename;
 
@@ -220,6 +223,17 @@ export default function SetupWizard() {
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
             <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', marginBottom: 16 }}>You're All Set!</h2>
+
+            <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+              <label style={{ fontSize: 13, color: '#64748b', display: 'block', marginBottom: 6 }}>License Key (optional)</label>
+              <input
+                value={licenseKey}
+                onChange={e => setLicenseKey(e.target.value.toUpperCase())}
+                placeholder="WM-XXXX-XXXX-XXXX"
+                style={{ width: '100%', padding: '12px 14px', fontSize: 15, fontFamily: 'monospace', letterSpacing: 2, border: '2px solid #e2e8f0', borderRadius: 10, outline: 'none', color: '#0f172a', textAlign: 'center' }}
+              />
+              <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Skip for demo mode (5 tables, 3 employees). Enter a key to unlock full access.</p>
+            </div>
 
             <div style={{ background: '#fff', borderRadius: 12, padding: 20, marginBottom: 24, textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 14 }}>

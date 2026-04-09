@@ -6,6 +6,7 @@ import StaffSelect from './pages/StaffSelect';
 import OfflineIndicator from './components/OfflineIndicator';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useSettings } from './hooks/useSettings';
+import { useLicense } from './hooks/useLicense';
 
 const ServerMode = lazy(() => import('./pages/ServerMode/ServerMode'));
 const KitchenMode = lazy(() => import('./pages/KitchenMode/KitchenMode'));
@@ -15,10 +16,12 @@ const CustomerMenu = lazy(() => import('./pages/CustomerMode/CustomerMenu'));
 
 export default function App() {
   const { settings, loading } = useSettings();
+  const { isDemo } = useLicense();
 
   if (loading) return <div className="min-h-screen" style={{ background: '#f8fafc' }} />;
 
   const needsSetup = !settings.setup_complete || settings.setup_complete !== '1';
+  const showDemoWatermark = isDemo && settings.sandbox_mode !== '1';
 
   return (
     <>
@@ -27,6 +30,13 @@ export default function App() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <div style={{ transform: 'rotate(-35deg)', fontSize: 120, fontWeight: 900, color: 'rgba(249,115,22,0.08)', whiteSpace: 'nowrap', userSelect: 'none', letterSpacing: 8 }}>
             SANDBOX
+          </div>
+        </div>
+      )}
+      {showDemoWatermark && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <div style={{ transform: 'rotate(-35deg)', fontSize: 120, fontWeight: 900, color: 'rgba(239,68,68,0.07)', whiteSpace: 'nowrap', userSelect: 'none', letterSpacing: 8 }}>
+            DEMO
           </div>
         </div>
       )}

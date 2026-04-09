@@ -39,6 +39,9 @@ const defaultSettings: Settings = {
   // Mode
   setup_complete: '0',
   sandbox_mode: '1',
+  // License
+  license_key: '',
+  license_status: 'demo',
   // Payment
   card_surcharge: '3',
   // Idle screen
