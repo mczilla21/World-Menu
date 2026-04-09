@@ -31,6 +31,8 @@ const defaultSettings: Settings = {
   call_waiter_enabled: '1',
   tipping_enabled: '0',
   tip_percentages: '15,18,20',
+  // Theme
+  app_theme: 'warm-night',
   // Floor plan
   floor_theme: 'dark-wood',
   floor_bg_image: '',

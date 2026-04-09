@@ -202,6 +202,32 @@ export default function SettingsManager() {
         </div>
       </div>
 
+      {/* App Theme */}
+      <div className="bg-slate-800 rounded-xl p-4 space-y-3">
+        <h3 className="font-semibold text-slate-200">App Theme</h3>
+        <p className="text-xs text-slate-400">Choose the look and feel for server, kitchen, customer, and payment screens.</p>
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { key: 'warm-night', label: '🌙 Warm Night', desc: 'Upscale, cozy', colors: ['#1a1a2e', '#e2b04a', '#2dd4bf'] },
+            { key: 'fresh-bold', label: '⚡ Fresh & Bold', desc: 'Modern, clean', colors: ['#0f0f0f', '#3b82f6', '#22c55e'] },
+            { key: 'thai-gold', label: '🪷 Thai Gold', desc: 'Warm, authentic', colors: ['#1a1410', '#c4942a', '#34d399'] },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => updateSetting('app_theme', t.key)}
+              className={`flex-1 min-w-[140px] p-3 rounded-xl text-left transition-all ${settings.app_theme === t.key ? 'ring-2 ring-white/50 scale-105' : 'hover:brightness-110'}`}
+              style={{ background: t.colors[0], border: `2px solid ${settings.app_theme === t.key ? t.colors[1] : 'transparent'}` }}
+            >
+              <div className="text-sm font-bold mb-1" style={{ color: t.colors[1] }}>{t.label}</div>
+              <div className="text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{t.desc}</div>
+              <div className="flex gap-1">
+                {t.colors.map((c, i) => <div key={i} className="w-5 h-5 rounded-full" style={{ background: c, border: '1px solid rgba(255,255,255,0.1)' }} />)}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Language Settings */}
       <div className="bg-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="font-semibold text-slate-200">Languages</h3>

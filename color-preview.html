@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>World Menu POS — Color Scheme Preview</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #000; color: #fff; }
+.section { padding: 40px; min-height: 100vh; }
+h1 { font-size: 32px; margin-bottom: 8px; }
+h2 { font-size: 14px; font-weight: 400; opacity: 0.6; margin-bottom: 30px; }
+.row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.btn { padding: 16px 32px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.15s; min-width: 140px; text-align: center; }
+.btn:active { transform: scale(0.95); }
+.card { border-radius: 16px; padding: 20px; min-width: 200px; }
+.table-grid { display: grid; grid-template-columns: repeat(4, 100px); gap: 12px; margin: 20px 0; }
+.table-btn { width: 100px; height: 80px; border-radius: 12px; border: 2px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; cursor: pointer; transition: all 0.15s; }
+.table-btn:active { transform: scale(0.93); }
+.table-btn small { font-size: 9px; font-weight: 600; margin-top: 4px; padding: 1px 6px; border-radius: 4px; }
+.menu-card { border-radius: 16px; overflow: hidden; width: 180px; cursor: pointer; transition: all 0.15s; }
+.menu-card:hover { transform: translateY(-2px); }
+.menu-card .img { height: 100px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+.menu-card .info { padding: 12px; }
+.menu-card .name { font-weight: 700; font-size: 14px; }
+.menu-card .price { font-size: 16px; font-weight: 800; margin-top: 4px; }
+.divider { height: 2px; margin: 40px 0; opacity: 0.1; }
+.header-bar { padding: 12px 20px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- OPTION 1: WARM NIGHT -->
+<div class="section" style="background: #1a1a2e;">
+  <h1 style="color: #e2b04a;">Option 1: Warm Night</h1>
+  <h2 style="color: #f5f0eb;">Upscale restaurant, cozy, warm lighting feel</h2>
+
+  <div class="header-bar" style="background: #16213e;">
+    <span style="font-weight: 700; color: #f5f0eb;">Tables</span>
+    <div class="row" style="margin: 0; gap: 8px;">
+      <span class="btn" style="background: #e2b04a; color: #1a1a2e; padding: 8px 16px; font-size: 13px;">To-Go</span>
+      <span class="btn" style="background: #16213e; color: #f5f0eb; padding: 8px 16px; font-size: 13px; border: 1px solid #2a2a4e;">Orders</span>
+    </div>
+  </div>
+
+  <div class="table-grid">
+    <div class="table-btn" style="background: linear-gradient(135deg, #1a3a2a, #1e4d35); border-color: #2dd4bf40; color: #5eead4;">
+      B1 <small style="background: #0d9488; color: #fff;">OPEN</small>
+    </div>
+    <div class="table-btn" style="background: linear-gradient(135deg, #1e2a4a, #1e3a6e); border-color: #60a5fa50; color: #93c5fd;">
+      T1 <small style="background: #2563eb; color: #fff;">ORDERING</small>
+    </div>
+    <div class="table-btn" style="background: linear-gradient(135deg, #3a2a10, #4a3518); border-color: #fbbf2450; color: #fcd34d;">
+      B5 <small style="background: #d97706; color: #fff;">EATING</small>
+    </div>
+    <div class="table-btn" style="background: linear-gradient(135deg, #4a1515, #5c1a1a); border-color: #f8717150; color: #fca5a5;">
+      T2 <small style="background: #dc2626; color: #fff;">CHECK</small>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="menu-card" style="background: #16213e;">
+      <div class="img" style="background: #1e2a4e;">🍜</div>
+      <div class="info" style="color: #f5f0eb;">
+        <div class="name">Miso Ramen</div>
+        <div class="price" style="color: #e2b04a;">$14.95</div>
+      </div>
+    </div>
+    <div class="menu-card" style="background: #16213e;">
+      <div class="img" style="background: #1e2a4e;">🥟</div>
+      <div class="info" style="color: #f5f0eb;">
+        <div class="name">Gyoza</div>
+        <div class="price" style="color: #e2b04a;">$6.95</div>
+      </div>
+    </div>
+    <div class="menu-card" style="background: #16213e;">
+      <div class="img" style="background: #1e2a4e;">🍵</div>
+      <div class="info" style="color: #f5f0eb;">
+        <div class="name">Thai Tea</div>
+        <div class="price" style="color: #e2b04a;">$4.95</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top: 20px;">
+    <div class="btn" style="background: linear-gradient(135deg, #2dd4bf, #0d9488); color: #fff;">Cash $24.50</div>
+    <div class="btn" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;">Card $25.24</div>
+    <div class="btn" style="background: #f87171; color: #fff;">Cancel</div>
+    <div class="btn" style="background: #e2b04a; color: #1a1a2e;">Send to Kitchen</div>
+  </div>
+</div>
+
+<!-- OPTION 2: FRESH & BOLD -->
+<div class="section" style="background: #0f0f0f;">
+  <h1 style="color: #3b82f6;">Option 2: Fresh & Bold</h1>
+  <h2 style="color: #ffffff;">Modern tech, clean lines, Toast/Square feel</h2>
+
+  <div class="header-bar" style="background: #1e1e1e;">
+    <span style="font-weight: 700; color: #fff;">Tables</span>
+    <div class="row" style="margin: 0; gap: 8px;">
+      <span class="btn" style="background: #f97316; color: #fff; padding: 8px 16px; font-size: 13px;">To-Go</span>
+      <span class="btn" style="background: #1e1e1e; color: #fff; padding: 8px 16px; font-size: 13px; border: 1px solid #333;">Orders</span>
+    </div>
+  </div>
+
+  <div class="table-grid">
+    <div class="table-btn" style="background: #1a2e1a; border-color: #22c55e50; color: #4ade80;">
+      B1 <small style="background: #22c55e; color: #fff;">OPEN</small>
+    </div>
+    <div class="table-btn" style="background: #1a1a3e; border-color: #3b82f650; color: #60a5fa;">
+      T1 <small style="background: #3b82f6; color: #fff;">ORDERING</small>
+    </div>
+    <div class="table-btn" style="background: #2e2a1a; border-color: #f59e0b50; color: #fbbf24;">
+      B5 <small style="background: #f59e0b; color: #000;">EATING</small>
+    </div>
+    <div class="table-btn" style="background: #2e1a1a; border-color: #ef444450; color: #f87171;">
+      T2 <small style="background: #ef4444; color: #fff;">CHECK</small>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="menu-card" style="background: #1e1e1e;">
+      <div class="img" style="background: #2a2a2a;">🍜</div>
+      <div class="info" style="color: #fff;">
+        <div class="name">Miso Ramen</div>
+        <div class="price" style="color: #22c55e;">$14.95</div>
+      </div>
+    </div>
+    <div class="menu-card" style="background: #1e1e1e;">
+      <div class="img" style="background: #2a2a2a;">🥟</div>
+      <div class="info" style="color: #fff;">
+        <div class="name">Gyoza</div>
+        <div class="price" style="color: #22c55e;">$6.95</div>
+      </div>
+    </div>
+    <div class="menu-card" style="background: #1e1e1e;">
+      <div class="img" style="background: #2a2a2a;">🍵</div>
+      <div class="info" style="color: #fff;">
+        <div class="name">Thai Tea</div>
+        <div class="price" style="color: #22c55e;">$4.95</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top: 20px;">
+    <div class="btn" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff;">Cash $24.50</div>
+    <div class="btn" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;">Card $25.24</div>
+    <div class="btn" style="background: #ef4444; color: #fff;">Cancel</div>
+    <div class="btn" style="background: #8b5cf6; color: #fff;">Send to Kitchen</div>
+  </div>
+</div>
+
+<!-- OPTION 3: THAI GOLD -->
+<div class="section" style="background: #1a1410;">
+  <h1 style="color: #c4942a;">Option 3: Thai Gold</h1>
+  <h2 style="color: #fdf6e3;">Matches your noodle bar brand, wood tones, warm and authentic</h2>
+
+  <div class="header-bar" style="background: #2a2018;">
+    <span style="font-weight: 700; color: #fdf6e3;">Tables</span>
+    <div class="row" style="margin: 0; gap: 8px;">
+      <span class="btn" style="background: #ea580c; color: #fff; padding: 8px 16px; font-size: 13px;">To-Go</span>
+      <span class="btn" style="background: #2a2018; color: #fdf6e3; padding: 8px 16px; font-size: 13px; border: 1px solid #3d2e1e;">Orders</span>
+    </div>
+  </div>
+
+  <div class="table-grid">
+    <div class="table-btn" style="background: linear-gradient(135deg, #1a2e1a, #1e3a20); border-color: #34d39940; color: #6ee7b7;">
+      B1 <small style="background: #059669; color: #fff;">OPEN</small>
+    </div>
+    <div class="table-btn" style="background: linear-gradient(135deg, #1e2a3a, #1a304a); border-color: #60a5fa40; color: #93c5fd;">
+      T1 <small style="background: #2563eb; color: #fff;">ORDERING</small>
+    </div>
+    <div class="table-btn" style="background: linear-gradient(135deg, #3a2a10, #4a3518); border-color: #c4942a50; color: #e2b04a;">
+      B5 <small style="background: #c4942a; color: #1a1410;">EATING</small>
+    </div>
+    <div class="table-btn" style="background: linear-gradient(135deg, #3a1515, #4a1a1a); border-color: #dc262650; color: #fca5a5;">
+      T2 <small style="background: #dc2626; color: #fff;">CHECK</small>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="menu-card" style="background: #2a2018;">
+      <div class="img" style="background: #3d2e1e;">🍜</div>
+      <div class="info" style="color: #fdf6e3;">
+        <div class="name">Miso Ramen</div>
+        <div class="price" style="color: #c4942a;">$14.95</div>
+      </div>
+    </div>
+    <div class="menu-card" style="background: #2a2018;">
+      <div class="img" style="background: #3d2e1e;">🥟</div>
+      <div class="info" style="color: #fdf6e3;">
+        <div class="name">Gyoza</div>
+        <div class="price" style="color: #c4942a;">$6.95</div>
+      </div>
+    </div>
+    <div class="menu-card" style="background: #2a2018;">
+      <div class="img" style="background: #3d2e1e;">🍵</div>
+      <div class="info" style="color: #fdf6e3;">
+        <div class="name">Thai Tea</div>
+        <div class="price" style="color: #c4942a;">$4.95</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top: 20px;">
+    <div class="btn" style="background: linear-gradient(135deg, #34d399, #059669); color: #fff;">Cash $24.50</div>
+    <div class="btn" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;">Card $25.24</div>
+    <div class="btn" style="background: #dc2626; color: #fff;">Cancel</div>
+    <div class="btn" style="background: linear-gradient(135deg, #c4942a, #a67c1a); color: #1a1410;">Send to Kitchen</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ import { useMenu } from '../../hooks/useMenu';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useOrderStore } from '../../stores/orderStore';
 import { useSettings } from '../../hooks/useSettings';
+import { useTheme } from '../../hooks/useTheme';
 import FloorPlan from '../KioskMode/FloorPlan';
 import PaymentScreen from '../KioskMode/PaymentScreen';
 import MenuGrid from './MenuGrid';
@@ -51,6 +52,7 @@ export default function ServerMode() {
   const employee = (() => { try { return JSON.parse(sessionStorage.getItem('wm_employee') || ''); } catch { return null; } })();
   const isManager = employee?.role === 'manager' || employee?.role === 'owner';
 
+  const t_ = useTheme();
   // Wrap setView to persist state
   const setView = useCallback((v: View) => {
     setViewRaw(v);
@@ -250,12 +252,12 @@ export default function ServerMode() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-900 p-4">
+    <div className="min-h-screen p-4" style={{ background: t_.bg }}>
       <div className="animate-pulse space-y-4 pt-4">
-        <div className="h-10 bg-slate-800 rounded-xl w-full" />
+        <div className="h-10 rounded-xl w-full" style={{ background: t_.bgCard }} />
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {[1,2,3,4,5,6,7,8].map(i => (
-            <div key={i} className="aspect-square bg-slate-800 rounded-2xl" />
+            <div key={i} className="aspect-square rounded-2xl" style={{ background: t_.bgCard }} />
           ))}
         </div>
       </div>
@@ -273,7 +275,7 @@ export default function ServerMode() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900">
+    <div className="min-h-screen flex flex-col" style={{ background: t_.bg }}>
       {/* Ready order notifications */}
       {readyOrders.length > 0 && (
         <div className="shrink-0">
@@ -285,7 +287,7 @@ export default function ServerMode() {
           ))}
         </div>
       )}
-      <header className="bg-slate-800 border-b border-slate-700/50 shrink-0">
+      <header className="shrink-0" style={{ background: t_.bgCard, borderBottom: `1px solid ${t_.border}` }}>
         {/* Top row — title + nav */}
         <div className="px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -294,7 +296,7 @@ export default function ServerMode() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
             )}
-            <h1 className="font-bold text-base text-white">{viewTitle[view]}</h1>
+            <h1 className="font-bold text-base" style={{ color: t_.text }}>{viewTitle[view]}</h1>
             <ApprovalBadge />
             <ServiceCallBadge />
           </div>
@@ -305,11 +307,11 @@ export default function ServerMode() {
         {/* Bottom row — action buttons (bigger, easier to tap) */}
         {(view === 'table' || view === 'menu' || view === 'history') && (
           <div className="px-4 pb-2 flex gap-2 flex-wrap">
-            <button onClick={handleToGoOrder} className="px-4 py-2.5 rounded-xl text-sm font-bold bg-orange-600 hover:bg-orange-500 text-white transition-colors">
+            <button onClick={handleToGoOrder} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors hover:brightness-110" style={{ background: t_.orange }}>
               🛍 To-Go Order
             </button>
             {view !== 'table' && (
-              <button onClick={() => setView('table')} className="px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors">
+              <button onClick={() => setView('table')} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors hover:brightness-110" style={{ background: t_.info }}>
                 🗺 Tables
               </button>
             )}
