@@ -371,10 +371,10 @@ export default function NoodleBowlBuilder({
         <div className="w-10" />
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-auto">
-        {/* Bowl Visual */}
-        <div className="flex flex-col items-center pt-3 pb-2 px-4">
+      {/* Main content — bowl on right, selections on left */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Right: Bowl visual (sticky) */}
+        <div className="hidden sm:flex w-[200px] shrink-0 flex-col items-center justify-center p-3 border-l border-orange-100 bg-gradient-to-b from-orange-50/50 to-amber-50/50">
           <div
             className="relative"
             style={{ width: 160, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
@@ -515,13 +515,14 @@ export default function NoodleBowlBuilder({
           </div>
 
           {/* Price */}
-          <div className="text-xl font-bold mt-1" style={{ color: themeColor }}>
-            {totalExtra > 0 && <span className="text-base text-gray-400 mr-2 line-through">{currency}{basePrice.toFixed(2)}</span>}
+          <div className="text-lg font-bold mt-1" style={{ color: themeColor }}>
+            {totalExtra > 0 && <span className="text-sm text-gray-400 mr-1 line-through">{currency}{basePrice.toFixed(2)}</span>}
             {currency}{(basePrice + totalExtra).toFixed(2)}
           </div>
-        </div>
+        </div>{/* End right bowl panel */}
 
-        {/* Step progress dots */}
+        {/* Left: selections (scrollable) */}
+        <div className="flex-1 overflow-auto order-first pt-3">
         {groups.length > 0 && (
           <div className="flex items-center justify-center gap-2 px-4 pb-3">
             {groups.map((g, i) => {
@@ -668,7 +669,8 @@ export default function NoodleBowlBuilder({
             />
           )}
         </div>
-      </div>
+        </div>{/* End left selections panel */}
+      </div>{/* End main flex row */}
 
       {/* Bottom bar */}
       <div className="shrink-0 p-4 bg-white border-t border-gray-100">
