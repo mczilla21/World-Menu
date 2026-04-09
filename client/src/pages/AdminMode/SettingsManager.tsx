@@ -326,6 +326,32 @@ export default function SettingsManager() {
             />
           </div>
         )}
+        {/* Helcim Payment Processing */}
+        <div className="bg-slate-700/30 rounded-lg p-3 space-y-2">
+          <div className="text-xs font-semibold text-slate-400 uppercase">Payment Processor (Helcim)</div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">API Token</label>
+            <input
+              value={settings.helcim_api_token || ''}
+              onChange={e => updateSetting('helcim_api_token', e.target.value)}
+              placeholder="Paste your Helcim API token"
+              className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Account ID</label>
+            <input
+              value={settings.helcim_account_id || ''}
+              onChange={e => updateSetting('helcim_account_id', e.target.value)}
+              placeholder="e.g. 2500307481"
+              className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono"
+            />
+          </div>
+          <div className="text-[10px] text-slate-600">
+            {settings.helcim_api_token ? '✅ Helcim connected' : '⚠️ No payment processor — card payments will simulate'}
+          </div>
+        </div>
+
         <div>
           <label className="text-xs text-slate-400 mb-1 block">Card Processing Surcharge (%)</label>
           <div className="flex items-center gap-3">
