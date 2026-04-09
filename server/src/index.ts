@@ -82,6 +82,12 @@ async function start() {
 
   // Database
   runMigrations();
+  // Log DB info for debugging
+  try {
+    const dbName = (getDb().prepare("SELECT value FROM settings WHERE key = 'restaurant_name'").get() as any)?.value;
+    console.log(`  Database: ${config.dbPath}`);
+    console.log(`  Restaurant: ${dbName || '(not set)'}`);
+  } catch {}
 
   // Routes
   registerCategoryRoutes(app);
