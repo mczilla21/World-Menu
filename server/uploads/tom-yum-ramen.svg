@@ -1,53 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
 <defs>
-<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFE0B2"/><stop offset="100%" stop-color="#E65100"/></radialGradient>
+<radialGradient id="a" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#F5D0B0"/><stop offset="100%" stop-color="#E8B890"/></radialGradient>
+<radialGradient id="b" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#8B7355"/><stop offset="80%" stop-color="#6B5340"/><stop offset="100%" stop-color="#4A3728"/></radialGradient>
+<radialGradient id="c" cx="42%" cy="42%" r="52%"><stop offset="0%" stop-color="#E0583D"/><stop offset="100%" stop-color="#C83D1D"/></radialGradient>
+<radialGradient id="d" cx="32%" cy="32%" r="35%"><stop offset="0%" stop-color="#fff" stop-opacity=".18"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="e" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C4956A"/><stop offset="50%" stop-color="#A0724E"/><stop offset="100%" stop-color="#7A5535"/></linearGradient>
+<radialGradient id="f" cx="45%" cy="42%" r="50%"><stop offset="0%" stop-color="#FFB820"/><stop offset="100%" stop-color="#E89010"/></radialGradient>
 </defs>
-<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
-<!-- Steam -->
-<g opacity="0.5">
-<path d="M140,100 Q145,78 150,100 Q155,78 160,100" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
-<animateTransform attributeName="transform" type="translate" values="0,0;0,-16;0,0" dur="2s" repeatCount="indefinite"/></path>
-<path d="M200,88 Q205,65 210,88 Q215,65 220,88" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
-<animateTransform attributeName="transform" type="translate" values="0,0;0,-20;0,0" dur="2.3s" repeatCount="indefinite"/></path>
-<path d="M250,100 Q255,78 260,100 Q265,78 270,100" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
-<animateTransform attributeName="transform" type="translate" values="0,0;0,-14;0,0" dur="1.9s" repeatCount="indefinite"/></path>
-</g>
-<!-- Bowl -->
-<ellipse cx="200" cy="250" rx="145" ry="90" fill="#BF360C"/>
-<ellipse cx="200" cy="250" rx="140" ry="85" fill="#D84315"/>
-<!-- Broth (red-orange tom yum) -->
-<ellipse cx="200" cy="230" rx="130" ry="70" fill="#FF6D00"/>
-<!-- Coconut milk swirl -->
-<path d="M160,225 Q180,215 200,225 Q220,235 240,225" fill="none" stroke="#FFFDE7" stroke-width="4" opacity="0.6"/>
-<circle cx="180" cy="230" r="8" fill="#FFFDE7" opacity="0.3"/>
-<!-- Noodles -->
-<g stroke="#F0DC82" stroke-width="3" fill="none" opacity="0.6">
-<path d="M120,232 Q150,217 180,232 Q210,247 240,232 Q270,217 300,232"/>
-<path d="M115,242 Q145,227 175,242 Q205,257 235,242 Q265,227 295,242"/>
-</g>
-<!-- Ground meat -->
-<g fill="#6D4C41">
-<circle cx="150" cy="215" r="4"/><circle cx="162" cy="218" r="3.5"/><circle cx="175" cy="213" r="4"/><circle cx="225" cy="216" r="3.5"/><circle cx="238" cy="220" r="4"/>
-</g>
-<!-- Egg -->
-<ellipse cx="270" cy="210" rx="20" ry="16" fill="#FFF"/><ellipse cx="270" cy="210" rx="12" ry="9" fill="#FFD700"/>
-<!-- Lettuce -->
-<ellipse cx="130" cy="205" rx="15" ry="10" fill="#81C784" opacity="0.8"/>
-<!-- Bean sprouts -->
-<g stroke="#F5F5DC" stroke-width="2" fill="none">
-<path d="M200,210 Q205,205 210,210"/><path d="M285,218 Q290,213 295,218"/>
-</g>
-<!-- Mushrooms -->
-<ellipse cx="245" cy="200" rx="10" ry="6" fill="#8D6E63"/><rect x="243" y="200" width="4" height="7" fill="#A1887F"/>
-<!-- Green onion -->
-<circle cx="155" cy="200" r="4" fill="#4CAF50"/><circle cx="165" cy="203" r="3" fill="#66BB6A"/>
-<!-- Cilantro -->
-<path d="M290,200 Q295,195 292,190 M292,202 Q297,196 294,191" stroke="#43A047" stroke-width="1.5" fill="none"/>
-<!-- Bowl rim -->
-<ellipse cx="200" cy="180" rx="140" ry="30" fill="none" stroke="#BF360C" stroke-width="6"/>
-<!-- Chopsticks -->
-<line x1="280" y1="140" x2="340" y2="100" stroke="#C4873B" stroke-width="5" stroke-linecap="round"/>
-<line x1="290" y1="145" x2="350" y2="105" stroke="#A0704B" stroke-width="5" stroke-linecap="round"/>
-<!-- Label -->
-<text x="200" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="bold" fill="#BF360C">Tom Yum Ramen</text>
+<circle cx="200" cy="200" r="198" fill="url(#a)"/>
+<circle cx="200" cy="200" r="175" fill="url(#b)"/>
+<circle cx="200" cy="200" r="165" fill="#5A4530" opacity=".4"/>
+<circle cx="200" cy="200" r="158" fill="url(#c)"/>
+<g fill="none" stroke="#FFF8F0" stroke-width="3" opacity=".4">
+<path d="M158,162Q198,152 208,192Q218,232 258,222"/>
+<path d="M138,212Q168,202 178,232Q188,262 228,252"/>
+<path d="M198,142Q228,162 218,202Q208,242 248,252"/></g>
+<g fill="none" stroke="#F0D070" stroke-width="2.8" opacity=".5">
+<path d="M105,188Q148,165 195,192Q242,222 282,188"/>
+<path d="M100,208Q150,235 200,208Q250,182 295,212"/>
+<path d="M108,228Q155,202 205,232Q255,262 290,228"/>
+<path d="M128,248Q168,218 215,248Q260,275 278,242"/>
+<path d="M118,172Q162,195 212,172Q258,148 285,178"/></g>
+<g fill="#7A4A2A" opacity=".72">
+<circle cx="148" cy="182" r="3"/><circle cx="163" cy="192" r="2.5"/><circle cx="153" cy="202" r="3"/>
+<circle cx="173" cy="188" r="2"/><circle cx="138" cy="198" r="2.5"/><circle cx="158" cy="212" r="2"/>
+<circle cx="228" cy="252" r="3"/><circle cx="243" cy="258" r="2.5"/><circle cx="236" cy="266" r="2"/>
+<circle cx="218" cy="262" r="2.5"/><circle cx="248" cy="248" r="2"/></g>
+<ellipse cx="278" cy="148" rx="30" ry="22" fill="#FFF8E8" stroke="#D8C8A0" stroke-width=".8"/>
+<ellipse cx="278" cy="148" rx="14" ry="10" fill="url(#f)"/>
+<path d="M152,242A17,10 0 0,1 186,242" fill="#8B6E50" stroke="#6B4E30" stroke-width=".7"/>
+<path d="M158,242L161,233" fill="none" stroke="#6B4E30" stroke-width=".5" opacity=".4"/>
+<path d="M268,268A17,10 0 0,1 302,268" fill="#8B6E50" stroke="#6B4E30" stroke-width=".7"/>
+<g fill="none" stroke="#E8E0C8" stroke-width="1.4" opacity=".6">
+<path d="M198,278Q204,266 210,272"/><path d="M214,282Q218,270 224,275"/>
+<path d="M226,285Q232,273 238,279"/><path d="M188,282Q194,270 200,276"/></g>
+<g fill="#3A8A2A" opacity=".85">
+<path d="M288,192Q293,182 298,192Q293,197 288,192"/>
+<path d="M296,190Q301,180 306,190Q301,195 296,190"/>
+<path d="M292,199Q297,189 302,199Q297,204 292,199"/>
+<path d="M118,262Q123,252 128,262Q123,267 118,262"/>
+<path d="M126,260Q131,250 136,260Q131,265 126,260"/>
+<path d="M122,269Q127,259 132,269Q127,274 122,269"/></g>
+<path d="M302,152L325,168L308,178Z" fill="#80C040" stroke="#60A030" stroke-width=".8"/>
+<path d="M308,158L318,166" fill="none" stroke="#A0D860" stroke-width=".7"/>
+<path d="M306,165L316,172" fill="none" stroke="#A0D860" stroke-width=".7"/>
+<g fill="#60C050" stroke="#3A8A2A" stroke-width=".6" opacity=".85">
+<circle cx="182" cy="168" r="5.5"/><circle cx="258" cy="232" r="4.5"/>
+<circle cx="312" cy="218" r="4"/><circle cx="172" cy="278" r="5"/></g>
+<circle cx="200" cy="200" r="158" fill="url(#d)"/>
+<rect x="285" y="48" width="7" height="195" rx="3" fill="url(#e)" transform="rotate(35,315,98)"/>
+<rect x="295" y="52" width="7" height="195" rx="3" fill="url(#e)" transform="rotate(33,322,102)"/>
 </svg>

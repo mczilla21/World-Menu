@@ -1,48 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
 <defs>
-<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#F5E6CC"/><stop offset="100%" stop-color="#A0522D"/></radialGradient>
+<radialGradient id="a" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#E8D8C0"/><stop offset="100%" stop-color="#D4C0A0"/></radialGradient>
+<radialGradient id="b" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#8B7355"/><stop offset="80%" stop-color="#6B5340"/><stop offset="100%" stop-color="#4A3728"/></radialGradient>
+<radialGradient id="c" cx="42%" cy="42%" r="52%"><stop offset="0%" stop-color="#7B5236"/><stop offset="100%" stop-color="#5B3216"/></radialGradient>
+<radialGradient id="d" cx="32%" cy="32%" r="35%"><stop offset="0%" stop-color="#fff" stop-opacity=".16"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="e" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C4956A"/><stop offset="50%" stop-color="#A0724E"/><stop offset="100%" stop-color="#7A5535"/></linearGradient>
+<radialGradient id="f" cx="45%" cy="42%" r="50%"><stop offset="0%" stop-color="#FFB820"/><stop offset="100%" stop-color="#E89010"/></radialGradient>
+<radialGradient id="g" cx="38%" cy="38%" r="55%"><stop offset="0%" stop-color="#D4A080"/><stop offset="100%" stop-color="#8B5E3C"/></radialGradient>
 </defs>
-<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
-<!-- Steam -->
-<g opacity="0.5">
-<path d="M140,100 Q145,80 150,100 Q155,80 160,100" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
-<animateTransform attributeName="transform" type="translate" values="0,0;0,-15;0,0" dur="2s" repeatCount="indefinite"/></path>
-<path d="M200,90 Q205,70 210,90 Q215,70 220,90" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
-<animateTransform attributeName="transform" type="translate" values="0,0;0,-18;0,0" dur="2.5s" repeatCount="indefinite"/></path>
-<path d="M250,100 Q255,80 260,100 Q265,80 270,100" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
-<animateTransform attributeName="transform" type="translate" values="0,0;0,-12;0,0" dur="1.8s" repeatCount="indefinite"/></path>
+<circle cx="200" cy="200" r="198" fill="url(#a)"/>
+<circle cx="200" cy="200" r="175" fill="url(#b)"/>
+<circle cx="200" cy="200" r="165" fill="#5A4530" opacity=".4"/>
+<circle cx="200" cy="200" r="158" fill="url(#c)"/>
+<g fill="none" stroke="#E8C860" stroke-width="2.8" opacity=".55">
+<path d="M105,182Q148,158 195,188Q242,218 282,182"/>
+<path d="M100,205Q150,232 200,205Q250,178 295,208"/>
+<path d="M108,225Q155,198 205,228Q255,258 290,225"/>
+<path d="M128,242Q168,215 215,245Q260,272 278,238"/>
+<path d="M118,168Q162,192 212,168Q258,148 285,175"/>
+<path d="M135,258Q172,238 218,260Q258,278 275,252"/></g>
+<rect x="88" y="132" width="36" height="70" rx="2" fill="#1A3A1A" opacity=".9"/>
+<g stroke="#0D2A0D" stroke-width=".6" opacity=".4">
+<line x1="94" y1="136" x2="94" y2="198"/><line x1="102" y1="136" x2="102" y2="198"/>
+<line x1="110" y1="136" x2="110" y2="198"/><line x1="118" y1="136" x2="118" y2="198"/></g>
+<circle cx="168" cy="235" r="28" fill="url(#g)" stroke="#6B3E2A" stroke-width=".8"/>
+<path d="M154,230Q166,240 180,225" fill="none" stroke="#6B3E2A" stroke-width=".7" opacity=".5"/>
+<path d="M158,242Q172,232 186,240" fill="none" stroke="#6B3E2A" stroke-width=".6" opacity=".4"/>
+<circle cx="190" cy="252" r="28" fill="url(#g)" stroke="#6B3E2A" stroke-width=".8"/>
+<path d="M176,247Q188,258 204,244" fill="none" stroke="#6B3E2A" stroke-width=".7" opacity=".5"/>
+<ellipse cx="275" cy="148" rx="30" ry="22" fill="#FFF8E8" stroke="#D8C8A0" stroke-width=".8"/>
+<ellipse cx="275" cy="148" rx="14" ry="10" fill="url(#f)"/>
+<circle cx="272" cy="228" r="18" fill="#FFF0F0" stroke="#E8D0D0" stroke-width=".8"/>
+<path d="M272,213Q282,220 272,228Q262,236 272,243" fill="none" stroke="#E87090" stroke-width="2.2"/>
+<g fill="none" stroke="#E8E0C8" stroke-width="1.4" opacity=".65">
+<path d="M218,282Q224,270 230,276"/><path d="M234,288Q238,275 244,280"/>
+<path d="M246,290Q252,278 258,284"/><path d="M208,286Q214,274 220,280"/></g>
+<g fill="#D8C8A0" opacity=".65">
+<ellipse cx="152" cy="178" rx="2" ry="3" transform="rotate(20,152,178)"/>
+<ellipse cx="238" cy="195" rx="2" ry="3" transform="rotate(-15,238,195)"/>
+<ellipse cx="292" cy="262" rx="2" ry="3" transform="rotate(30,292,262)"/>
+<ellipse cx="178" cy="172" rx="2" ry="3" transform="rotate(-25,178,172)"/>
+<ellipse cx="312" cy="202" rx="2" ry="3" transform="rotate(10,312,202)"/>
 </g>
-<!-- Bowl -->
-<ellipse cx="200" cy="250" rx="145" ry="90" fill="#5D3A1A"/>
-<ellipse cx="200" cy="250" rx="140" ry="85" fill="#6D4C2A"/>
-<!-- Broth -->
-<ellipse cx="200" cy="230" rx="130" ry="70" fill="#8B6914"/>
-<!-- Noodles -->
-<g stroke="#F0DC82" stroke-width="3" fill="none" opacity="0.7">
-<path d="M120,230 Q150,215 180,230 Q210,245 240,230 Q270,215 300,230"/>
-<path d="M110,240 Q140,225 170,240 Q200,255 230,240 Q260,225 290,240"/>
-</g>
-<!-- Chashu -->
-<circle cx="155" cy="210" r="22" fill="#8B5E3C"/><circle cx="155" cy="210" r="16" fill="#A0704B" opacity="0.7"/>
-<!-- Egg -->
-<ellipse cx="260" cy="210" rx="20" ry="16" fill="#FFF"/><ellipse cx="260" cy="210" rx="12" ry="9" fill="#FFD700"/>
-<!-- Fish cake -->
-<circle cx="200" cy="195" r="14" fill="#FFD1DC"/><path d="M193,195 Q200,185 207,195" fill="none" stroke="#E75480" stroke-width="2"/>
-<!-- Sesame seeds -->
-<circle cx="140" cy="225" r="2" fill="#FFF8DC"/><circle cx="160" cy="220" r="2" fill="#FFF8DC"/><circle cx="230" cy="222" r="2" fill="#FFF8DC"/><circle cx="250" cy="228" r="2" fill="#FFF8DC"/><circle cx="180" cy="232" r="2" fill="#FFF8DC"/>
-<!-- Bean sprouts -->
-<g stroke="#F5F5DC" stroke-width="2" fill="none">
-<path d="M120,215 Q125,210 130,215"/><path d="M135,220 Q140,215 145,220"/><path d="M270,220 Q275,215 280,220"/>
-</g>
-<!-- Seaweed -->
-<rect x="220" y="185" width="25" height="35" rx="3" fill="#1B4332" opacity="0.85"/>
-<!-- Green onion -->
-<circle cx="175" cy="198" r="4" fill="#4CAF50"/><circle cx="185" cy="202" r="3" fill="#4CAF50"/><circle cx="240" cy="198" r="3" fill="#4CAF50"/>
-<!-- Bowl rim -->
-<ellipse cx="200" cy="180" rx="140" ry="30" fill="none" stroke="#5D3A1A" stroke-width="6"/>
-<!-- Chopsticks -->
-<line x1="280" y1="140" x2="340" y2="100" stroke="#C4873B" stroke-width="5" stroke-linecap="round"/>
-<line x1="290" y1="145" x2="350" y2="105" stroke="#A0704B" stroke-width="5" stroke-linecap="round"/>
-<!-- Label -->
-<text x="200" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#5D3A1A">Shoyu Ramen</text>
+<g fill="#60C050" stroke="#3A8A2A" stroke-width=".6" opacity=".85">
+<circle cx="148" cy="158" r="5.5"/><circle cx="302" cy="188" r="4.5"/>
+<circle cx="238" cy="272" r="5"/><circle cx="158" cy="278" r="4"/></g>
+<circle cx="200" cy="200" r="158" fill="url(#d)"/>
+<rect x="285" y="48" width="7" height="195" rx="3" fill="url(#e)" transform="rotate(35,315,98)"/>
+<rect x="295" y="52" width="7" height="195" rx="3" fill="url(#e)" transform="rotate(33,322,102)"/>
 </svg>
