@@ -69,7 +69,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
     } = req.body;
     // Check for duplicate (same table, same item count, within 5 seconds)
     const recent = db.prepare(
-      "SELECT id FROM orders WHERE table_number = ? AND created_at > datetime('now', '-5 seconds') AND closed = 0"
+      "SELECT id FROM orders WHERE table_number = ? AND created_at > datetime('now', 'localtime', '-5 seconds') AND closed = 0"
     ).get(table_number) as any;
     if (recent) {
       // Return existing order instead of creating duplicate

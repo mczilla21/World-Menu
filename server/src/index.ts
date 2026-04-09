@@ -199,7 +199,7 @@ async function start() {
     db.exec('DELETE FROM daily_logs');
     db.exec('DELETE FROM time_entries');
     db.exec('DELETE FROM service_calls');
-    db.exec('DELETE FROM cash_drawer_log');
+    db.exec('DELETE FROM cash_drawer_sessions');
     db.exec('DELETE FROM refunds');
     broadcastToAll({ type: 'HISTORY_CLEARED' });
     return { ok: true, message: 'All financial data cleared' };
