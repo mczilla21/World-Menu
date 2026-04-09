@@ -212,7 +212,7 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
               <button
                 key={mod.id}
                 onClick={() => toggleSelection(mod.id)}
-                className="rounded-xl p-4 text-left transition-all active:scale-95"
+                className="relative rounded-xl p-4 text-left transition-all active:scale-95"
                 style={{
                   background: isSelected ? `${t.info}30` : t.bgCard,
                   border: `2px solid ${isSelected ? t.info : t.border}`,
