@@ -12,7 +12,7 @@ interface Props {
   cart: CartItem[];
   onAddSimple: (id: number, name: string, showInKitchen: boolean, price?: number, variantName?: string) => void;
   onRemove: (cartId: string) => void;
-  onOpenBuilder: (categoryId: number, item: { id: number; name: string }, price: number) => void;
+  onOpenBuilder: (categoryId: number, item: { id: number; name: string }, price: number, showInKitchen: boolean) => void;
   onOpenVariant: (item: MenuItem) => void;
   onReview: () => void;
 }
@@ -60,7 +60,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
     if (item.variants && item.variants.length > 0) {
       onOpenVariant(item);
     } else if (isBuilderTab) {
-      onOpenBuilder(currentCat!.id, { id: item.id, name: item.name }, item.price || 0);
+      onOpenBuilder(currentCat!.id, { id: item.id, name: item.name }, item.price || 0, !!item.category_show_in_kitchen);
     } else {
       onAddSimple(item.id, item.name, !!item.category_show_in_kitchen, item.price);
     }

@@ -7,6 +7,7 @@ export interface CustomerCartItem {
   item_name: string;
   item_name_translated: string;
   quantity: number;
+  show_in_kitchen: boolean;
   notes: string;
   item_price: number;
   variant_name: string;
@@ -89,7 +90,7 @@ export const useCustomerStore = create<CustomerStore>((set, get) => ({
       menu_item_id: i.menu_item_id,
       item_name: i.item_name,
       quantity: i.quantity,
-      show_in_kitchen: true,
+      show_in_kitchen: i.show_in_kitchen ?? true,
       notes: i.notes,
       customer_number: 0,
       item_price: i.item_price,

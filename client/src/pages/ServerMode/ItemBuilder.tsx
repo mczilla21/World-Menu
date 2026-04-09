@@ -23,12 +23,13 @@ interface Props {
   item: { id: number; name: string };
   onAdd: (item: { id: string; menu_item_id: number; item_name: string; quantity: number; show_in_kitchen: boolean; notes: string; customer_number: number; item_price: number; variant_name: string; combo_id: number | null; combo_slot_label: string }) => void;
   itemPrice?: number;
+  showInKitchen?: boolean;
   onClose: () => void;
 }
 
 let bowlCounter = 0;
 
-export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPrice = 0 }: Props) {
+export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPrice = 0, showInKitchen = true }: Props) {
   const t = useTheme();
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
@@ -68,7 +69,7 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
       menu_item_id: item.id,
       item_name: item.name,
       quantity: 1,
-      show_in_kitchen: true,
+      show_in_kitchen: showInKitchen,
       notes: '',
       customer_number: currentCustomer,
       item_price: itemPrice,
@@ -125,7 +126,7 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
       menu_item_id: item.id,
       item_name: item.name,
       quantity: 1,
-      show_in_kitchen: true,
+      show_in_kitchen: showInKitchen,
       notes: notesParts.join(' | '),
       customer_number: currentCustomer,
       item_price: itemPrice + totalExtra,

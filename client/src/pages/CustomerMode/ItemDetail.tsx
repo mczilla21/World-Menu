@@ -130,6 +130,7 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
       item_name: nativeName,
       item_name_translated: translatedName,
       quantity,
+      show_in_kitchen: !!item.category_show_in_kitchen,
       notes: notesParts.join(' | '),
       item_price: basePrice + totalExtra,
       variant_name: selectedVariant?.name || '',

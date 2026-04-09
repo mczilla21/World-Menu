@@ -1,29 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type DisplayLang = 'native' | 'translated' | 'both';
+export type DisplayLang = string;
 
 const STORAGE_KEY = 'display_language';
 
-function getStoredLang(): DisplayLang {
+function getStoredLang(): string {
   try {
     const val = localStorage.getItem(STORAGE_KEY);
-    if (val === 'native' || val === 'translated' || val === 'both') return val;
+    if (val) return val;
   } catch {}
-  return 'both';
+  return 'en';
 }
 
-let listeners: Array<(lang: DisplayLang) => void> = [];
+let listeners: Array<(lang: string) => void> = [];
 
 export function useLanguage() {
-  const [lang, setLang] = useState<DisplayLang>(getStoredLang);
+  const [lang, setLang] = useState<string>(getStoredLang);
 
   useEffect(() => {
-    const handler = (newLang: DisplayLang) => setLang(newLang);
+    const handler = (newLang: string) => setLang(newLang);
     listeners.push(handler);
     return () => { listeners = listeners.filter(l => l !== handler); };
   }, []);
 
-  const setLanguage = useCallback((val: DisplayLang) => {
+  const setLanguage = useCallback((val: string) => {
     localStorage.setItem(STORAGE_KEY, val);
     setLang(val);
     listeners.forEach(fn => fn(val));

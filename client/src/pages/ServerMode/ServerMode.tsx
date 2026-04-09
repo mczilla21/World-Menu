@@ -40,7 +40,7 @@ function loadServerState() {
 export default function ServerMode() {
   const saved = loadServerState();
   const [view, setViewRaw] = useState<View>(saved?.view === 'menu' || saved?.view === 'review' ? saved.view : 'table');
-  const [builderTarget, setBuilderTarget] = useState<{ categoryId: number; item: { id: number; name: string }; price: number } | null>(null);
+  const [builderTarget, setBuilderTarget] = useState<{ categoryId: number; item: { id: number; name: string }; price: number; showInKitchen: boolean } | null>(null);
   const [variantTarget, setVariantTarget] = useState<MenuItem | null>(null);
   const [lastTable, setLastTable] = useState(saved?.lastTable || '');
   const [lastOrderType, setLastOrderType] = useState(saved?.lastOrderType || '');
@@ -198,10 +198,12 @@ export default function ServerMode() {
   const handleOverviewTableClick = async (tableNum: string, status: string, total: number, elapsed: number) => {
     setLoadingPopup(true);
     try {
-      const res = await fetch(`/api/orders/active`);
-      if (!res.ok) throw new Error('Failed to fetch');
-      const allActive: TableOrder[] = await res.json();
-      const tableOrders = allActive.filter((o: any) => String(o.table_number) === tableNum);
+      const [activeRes, finishedRes] = await Promise.all([
+        fetch('/api/orders/active').then(r => r.ok ? r.json() : []),
+        fetch('/api/orders/finished').then(r => r.ok ? r.json() : []),
+      ]);
+      const allOrders: TableOrder[] = [...activeRes, ...finishedRes];
+      const tableOrders = allOrders.filter((o: any) => String(o.table_number) === tableNum);
       setTablePopup({ number: tableNum, status, total, elapsed, orders: tableOrders });
     } catch {
       setTablePopup({ number: tableNum, status, total, elapsed, orders: [] });
@@ -344,7 +346,7 @@ export default function ServerMode() {
             cart={cart}
             onAddSimple={addSimpleItem}
             onRemove={removeItem}
-            onOpenBuilder={(categoryId, item, price) => setBuilderTarget({ categoryId, item, price })}
+            onOpenBuilder={(categoryId, item, price, showInKitchen) => setBuilderTarget({ categoryId, item, price, showInKitchen })}
             onOpenVariant={(item) => setVariantTarget(item)}
             onReview={() => setView('review')}
           />
@@ -402,6 +404,7 @@ export default function ServerMode() {
           categoryId={builderTarget.categoryId}
           item={builderTarget.item}
           itemPrice={builderTarget.price}
+          showInKitchen={builderTarget.showInKitchen}
           onAdd={(item) => addItem(item)}
           onClose={() => setBuilderTarget(null)}
         />
@@ -564,9 +567,12 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/orders/active');
-        const orders = await res.json();
-        const tableOrders = orders.filter((o: any) => String(o.table_number) === tableNumber);
+        const [activeRes, finishedRes] = await Promise.all([
+          fetch('/api/orders/active').then(r => r.ok ? r.json() : []),
+          fetch('/api/orders/finished').then(r => r.ok ? r.json() : []),
+        ]);
+        const allOrders = [...activeRes, ...finishedRes];
+        const tableOrders = allOrders.filter((o: any) => String(o.table_number) === tableNumber);
         if (tableOrders.length > 0) setOrderId(tableOrders[0].id);
         const allItems = tableOrders.flatMap((o: any) => (o.items || []).map((i: any) => ({
           id: i.id, item_name: i.item_name, variant_name: i.variant_name || '',
