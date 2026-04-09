@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { useI18n } from '../i18n/useI18n';
 import { useTheme } from '../hooks/useTheme';
@@ -21,8 +21,12 @@ export default function RoleSelect() {
   }, []);
 
   // Auto-submit when 4 digits entered
+  const submittingRef = useRef(false);
   useEffect(() => {
-    if (pin.length === 4) handlePinSubmit();
+    if (pin.length === 4 && !submittingRef.current) {
+      submittingRef.current = true;
+      handlePinSubmit().finally(() => { submittingRef.current = false; });
+    }
   }, [pin]);
 
   const handlePinSubmit = async () => {

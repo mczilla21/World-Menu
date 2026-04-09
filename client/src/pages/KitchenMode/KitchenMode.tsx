@@ -250,7 +250,7 @@ export default function KitchenMode() {
       <div className="flex-1 overflow-auto p-4">
         {displayOrders.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full p-8 mt-20">
-            <div className="text-6xl mb-4">{showHistory ? '\uD83D\uDCCB' : '\uD83D\uDC68\u200D\uD83C\uDF73'}</div>
+            <div className="text-6xl mb-4">{showHistory ? '📋' : '👨‍🍳'}</div>
             <h2 className="text-xl font-bold mb-2" style={{ color: theme.textSecondary }}>
               {showHistory ? t('No finished orders yet') : t('All quiet in the kitchen!')}
             </h2>

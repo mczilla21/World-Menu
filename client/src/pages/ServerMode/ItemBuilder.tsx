@@ -54,7 +54,7 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
         setSelections(initial);
         setLoading(false);
       });
-  }, [categoryId]);
+  }, [item.id]);
 
   if (loading) return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.8)' }}>

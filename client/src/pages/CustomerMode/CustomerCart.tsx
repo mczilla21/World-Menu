@@ -36,7 +36,7 @@ export default function CustomerCart({ currency, themeColor, onClose, onOrderSen
         <div className="flex-1 overflow-auto p-5">
           {cart.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-5xl mb-3">{'\uD83D\uDED2'}</div>
+              <div className="text-5xl mb-3">{'🛒'}</div>
               <p className="text-gray-500 font-medium">Nothing here yet!</p>
               <p className="text-gray-400 text-sm mt-1">Browse the menu to add items</p>
             </div>

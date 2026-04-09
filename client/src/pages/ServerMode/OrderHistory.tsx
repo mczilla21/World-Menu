@@ -55,6 +55,7 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       setOrders(all);
+    }).catch(() => {}).finally(() => {
       setLoading(false);
     });
   };
@@ -205,7 +206,7 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
                             <div className="text-[11px] text-slate-600 pl-3">
                               {item.notes.split(' | ').map((part, i) => (
                                 <span key={i} className={part.startsWith('NO:') ? 'text-red-400' : ''}>
-                                  {i > 0 ? ' \u00b7 ' : ''}{part}
+                                  {i > 0 ? ' · ' : ''}{part}
                                 </span>
                               ))}
                             </div>

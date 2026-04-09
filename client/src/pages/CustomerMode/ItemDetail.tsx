@@ -149,6 +149,19 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
   const isNoodleCategory = /ramen|noodle/i.test(item.category_name || '');
   const isBowlBuilder = groupsLoaded && (hasBuildSteps || (isNoodleCategory && groups.length > 0));
 
+  // Loading state while modifier groups haven't loaded yet
+  if (!groupsLoaded) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-2xl p-8 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-gray-200 rounded-full mx-auto" style={{ borderTopColor: themeColor }} />
+          <p className="text-gray-500 mt-3 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Bowl builder gets its own full-screen experience
   if (isBowlBuilder && !showAgeCheck) {
     return (

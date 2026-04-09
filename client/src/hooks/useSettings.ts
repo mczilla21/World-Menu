@@ -37,6 +37,7 @@ const defaultSettings: Settings = {
   floor_theme: 'dark-wood',
   floor_bg_image: '',
   // Mode
+  setup_complete: '0',
   sandbox_mode: '1',
   // Payment
   card_surcharge: '3',
@@ -80,27 +81,47 @@ export function useSettings() {
   }, [fetchSettings]);
 
   const updateSetting = useCallback(async (key: string, value: string) => {
-    await fetch(`/api/settings/${key}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value }),
-    });
+    const previous = cachedSettings;
     const updated = { ...cachedSettings!, [key]: value };
     cachedSettings = updated;
     setSettings(updated);
     listeners.forEach(fn => fn(updated));
+    try {
+      await fetch(`/api/settings/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+      });
+    } catch (e) {
+      console.error('Failed to update setting:', e);
+      if (previous) {
+        cachedSettings = previous;
+        setSettings(previous);
+        listeners.forEach(fn => fn(previous));
+      }
+    }
   }, []);
 
   const updateSettings = useCallback(async (updates: Record<string, string>) => {
-    await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
+    const previous = cachedSettings;
     const updated = { ...cachedSettings!, ...updates };
     cachedSettings = updated;
     setSettings(updated);
     listeners.forEach(fn => fn(updated));
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+    } catch (e) {
+      console.error('Failed to update settings:', e);
+      if (previous) {
+        cachedSettings = previous;
+        setSettings(previous);
+        listeners.forEach(fn => fn(previous));
+      }
+    }
   }, []);
 
   return { settings, loading, fetchSettings, updateSetting, updateSettings };

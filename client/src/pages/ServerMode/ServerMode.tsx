@@ -375,7 +375,7 @@ export default function ServerMode() {
             </div>
             <h2 className="text-xl font-bold text-white mb-1">Sent to Kitchen!</h2>
             <p className="text-slate-400 text-sm mb-6">
-              {lastOrderType === 'dine_in' ? `Table ${lastTable}` : lastOrderType === 'takeout' ? 'Takeout' : 'Pickup'}
+              {lastOrderType === 'dine_in' ? `${t('Table')} ${lastTable}` : lastOrderType === 'takeout' ? t('Takeout') : t('Pickup')}
             </p>
             <p className="text-slate-600 text-xs mb-8">Returning to menu...</p>
 
@@ -565,7 +565,14 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
       items={items}
       subtotal={subtotal}
       currency={currency}
-      onComplete={() => {
+      onComplete={(method, amount) => {
+        if (orderId) {
+          fetch(`/api/orders/${orderId}/payment`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_method: method }),
+          }).catch(() => {});
+        }
         fetch(`/api/tables/${encodeURIComponent(tableNumber)}/close`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

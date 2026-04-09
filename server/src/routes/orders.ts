@@ -304,9 +304,9 @@ export function registerOrderRoutes(app: FastifyInstance) {
     db.prepare('UPDATE orders SET customer_status = ? WHERE id = ?').run(status, req.params.id);
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(Number(req.params.id)) as any;
     if (order?.table_number) {
-      broadcastToTable(order.table_number, { type: 'ORDER_STATUS_CHANGED', orderId: order.id, status });
+      broadcastToTable(order.table_number, { type: 'ORDER_STATUS_CHANGED', orderId: order.id, customer_status: status });
     }
-    broadcastToRole('kitchen', { type: 'ORDER_STATUS_CHANGED', orderId: Number(req.params.id), status });
+    broadcastToRole('kitchen', { type: 'ORDER_STATUS_CHANGED', orderId: Number(req.params.id), customer_status: status });
     return { ok: true };
   });
 

@@ -73,14 +73,14 @@ export default function StaffSelect() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #fef3c7 100%)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: `linear-gradient(135deg, ${theme.bg} 0%, ${theme.bgCard} 100%)` }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>{settings.restaurant_name}</h1>
-          <div className="mt-3 inline-block px-5 py-2.5 rounded-2xl" style={{ background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
-            <span style={{ fontSize: 14, color: '#64748b' }}>Hey </span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{employee.name}!</span>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: theme.text }}>{settings.restaurant_name}</h1>
+          <div className="mt-3 inline-block px-5 py-2.5 rounded-2xl" style={{ background: theme.bgCard, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+            <span style={{ fontSize: 14, color: theme.textSecondary }}>Hey </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: theme.text }}>{employee.name}!</span>
             <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${({owner:theme.purple,manager:theme.purple,server:theme.info,kitchen:theme.orange,host:theme.success} as Record<string,string>)[employee.role] || theme.textMuted}20`, color: ({owner:theme.purple,manager:theme.purple,server:theme.info,kitchen:theme.orange,host:theme.success} as Record<string,string>)[employee.role] || theme.textMuted }}>{employee.role}</span>
           </div>
         </div>
@@ -91,12 +91,12 @@ export default function StaffSelect() {
               key={mode.id}
               onClick={() => pick(mode.id)}
               className="w-full py-5 px-5 rounded-2xl text-left transition-all active:scale-[0.96] flex items-center gap-4"
-              style={{ background: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.06)', border: '2px solid #f1f5f9' }}
+              style={{ background: theme.bgCard, boxShadow: '0 4px 14px rgba(0,0,0,0.06)', border: `2px solid ${theme.border}` }}
             >
               <span style={{ fontSize: 28, width: 44, textAlign: 'center' }}>{mode.icon}</span>
               <div className="flex-1">
-                <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>{t(mode.label)}</div>
-                <div className="text-xs" style={{ color: '#94a3b8' }}>{t(mode.desc)}</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: theme.text }}>{t(mode.label)}</div>
+                <div className="text-xs" style={{ color: theme.textSecondary }}>{t(mode.desc)}</div>
               </div>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: mode.color }} />
             </button>
@@ -109,7 +109,7 @@ export default function StaffSelect() {
               🕐 End Shift
             </button>
           )}
-          <button onClick={logout} className="text-sm" style={{ color: '#94a3b8' }}>
+          <button onClick={logout} className="text-sm" style={{ color: theme.textMuted }}>
             {employee.role === 'owner' || employee.role === 'manager' ? 'Logout' : 'Switch User'}
           </button>
         </div>

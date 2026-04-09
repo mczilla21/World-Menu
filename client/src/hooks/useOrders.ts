@@ -40,13 +40,21 @@ export function useOrders() {
   const [finishedOrders, setFinishedOrders] = useState<Order[]>([]);
 
   const fetchActive = useCallback(async () => {
-    const res = await fetch('/api/orders/active');
-    setActiveOrders(await res.json());
+    try {
+      const res = await fetch('/api/orders/active');
+      setActiveOrders(await res.json());
+    } catch {
+      setActiveOrders([]);
+    }
   }, []);
 
   const fetchFinished = useCallback(async () => {
-    const res = await fetch('/api/orders/finished');
-    setFinishedOrders(await res.json());
+    try {
+      const res = await fetch('/api/orders/finished');
+      setFinishedOrders(await res.json());
+    } catch {
+      setFinishedOrders([]);
+    }
   }, []);
 
   const fetchAll = useCallback(async () => {

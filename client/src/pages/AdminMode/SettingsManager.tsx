@@ -140,7 +140,7 @@ export default function SettingsManager() {
 
   useEffect(() => {
     generateQR();
-  }, [qrTable]);
+  }, [qrTable, serverUrl]);
 
   // Packaging CRUD
   const addPackaging = async () => {
