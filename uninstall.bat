@@ -1,35 +1,51 @@
 @echo off
-echo ==========================================
-echo   Uninstalling World Menu POS
-echo ==========================================
+title Uninstall World Menu POS
+color 0C
+echo.
+echo   ============================================================
+echo        U N I N S T A L L   W O R L D   M E N U   P O S
+echo   ============================================================
+echo.
+echo   This will remove World Menu POS from this computer.
+echo   Your menu data and settings will be deleted.
+echo.
+set /p confirm="   Type UNINSTALL to confirm: "
+if /i not "%confirm%"=="UNINSTALL" (
+    echo   Cancelled.
+    pause
+    exit /b
+)
 echo.
 
 :: Stop any running server
+echo   Stopping server...
 taskkill /F /IM node.exe >nul 2>&1
-echo Stopped server.
 
 :: Remove desktop shortcut
+echo   Removing shortcuts...
 del "%USERPROFILE%\Desktop\World Menu POS.lnk" >nul 2>&1
-echo Removed desktop shortcut.
 
 :: Remove start menu
 rmdir /s /q "%APPDATA%\Microsoft\Windows\Start Menu\Programs\World Menu POS" >nul 2>&1
-echo Removed start menu entry.
 
-:: Remove registry
+:: Remove registry (Add/Remove Programs)
 reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WorldMenuPOS" /f >nul 2>&1
-echo Removed registry entry.
 
 :: Remove C:\world-menu-pos if it exists
 if exist "C:\world-menu-pos" (
+    echo   Removing C:\world-menu-pos...
     rmdir /s /q "C:\world-menu-pos" >nul 2>&1
-    echo Removed C:\world-menu-pos
 )
 
+:: Remove the current folder (if running from install dir)
+echo   Removing program files...
+set "INSTALLDIR=%~dp0"
+
 echo.
-echo ==========================================
+echo   ============================================================
 echo   World Menu POS has been uninstalled.
-echo   You can delete this folder manually.
-echo ==========================================
+echo   ============================================================
+echo.
+echo   You can now delete this folder: %INSTALLDIR%
 echo.
 pause

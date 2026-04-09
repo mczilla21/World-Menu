@@ -205,13 +205,18 @@ async function start() {
     console.log('');
   }
 
-  // Ensure github_repo setting exists for auto-updates
+  // Ensure essential settings exist
   try {
     const db = getDb();
-    const existing = db.prepare("SELECT value FROM settings WHERE key = 'github_repo'").get() as any;
-    if (!existing || !existing.value) {
-      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('github_repo', 'mczilla21/World-Menu')").run();
-    }
+    const ensure = (key: string, defaultVal: string) => {
+      const existing = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as any;
+      if (!existing) db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(key, defaultVal);
+    };
+    ensure('github_repo', 'mczilla21/World-Menu');
+    ensure('sandbox_mode', '1');
+    ensure('app_theme', 'warm-night');
+    ensure('floor_theme', 'dark-wood');
+    ensure('card_surcharge', '3');
   } catch {}
 
   // Auto-close stale orders older than 48 hours (runs on startup + every 6 hours)
