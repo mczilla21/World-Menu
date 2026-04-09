@@ -93,7 +93,7 @@ export function useSettings() {
       await fetch(`/api/settings/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value }),
+        body: JSON.stringify({ value, pin: sessionStorage.getItem('wm_pin') || '' }),
       });
     } catch (e) {
       console.error('Failed to update setting:', e);
@@ -115,7 +115,7 @@ export function useSettings() {
       await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ ...updates, pin: sessionStorage.getItem('wm_pin') || '' }),
       });
     } catch (e) {
       console.error('Failed to update settings:', e);

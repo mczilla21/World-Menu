@@ -48,7 +48,7 @@ export default function StaffSelect() {
       const res = await fetch('/api/employees/clock-out', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: employee.pin || '' }),
+        body: JSON.stringify({ pin: sessionStorage.getItem('wm_pin') || '' }),
       });
       const data = await res.json();
       if (data.error && data.error !== 'Not clocked in') {
@@ -60,6 +60,7 @@ export default function StaffSelect() {
       return;
     }
     sessionStorage.removeItem('wm_employee');
+    sessionStorage.removeItem('wm_pin');
     sessionStorage.removeItem('wm_access');
     localStorage.removeItem('role');
     navigate('/');
@@ -67,6 +68,7 @@ export default function StaffSelect() {
 
   const logout = () => {
     sessionStorage.removeItem('wm_employee');
+    sessionStorage.removeItem('wm_pin');
     sessionStorage.removeItem('wm_access');
     localStorage.removeItem('role');
     navigate('/');

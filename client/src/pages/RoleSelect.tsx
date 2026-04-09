@@ -40,7 +40,10 @@ export default function RoleSelect() {
       });
       const data = await res.json();
       if (data.ok && data.employee) {
-        sessionStorage.setItem('wm_employee', JSON.stringify(data.employee));
+        const { pin: empPin, ...empWithoutPin } = data.employee;
+        sessionStorage.setItem('wm_employee', JSON.stringify(empWithoutPin));
+        // Store pin separately for clock-out only
+        sessionStorage.setItem('wm_pin', empPin);
         const role = data.employee.role;
 
         // Set display language to employee's preference (or system default)

@@ -126,7 +126,8 @@ async function start() {
     return checkForUpdate();
   });
 
-  app.post('/api/apply-update', async () => {
+  app.post('/api/apply-update', async (req, reply) => {
+    if (!requireOwnerPin(req, reply)) return;
     return downloadAndApplyUpdate();
   });
 
@@ -180,8 +181,18 @@ async function start() {
     return { ok: true };
   });
 
+  // Simple owner-only auth check
+  function requireOwnerPin(req: any, reply: any): boolean {
+    const pin = req.body?.pin;
+    if (!pin) { reply.code(401).send({ error: 'Owner PIN required' }); return false; }
+    const owner = getDb().prepare("SELECT id FROM employees WHERE pin = ? AND role = 'owner' AND is_active = 1").get(pin);
+    if (!owner) { reply.code(403).send({ error: 'Invalid owner PIN' }); return false; }
+    return true;
+  }
+
   // Owner-only: wipe all financial/test data (keeps menu, employees, settings, floor plan)
-  app.post('/api/reset-financial-data', () => {
+  app.post('/api/reset-financial-data', (req, reply) => {
+    if (!requireOwnerPin(req, reply)) return;
     const db = getDb();
     db.exec('DELETE FROM order_items');
     db.exec('DELETE FROM orders');

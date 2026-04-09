@@ -12,8 +12,21 @@ export function registerSettingsRoutes(app: FastifyInstance) {
     return result;
   });
 
+  // Employee auth check for settings — skip if no employees exist (first-time setup)
+  function requireEmployeePin(req: any, reply: any): boolean {
+    const db = getDb();
+    const empCount = (db.prepare("SELECT COUNT(*) as c FROM employees").get() as any)?.c || 0;
+    if (empCount === 0) return true; // First-time setup, no employees yet
+    const pin = req.body?.pin;
+    if (!pin) { reply.code(401).send({ error: 'Employee PIN required' }); return false; }
+    const emp = db.prepare("SELECT id FROM employees WHERE pin = ? AND is_active = 1").get(pin);
+    if (!emp) { reply.code(403).send({ error: 'Invalid PIN' }); return false; }
+    return true;
+  }
+
   // Update a setting
-  app.put<{ Params: { key: string }; Body: { value: string } }>('/api/settings/:key', (req) => {
+  app.put<{ Params: { key: string }; Body: { value: string; pin?: string } }>('/api/settings/:key', (req, reply) => {
+    if (!requireEmployeePin(req, reply)) return;
     const db = getDb();
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(req.params.key, req.body.value);
     broadcastToAll({ type: 'SETTINGS_UPDATED' });
@@ -21,10 +34,12 @@ export function registerSettingsRoutes(app: FastifyInstance) {
   });
 
   // Batch update settings
-  app.put<{ Body: Record<string, string> }>('/api/settings', (req) => {
+  app.put<{ Body: Record<string, string> }>('/api/settings', (req, reply) => {
+    if (!requireEmployeePin(req, reply)) return;
     const db = getDb();
     const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
     for (const [key, value] of Object.entries(req.body)) {
+      if (key === 'pin') continue; // Don't store the auth pin as a setting
       upsert.run(key, value);
     }
     broadcastToAll({ type: 'SETTINGS_UPDATED' });

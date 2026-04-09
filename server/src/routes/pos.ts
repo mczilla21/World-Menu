@@ -524,11 +524,12 @@ export function registerPosRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { code: string; amount: number } }>('/api/gift-cards/redeem', (req, reply) => {
     const db = getDb();
-    const card = db.prepare('SELECT * FROM gift_cards WHERE code = ? AND is_active = 1').get(req.body.code) as any;
-    if (!card) return reply.code(404).send({ error: 'Gift card not found' });
-    if (card.balance < req.body.amount) return reply.code(400).send({ error: 'Insufficient balance', balance: card.balance });
-    db.prepare('UPDATE gift_cards SET balance = balance - ? WHERE id = ?').run(req.body.amount, card.id);
-    return { ok: true, remaining: card.balance - req.body.amount };
+    const { code, amount } = req.body;
+    const result = db.prepare('UPDATE gift_cards SET balance = balance - ? WHERE code = ? AND is_active = 1 AND balance >= ?')
+      .run(amount, code, amount);
+    if (result.changes === 0) return reply.code(400).send({ error: 'Insufficient balance or card not found' });
+    const updated = db.prepare('SELECT balance FROM gift_cards WHERE code = ? AND is_active = 1').get(code) as any;
+    return { ok: true, remaining: updated?.balance ?? 0 };
   });
 
   // ============================================

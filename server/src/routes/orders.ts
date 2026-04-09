@@ -66,6 +66,13 @@ export function registerOrderRoutes(app: FastifyInstance) {
     } = req.body;
     const order_number = generateOrderNumber();
 
+    // Validate item prices and quantities
+    for (const item of items) {
+      if (typeof item.item_price !== 'number' || item.item_price < 0) item.item_price = 0;
+      if (typeof item.quantity !== 'number' || item.quantity < 1) item.quantity = 1;
+      item.quantity = Math.floor(item.quantity);
+    }
+
     const insertOrder = db.prepare(
       'INSERT INTO orders (order_number, table_number, source, order_type, customer_name, tip_amount, needs_approval) VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
@@ -312,7 +319,8 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
   // Update tip
   app.patch<{ Params: { id: string }; Body: { tip_amount: number } }>('/api/orders/:id/tip', (req) => {
-    getDb().prepare('UPDATE orders SET tip_amount = ? WHERE id = ?').run(req.body.tip_amount, req.params.id);
+    const tipAmount = Math.max(0, Number(req.body.tip_amount) || 0);
+    getDb().prepare('UPDATE orders SET tip_amount = ? WHERE id = ?').run(tipAmount, req.params.id);
     return { ok: true };
   });
 

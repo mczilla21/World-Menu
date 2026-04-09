@@ -43,7 +43,7 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
         }
         setChecking(false);
       })
-      .catch(() => { setAuthorized(true); setChecking(false); });
+      .catch(() => { setAuthorized(false); setChecking(false); });
   }, [allowedRoles]);
 
   if (checking) return <div className="min-h-screen bg-slate-50" />;

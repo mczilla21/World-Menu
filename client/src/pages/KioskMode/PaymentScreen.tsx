@@ -142,14 +142,9 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
         setTimeout(() => onComplete('card', cardTotal), 1500);
       }
     } catch {
-      await new Promise(r => setTimeout(r, 2000));
-      setCardDone(true);
-      if (enableReceiptPrompt) {
-        printReceiptCopy('merchant');
-        setReceiptPrompt(true);
-      } else {
-        setTimeout(() => onComplete('card', cardTotal), 1500);
-      }
+      setCardProcessing(false);
+      alert('Payment failed — please try again or use a different payment method.');
+      return;
     }
     setCardProcessing(false);
   };
