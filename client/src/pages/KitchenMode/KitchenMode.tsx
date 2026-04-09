@@ -4,6 +4,7 @@ import { useOrders, type Order } from '../../hooks/useOrders';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useMenu } from '../../hooks/useMenu';
 import { useI18n } from '../../i18n/useI18n';
+import { useTheme } from '../../hooks/useTheme';
 import OrderCard from './OrderCard';
 
 function playChime() {
@@ -38,6 +39,7 @@ export default function KitchenMode() {
   const { activeOrders, setActiveOrders, finishedOrders, setFinishedOrders, fetchAll } = useOrders();
   const { items: menuItems, categories } = useMenu();
   const { t } = useI18n();
+  const theme = useTheme();
   const initialLoadDone = useRef(false);
 
   // Build a map of menu_item_id -> category_id
@@ -218,32 +220,30 @@ export default function KitchenMode() {
     categories.filter(c => stationFilter.has(c.id)).map(c => c.name).join(', ');
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900">
-      <header className="bg-slate-800 border-b border-slate-700/50 px-4 py-2.5 flex items-center justify-between shrink-0">
+    <div className="min-h-screen flex flex-col" style={{ background: theme.bg }}>
+      <header className="px-4 py-2.5 flex items-center justify-between shrink-0" style={{ background: theme.bgCard, borderBottom: `1px solid ${theme.border}` }}>
         <div className="flex items-center gap-2.5">
-          <h1 className="font-semibold text-base text-white">{t('Chef / Kitchen')}</h1>
+          <h1 className="font-semibold text-base" style={{ color: theme.text }}>{t('Chef / Kitchen')}</h1>
           <div className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
           {!connected && <span className="text-[11px] text-red-400">Reconnecting...</span>}
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowStationPicker(true)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              stationFilter.size > 0 ? 'bg-orange-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={stationFilter.size > 0 ? { background: theme.primary, color: theme.primaryText } : { background: theme.bgCardHover, color: theme.textSecondary }}
           >
             {stationFilter.size === 0 ? t('All Stations') : stationLabel}
           </button>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              showHistory ? 'bg-slate-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={showHistory ? { background: theme.primary, color: theme.primaryText } : { background: theme.bgCardHover, color: theme.textSecondary }}
           >
             {showHistory ? 'Active' : `History (${finishedOrders.length})`}
           </button>
-          <button onClick={() => navigate('/staff-select')} style={{ fontSize: 12, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>← Back</button>
-          <button onClick={switchRole} style={{ fontSize: 11, color: '#cbd5e1', background: 'none', border: 'none', cursor: 'pointer' }}>Logout</button>
+          <button onClick={() => navigate('/staff-select')} style={{ fontSize: 12, color: theme.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>← Back</button>
+          <button onClick={switchRole} style={{ fontSize: 11, color: theme.textSecondary, background: 'none', border: 'none', cursor: 'pointer' }}>Logout</button>
         </div>
       </header>
 
@@ -251,10 +251,10 @@ export default function KitchenMode() {
         {displayOrders.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full p-8 mt-20">
             <div className="text-6xl mb-4">{showHistory ? '\uD83D\uDCCB' : '\uD83D\uDC68\u200D\uD83C\uDF73'}</div>
-            <h2 className="text-xl font-bold text-slate-300 mb-2">
+            <h2 className="text-xl font-bold mb-2" style={{ color: theme.textSecondary }}>
               {showHistory ? t('No finished orders yet') : t('All quiet in the kitchen!')}
             </h2>
-            <p className="text-slate-500 text-sm">
+            <p className="text-sm" style={{ color: theme.textMuted }}>
               {showHistory ? t('History') : t('Orders will appear here when they come in')}
             </p>
             {!showHistory && (
@@ -292,10 +292,10 @@ export default function KitchenMode() {
       {/* Station picker modal */}
       {showStationPicker && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowStationPicker(false)}>
-          <div className="bg-slate-800 rounded-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="px-4 pt-4 pb-2 border-b border-slate-700/50">
-              <h3 className="text-base font-bold text-white">Select Your Station</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Pick which categories you're working. Leave empty for all.</p>
+          <div className="rounded-2xl w-full max-w-sm" style={{ background: theme.bgCard }} onClick={e => e.stopPropagation()}>
+            <div className="px-4 pt-4 pb-2" style={{ borderBottom: `1px solid ${theme.border}` }}>
+              <h3 className="text-base font-bold" style={{ color: theme.text }}>Select Your Station</h3>
+              <p className="text-xs mt-0.5" style={{ color: theme.textMuted }}>Pick which categories you're working. Leave empty for all.</p>
             </div>
             <div className="p-3 space-y-1.5 max-h-[60vh] overflow-auto">
               {categories.filter(c => c.show_in_kitchen).map(cat => {
@@ -310,34 +310,33 @@ export default function KitchenMode() {
                       setStationFilter(next);
                       sessionStorage.setItem('kitchen_station', JSON.stringify([...next]));
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all ${
-                      isOn ? 'bg-orange-600/20 border border-orange-500/40' : 'bg-slate-700/50 border border-transparent'
-                    }`}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all"
+                    style={isOn ? { background: `${theme.primary}20`, border: `1px solid ${theme.primary}60` } : { background: `${theme.bgCardHover}80`, border: '1px solid transparent' }}
                   >
-                    <span className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${
-                      isOn ? 'bg-orange-600 text-white' : 'bg-slate-600 border border-slate-500'
-                    }`}>
+                    <span className="w-6 h-6 rounded flex items-center justify-center shrink-0" style={isOn ? { background: theme.primary, color: theme.primaryText } : { background: theme.bgCardHover, border: `1px solid ${theme.border}` }}>
                       {isOn && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
                     </span>
-                    <span className={`text-sm font-medium ${isOn ? 'text-orange-300' : 'text-slate-300'}`}>{cat.name}</span>
+                    <span className="text-sm font-medium" style={{ color: isOn ? theme.primary : theme.textSecondary }}>{cat.name}</span>
                   </button>
                 );
               })}
             </div>
-            <div className="p-3 border-t border-slate-700/50 flex gap-2">
+            <div className="p-3 flex gap-2" style={{ borderTop: `1px solid ${theme.border}` }}>
               <button
                 onClick={() => {
                   setStationFilter(new Set());
                   sessionStorage.removeItem('kitchen_station');
                   setShowStationPicker(false);
                 }}
-                className="flex-1 py-3 rounded-xl text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-300"
+                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                style={{ background: theme.bgCardHover, color: theme.textSecondary }}
               >
                 All Stations
               </button>
               <button
                 onClick={() => setShowStationPicker(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-bold bg-orange-600 hover:bg-orange-500 text-white"
+                className="flex-1 py-3 rounded-xl text-sm font-bold"
+                style={{ background: theme.primary, color: theme.primaryText }}
               >
                 Done
               </button>

@@ -2,11 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { useI18n } from '../i18n/useI18n';
+import { useTheme } from '../hooks/useTheme';
 
 export default function RoleSelect() {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { t } = useI18n();
+  const theme = useTheme();
   const [showPin, setShowPin] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -99,21 +101,21 @@ export default function RoleSelect() {
   // Main screen — Dine In or Staff Login
   if (!showPin) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fbcfe8 50%, #dbeafe 100%)' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: `linear-gradient(135deg, ${theme.bg} 0%, ${theme.bgCard} 100%)` }}>
         <div className="w-full max-w-sm">
           <div className="text-center mb-10">
             {settings.logo && (
               <img src={`/uploads/${settings.logo}`} alt="" style={{ width: 80, height: 80, borderRadius: 24, objectFit: 'cover', margin: '0 auto 12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
             )}
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{settings.restaurant_name}</h1>
-            <p style={{ fontSize: 14, color: '#64748b' }}>Welcome! What can we do for you?</p>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: theme.text, marginBottom: 4 }}>{settings.restaurant_name}</h1>
+            <p style={{ fontSize: 14, color: theme.textSecondary }}>Welcome! What can we do for you?</p>
           </div>
 
           <div className="space-y-4">
             <button
               onClick={handleDineIn}
               className="w-full py-7 rounded-3xl font-bold text-xl text-white transition-all active:scale-[0.97]"
-              style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', boxShadow: '0 6px 20px rgba(34,197,94,0.35)' }}
+              style={{ background: `linear-gradient(135deg, ${theme.success} 0%, ${theme.successDark} 100%)`, boxShadow: `0 6px 20px ${theme.success}40` }}
             >
               <span style={{ fontSize: 28, display: 'block', marginBottom: 4 }}>🍜</span>
               Dine In
@@ -122,7 +124,7 @@ export default function RoleSelect() {
             <button
               onClick={() => setShowPin(true)}
               className="w-full py-5 rounded-3xl font-bold text-lg text-white transition-all active:scale-[0.97]"
-              style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', boxShadow: '0 6px 20px rgba(59,130,246,0.35)' }}
+              style={{ background: `linear-gradient(135deg, ${theme.info} 0%, ${theme.infoDark} 100%)`, boxShadow: `0 6px 20px ${theme.info}40` }}
             >
               🔑 Staff Login
             </button>
@@ -134,15 +136,15 @@ export default function RoleSelect() {
 
   // PIN entry screen
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: theme.bg }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div style={{ fontSize: 40, marginBottom: 8 }}>👋</div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Welcome Back!</h2>
-          <p style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>Enter your 4-digit PIN</p>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: theme.text }}>Welcome Back!</h2>
+          <p style={{ fontSize: 14, color: theme.textSecondary, marginTop: 4 }}>Enter your 4-digit PIN</p>
         </div>
 
-        <div className="p-6 rounded-3xl" style={{ background: '#fff', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+        <div className="p-6 rounded-3xl" style={{ background: theme.bgCard, boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
           {/* Hidden input for keyboard typing */}
           <input
             type="tel"
@@ -159,15 +161,15 @@ export default function RoleSelect() {
             {[0, 1, 2, 3].map(i => (
               <div key={i} style={{
                 width: 20, height: 20, borderRadius: '50%',
-                background: error ? '#ef4444' : i < pin.length ? '#8b5cf6' : '#e2e8f0',
+                background: error ? theme.danger : i < pin.length ? theme.primary : theme.border,
                 transition: 'all 0.2s',
                 transform: i < pin.length ? 'scale(1.2)' : 'scale(1)',
-                boxShadow: i < pin.length ? '0 2px 8px rgba(139,92,246,0.3)' : 'none',
+                boxShadow: i < pin.length ? `0 2px 8px ${theme.primary}40` : 'none',
               }} />
             ))}
           </div>
 
-          {error && <p className="text-center text-sm mb-4" style={{ color: '#ef4444' }}>{error}</p>}
+          {error && <p className="text-center text-sm mb-4" style={{ color: theme.danger }}>{error}</p>}
 
           {/* Keypad */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -184,8 +186,8 @@ export default function RoleSelect() {
                   height: 60, border: 'none', borderRadius: 16,
                   fontSize: key === '⌫' ? 20 : 24, fontWeight: 700,
                   cursor: key ? 'pointer' : 'default',
-                  background: !key ? 'transparent' : '#f1f5f9',
-                  color: key === '⌫' ? '#94a3b8' : '#1e293b',
+                  background: !key ? 'transparent' : theme.bgInput,
+                  color: key === '⌫' ? theme.textMuted : theme.text,
                   visibility: key ? 'visible' : 'hidden',
                   transition: 'all 0.1s',
                 }}
@@ -199,7 +201,7 @@ export default function RoleSelect() {
         <button
           onClick={() => { setShowPin(false); setPin(''); setError(''); }}
           className="mt-6 text-sm mx-auto block"
-          style={{ color: '#94a3b8' }}
+          style={{ color: theme.textMuted }}
         >
           ← Back
         </button>

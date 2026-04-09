@@ -1,15 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../hooks/useSettings';
 import { useI18n } from '../i18n/useI18n';
+import { useTheme } from '../hooks/useTheme';
 
-const modes = [
-  { id: 'server', label: 'Server', desc: 'Orders, tables, & payments', icon: '📋', color: '#3b82f6' },
-  { id: 'kitchen', label: 'Chef / Kitchen', desc: 'View & complete orders', icon: '👨‍🍳', color: '#f97316' },
-  { id: 'admin', label: 'Admin Panel', desc: 'Menu, team, finance, settings', icon: '⚙️', color: '#475569' },
+const getModes = (theme: any) => [
+  { id: 'server', label: 'Server', desc: 'Orders, tables, & payments', icon: '📋', color: theme.info },
+  { id: 'kitchen', label: 'Chef / Kitchen', desc: 'View & complete orders', icon: '👨‍🍳', color: theme.orange },
+  { id: 'admin', label: 'Admin Panel', desc: 'Menu, team, finance, settings', icon: '⚙️', color: theme.textMuted },
 ];
 
 // Manager and owner see all modes; server/kitchen only see their own + admin if owner
-const getVisibleModes = (role: string) => {
+const getVisibleModes = (role: string, modes: ReturnType<typeof getModes>) => {
   if (role === 'owner' || role === 'manager') return modes;
   if (role === 'server') return modes.filter(m => m.id === 'server');
   if (role === 'kitchen') return modes.filter(m => m.id === 'kitchen');
@@ -20,6 +21,8 @@ export default function StaffSelect() {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { t } = useI18n();
+  const theme = useTheme();
+  const modes = getModes(theme);
 
   const employee = (() => {
     try { return JSON.parse(sessionStorage.getItem('wm_employee') || ''); } catch { return null; }
@@ -37,7 +40,7 @@ export default function StaffSelect() {
     navigate('/' + route);
   };
 
-  const visibleModes = getVisibleModes(employee.role);
+  const visibleModes = getVisibleModes(employee.role, modes);
 
   const endShift = async () => {
     if (!confirm(`End shift for ${employee.name}? This will clock you out.`)) return;
@@ -78,7 +81,7 @@ export default function StaffSelect() {
           <div className="mt-3 inline-block px-5 py-2.5 rounded-2xl" style={{ background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
             <span style={{ fontSize: 14, color: '#64748b' }}>Hey </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{employee.name}!</span>
-            <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${({owner:'#8b5cf6',manager:'#8b5cf6',server:'#3b82f6',kitchen:'#f97316',host:'#14b8a6'} as Record<string,string>)[employee.role] || '#64748b'}20`, color: ({owner:'#8b5cf6',manager:'#8b5cf6',server:'#3b82f6',kitchen:'#f97316',host:'#14b8a6'} as Record<string,string>)[employee.role] || '#64748b' }}>{employee.role}</span>
+            <span className="ml-2 px-2 py-0.5 rounded-full" style={{ fontSize: 11, background: `${({owner:theme.purple,manager:theme.purple,server:theme.info,kitchen:theme.orange,host:theme.success} as Record<string,string>)[employee.role] || theme.textMuted}20`, color: ({owner:theme.purple,manager:theme.purple,server:theme.info,kitchen:theme.orange,host:theme.success} as Record<string,string>)[employee.role] || theme.textMuted }}>{employee.role}</span>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { useTheme } from '../../hooks/useTheme';
 
 const FLOOR_THEMES: Record<string, string> = {
   'dark-wood': `linear-gradient(90deg,rgba(30,20,12,0.5) 0%,transparent 50%,rgba(30,20,12,0.5) 100%),repeating-linear-gradient(90deg,#1c1510 0px,#1c1510 28px,#211a14 28px,#211a14 30px,#1e1612 30px,#1e1612 55px,#221c15 55px,#221c15 57px),#1a1410`,
@@ -76,6 +77,7 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
   const [floorTables, setFloorTables] = useState<FloorTable[]>([]);
   const [tableStatus, setTableStatus] = useState<Record<string, TableData>>({});
   const { settings } = useSettings();
+  const thm = useTheme();
 
   const fetchFloor = useCallback(async () => {
     const tables = await fetch('/api/floor-tables').then(r => r.json()).catch(() => []);
@@ -231,19 +233,19 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
   return (
     <div className="h-full flex flex-col" style={{ background: '#111' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-2.5" style={{ background: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
+      <div className="flex items-center justify-between px-5 py-2.5" style={{ background: thm.bgCard, borderBottom: `1px solid ${thm.border}` }}>
         <div className="flex items-center gap-4">
-          <h2 className="text-sm font-bold" style={{ color: '#e5e5e5' }}>Floor Plan</h2>
+          <h2 className="text-sm font-bold" style={{ color: thm.text }}>Floor Plan</h2>
           <div className="flex gap-3 text-xs">
             {[['empty', 'Open'], ['ordering', 'Ordering'], ['eating', 'Eating'], ['check', 'Check']].map(([k, l]) => (
               <span key={k} className="flex items-center gap-1.5">
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: statusColors[k].labelBg, display: 'inline-block', boxShadow: `0 0 6px ${statusColors[k].labelBg}60` }} />
-                <span style={{ color: '#888' }}>{l}</span>
+                <span style={{ color: thm.textMuted }}>{l}</span>
               </span>
             ))}
           </div>
         </div>
-        <div className="flex gap-5 text-xs" style={{ color: '#777' }}>
+        <div className="flex gap-5 text-xs" style={{ color: thm.textMuted }}>
           <span>Open <b style={{ color: '#2dd4bf' }}>{counts.open}</b></span>
           <span>Occupied <b style={{ color: '#60a5fa' }}>{counts.occupied}</b></span>
           {counts.attention > 0 && <span className="animate-pulse">Attention <b style={{ color: '#f87171' }}>{counts.attention}</b></span>}
@@ -263,7 +265,7 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
         {useGrid ? (
           <div className="p-6">
             {floorTables.length === 0 && (
-              <p className="text-center text-sm mb-4" style={{ color: '#666' }}>
+              <p className="text-center text-sm mb-4" style={{ color: thm.textMuted }}>
                 No floor plan set up. Go to Admin → Floor Plan to create your layout.
               </p>
             )}
