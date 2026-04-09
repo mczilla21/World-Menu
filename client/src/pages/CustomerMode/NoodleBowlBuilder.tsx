@@ -175,7 +175,37 @@ function Steam() {
   );
 }
 
-// ── Garnish dots ─────────────────────────────────────────────
+// ── Toppings in bowl ─────────────────────────────────────────
+
+function BowlToppings({ toppings }: { toppings: { name: string }[] }) {
+  if (toppings.length === 0) return null;
+  // Position emojis scattered around the bowl
+  const positions = [
+    { x: '15%', y: '12%' }, { x: '55%', y: '8%' }, { x: '75%', y: '15%' },
+    { x: '25%', y: '25%' }, { x: '65%', y: '22%' }, { x: '40%', y: '18%' },
+    { x: '10%', y: '30%' }, { x: '80%', y: '28%' }, { x: '50%', y: '30%' },
+    { x: '35%', y: '5%' },
+  ];
+  return (
+    <>
+      {toppings.slice(0, 10).map((t, i) => (
+        <div
+          key={i}
+          className="absolute pointer-events-none"
+          style={{
+            left: positions[i % positions.length].x,
+            top: positions[i % positions.length].y,
+            fontSize: 11,
+            animation: `garnishDrop 0.3s ease-out ${i * 0.05}s both`,
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
+          }}
+        >
+          {getToppingEmoji(t.name)}
+        </div>
+      ))}
+    </>
+  );
+}
 
 function Garnish() {
   const dots = [
@@ -274,6 +304,11 @@ export default function NoodleBowlBuilder({
   const selectedBroth = brothGroup ? getSelectedMod(brothGroup.id) : null;
   const selectedNoodle = noodleGroup ? getSelectedMod(noodleGroup.id) : null;
   const selectedProtein = proteinGroup ? getSelectedMod(proteinGroup.id) : null;
+
+  // Collect all selected toppings from non-broth/noodle/protein groups
+  const selectedToppings = groups
+    .filter(g => !['broth', 'noodle', 'protein'].includes(getStepType(g.name)))
+    .flatMap(g => getSelectedMods(g.id));
 
   const isComplete = groups.length > 0 && groups.every(g => !g.required || (selections[g.id] && selections[g.id].size > 0));
 
@@ -471,15 +506,17 @@ export default function NoodleBowlBuilder({
               {/* Protein layer */}
               {selectedProtein && (
                 <div
-                  className="absolute top-[8%] left-1/2 -translate-x-1/2 text-[26px] leading-none transition-all duration-500"
-                  style={{ animation: 'floatIn 0.4s ease-out' }}
+                  className="absolute top-[5%] left-1/2 -translate-x-1/2 leading-none transition-all duration-500"
+                  style={{ animation: 'floatIn 0.4s ease-out', fontSize: 30, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))' }}
                 >
                   {getProteinEmoji(selectedProtein.name)}
                 </div>
               )}
 
-              {/* Garnish */}
-              {selectedProtein && <Garnish />}
+              {/* Toppings */}
+              {selectedToppings.length > 0 && <BowlToppings toppings={selectedToppings} />}
+              {/* Fallback garnish dots if no toppings group but protein selected */}
+              {selectedProtein && selectedToppings.length === 0 && <Garnish />}
             </div>
 
             {/* Bowl shadow */}
