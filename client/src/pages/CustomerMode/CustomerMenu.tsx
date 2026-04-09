@@ -90,15 +90,15 @@ export default function CustomerMenu() {
 
   useWebSocket(tableNumber ? `table-${tableNumber}` : '', handleWs);
 
-  // If only one language, auto-select and skip the picker
+  // Auto-select native language — no forced popup. Customers use the language button if needed.
   const supportedLangs = settings.supported_languages.split(',').filter(Boolean);
   const allLangs = [settings.native_language, ...supportedLangs.filter(l => l !== settings.native_language)];
   useEffect(() => {
-    if (allLangs.length <= 1) {
+    if (!langSelected) {
       setCustomerLang(settings.native_language);
       setLangSelected(true);
     }
-  }, [settings.native_language, allLangs.length, setCustomerLang]);
+  }, [settings.native_language, setCustomerLang, langSelected]);
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -348,34 +348,39 @@ export default function CustomerMenu() {
           </div>
         </div>
 
-        {/* Language picker popup */}
+        {/* Language picker popup — grid layout */}
         {showLangPicker && (
           <>
-            <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setShowLangPicker(false)} />
-            <div className="fixed inset-x-4 top-24 z-50 max-w-sm mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
-              <div className="p-4 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 text-center">🌐 Choose Language</h3>
+            <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowLangPicker(false)} />
+            <div className="fixed inset-4 z-50 max-w-2xl mx-auto my-auto bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '80vh' }}>
+              <div className="p-4 border-b border-gray-100 shrink-0">
+                <h3 className="text-lg font-bold text-gray-900 text-center">🌐 Choose Your Language</h3>
+                <p className="text-xs text-gray-400 text-center mt-1">The menu will change to your selected language</p>
               </div>
-              <div className="max-h-80 overflow-auto p-2">
-                {allLangs.map(code => {
-                  const langInfo = LANGUAGE_OPTIONS.find(l => l.code === code);
-                  const isActive = customerLang === code;
-                  return (
-                    <button
-                      key={code}
-                      onClick={() => { setCustomerLang(code); setShowLangPicker(false); }}
-                      className={`w-full text-left px-4 py-3.5 rounded-xl mb-1 flex items-center gap-3 transition-all active:scale-[0.97] ${
-                        isActive ? 'bg-blue-600 text-white' : 'hover:bg-gray-50 text-gray-900'
-                      }`}
-                    >
-                      <span className={`text-lg font-bold w-10 text-center ${isActive ? 'text-blue-200' : 'text-gray-400'}`}>
-                        {langInfo?.flag || code.toUpperCase()}
-                      </span>
-                      <span className="text-base font-semibold">{langInfo?.name || code}</span>
-                      {isActive && <span className="ml-auto">✓</span>}
-                    </button>
-                  );
-                })}
+              <div className="flex-1 overflow-auto p-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {allLangs.map(code => {
+                    const langInfo = LANGUAGE_OPTIONS.find(l => l.code === code);
+                    const isActive = customerLang === code;
+                    return (
+                      <button
+                        key={code}
+                        onClick={() => { setCustomerLang(code); setShowLangPicker(false); }}
+                        className="flex flex-col items-center justify-center py-3 px-2 rounded-xl transition-all active:scale-95"
+                        style={{
+                          background: isActive ? '#3b82f6' : '#f8fafc',
+                          border: isActive ? '2px solid #2563eb' : '2px solid #e2e8f0',
+                          color: isActive ? '#fff' : '#1e293b',
+                        }}
+                      >
+                        <span className="text-base font-bold" style={{ color: isActive ? '#bfdbfe' : '#94a3b8' }}>
+                          {langInfo?.flag || code.toUpperCase()}
+                        </span>
+                        <span className="text-xs font-semibold mt-0.5 text-center leading-tight">{langInfo?.name || code}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </>
@@ -573,48 +578,7 @@ export default function CustomerMenu() {
         />
       )}
 
-      {/* Language selection overlay — shows on top of the menu */}
-      {!langSelected && allLangs.length > 1 && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
-            <div className="text-center mb-6">
-              {settings.logo && (
-                <img src={`/uploads/${settings.logo}`} alt="" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-3" />
-              )}
-              <h2 className="text-xl font-bold text-gray-900">{settings.restaurant_name}</h2>
-              <p className="text-gray-500 text-sm mt-1">Choose your language</p>
-            </div>
-            <div className="grid gap-2">
-              {allLangs.map(code => {
-                const langInfo = LANGUAGE_OPTIONS.find(l => l.code === code);
-                return (
-                  <button
-                    key={code}
-                    onClick={() => {
-                      setCustomerLang(code);
-                      setLangSelected(true);
-                    }}
-                    className="rounded-2xl px-5 py-4 text-left flex items-center gap-4 transition-all active:scale-[0.97] hover:bg-gray-50 border-2 border-gray-100 hover:border-gray-300"
-                  >
-                    <span className="text-2xl font-bold text-gray-400 w-10 text-center">{langInfo?.flag || code.toUpperCase()}</span>
-                    <span className="text-lg font-semibold text-gray-900">{langInfo?.name || code}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {/* Dismiss button — continue in default language */}
-            <button
-              onClick={() => {
-                setCustomerLang(settings.native_language);
-                setLangSelected(true);
-              }}
-              className="w-full mt-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Continue in {LANGUAGE_OPTIONS.find(l => l.code === settings.native_language)?.name || settings.native_language}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Language overlay removed — menu opens in default language, customer taps 🌐 button if needed */}
 
       {/* Bill / Split / Tip / Receipt screen */}
       {showBill && (() => {
