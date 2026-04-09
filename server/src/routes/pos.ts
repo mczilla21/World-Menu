@@ -40,22 +40,33 @@ export function registerPosRoutes(app: FastifyInstance) {
     return db.prepare('SELECT * FROM employees WHERE id = ?').get(req.params.id);
   });
 
-  // Delete employee (hard delete — only if no time entries exist, otherwise deactivate)
+  // Delete employee
   app.delete<{ Params: { id: string } }>('/api/employees/:id', (req, reply) => {
     const db = getDb();
     const id = Number(req.params.id);
     if (isNaN(id)) return reply.code(400).send({ error: 'Invalid ID' });
     const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(id) as any;
     if (!emp) return reply.code(404).send({ error: 'Employee not found' });
-    // Check if currently clocked in
+
+    // Check sandbox mode — in sandbox, always force delete
+    const sandbox = (db.prepare("SELECT value FROM settings WHERE key = 'sandbox_mode'").get() as any)?.value === '1';
+
+    // Clock out if active
     const activeShift = db.prepare('SELECT id FROM time_entries WHERE employee_id = ? AND clock_out IS NULL').get(id) as any;
     if (activeShift) {
-      // Clock them out first
       db.prepare('UPDATE time_entries SET clock_out = datetime(\'now\') WHERE id = ?').run(activeShift.id);
     }
+
+    if (sandbox) {
+      // Sandbox: delete everything — it's all test data
+      db.prepare('DELETE FROM time_entries WHERE employee_id = ?').run(id);
+      db.prepare('DELETE FROM employees WHERE id = ?').run(id);
+      return { ok: true };
+    }
+
+    // Production: deactivate if they have time entries (preserve audit trail)
     const hasEntries = db.prepare('SELECT COUNT(*) as c FROM time_entries WHERE employee_id = ?').get(id) as any;
     if (hasEntries && hasEntries.c > 0) {
-      // Has history — deactivate instead of delete to preserve audit trail
       db.prepare('UPDATE employees SET is_active = 0 WHERE id = ?').run(id);
       return { ok: true, deactivated: true, message: 'Employee has time entries — deactivated instead of deleted' };
     }
