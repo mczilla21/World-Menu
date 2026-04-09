@@ -5,6 +5,8 @@ interface Employee { id: number; name: string; pin: string; role: string; hourly
 interface TimeEntry { id: number; employee_name: string; employee_role: string; clock_in: string; clock_out: string; tips: number; hourly_rate: number; }
 
 export default function EmployeeManager() {
+  const loggedIn = (() => { try { return JSON.parse(sessionStorage.getItem('wm_employee') || ''); } catch { return null; } })();
+  const isOwner = loggedIn?.role === 'owner';
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [name, setName] = useState('');
@@ -92,7 +94,7 @@ export default function EmployeeManager() {
               <div className="flex-1">
                 <span className="text-sm font-medium text-white">{emp.name}</span>
                 <span className="text-xs text-slate-400 ml-2">{emp.role}</span>
-                <span className="text-xs text-slate-500 ml-2">PIN: {emp.pin}</span>
+                {isOwner && <span className="text-xs text-slate-500 ml-2">PIN: {emp.pin}</span>}
                 {emp.language && <span className="text-xs text-blue-400 ml-2">{LANGUAGE_OPTIONS.find(l => l.code === emp.language)?.name || emp.language}</span>}
               </div>
               <span className="text-xs text-emerald-400">${emp.hourly_rate}/hr</span>
