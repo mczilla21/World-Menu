@@ -76,7 +76,7 @@ export default function MenuItemCard({ item, translatedName, translatedDesc, cur
       )}
 
       {item.image ? (
-        <div className="w-full aspect-[4/3] bg-gray-100">
+        <div className="w-full aspect-[3/2] bg-gray-100">
           <img
             src={`/uploads/${item.image}`}
             alt={translatedName}
@@ -85,7 +85,7 @@ export default function MenuItemCard({ item, translatedName, translatedDesc, cur
           />
         </div>
       ) : (
-        <div className="w-full aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+        <div className="w-full aspect-[3/2] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
             <circle cx="8.5" cy="8.5" r="1.5"/>

@@ -257,7 +257,7 @@ export default function CustomerMenu() {
           <div className="flex gap-2 overflow-hidden py-2">
             {[1,2,3,4].map(i => <div key={i} className="h-9 w-24 bg-gray-200 rounded-full shrink-0" />)}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {[1,2,3,4,5,6].map(i => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm">
                 <div className="h-32 bg-gray-200" />
@@ -445,7 +445,7 @@ export default function CustomerMenu() {
 
       {/* Menu grid */}
       <div className="flex-1 p-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filteredItems.map(item => (
             <MenuItemCard
               key={item.id}
