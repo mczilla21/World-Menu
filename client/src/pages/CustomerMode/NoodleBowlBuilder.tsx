@@ -179,33 +179,41 @@ function Steam() {
 
 function BowlToppings({ toppings }: { toppings: { name: string }[] }) {
   if (toppings.length === 0) return null;
-  // Spread toppings across the full bowl surface in a circular pattern
-  // Positions are within the inner circle (avoid edges where rim is)
-  const positions = [
-    { x: '18%', y: '18%' }, { x: '62%', y: '15%' },
-    { x: '72%', y: '42%' }, { x: '15%', y: '55%' },
-    { x: '55%', y: '65%' }, { x: '35%', y: '35%' },
-    { x: '68%', y: '68%' }, { x: '22%', y: '72%' },
-    { x: '48%', y: '18%' }, { x: '78%', y: '25%' },
-    { x: '10%', y: '38%' }, { x: '42%', y: '78%' },
+  // Artful arrangement — like real Japanese bowl plating
+  // Right side: greens/herbs. Bottom: extras. Top-right: garnish
+  const spots = [
+    { x: '60%', y: '15%', s: 15 },  // top-right area
+    { x: '72%', y: '35%', s: 14 },  // right side
+    { x: '65%', y: '55%', s: 13 },  // right-center
+    { x: '55%', y: '72%', s: 14 },  // bottom-right
+    { x: '30%', y: '68%', s: 13 },  // bottom-left
+    { x: '15%', y: '50%', s: 14 },  // left side
+    { x: '20%', y: '30%', s: 13 },  // top-left (near protein)
+    { x: '45%', y: '45%', s: 12 },  // center (peeking through)
+    { x: '75%', y: '20%', s: 12 },  // far top-right
+    { x: '40%', y: '80%', s: 13 },  // bottom center
+    { x: '78%', y: '50%', s: 11 },  // far right
+    { x: '25%', y: '78%', s: 12 },  // bottom-left edge
   ];
   return (
     <>
-      {toppings.slice(0, 12).map((t, i) => (
-        <div
-          key={i}
-          className="absolute pointer-events-none"
-          style={{
-            left: positions[i % positions.length].x,
-            top: positions[i % positions.length].y,
-            fontSize: 14,
-            animation: `garnishDrop 0.3s ease-out ${i * 0.06}s both`,
-            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.3))',
-          }}
-        >
-          {getToppingEmoji(t.name)}
-        </div>
-      ))}
+      {toppings.slice(0, 12).map((t, i) => {
+        const spot = spots[i % spots.length];
+        return (
+          <div
+            key={i}
+            className="absolute pointer-events-none"
+            style={{
+              left: spot.x, top: spot.y,
+              fontSize: spot.s,
+              animation: `garnishDrop 0.3s ease-out ${i * 0.08}s both`,
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))',
+            }}
+          >
+            {getToppingEmoji(t.name)}
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -411,76 +419,101 @@ export default function NoodleBowlBuilder({
 
       {/* Main content — bowl on right, selections on left */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Right: Bowl visual — top-down view */}
-        <div className="hidden sm:flex w-[220px] shrink-0 flex-col items-center justify-center p-3 border-l border-orange-100 bg-gradient-to-b from-orange-50/50 to-amber-50/50">
-          {/* Top-down bowl */}
+        {/* Right: Bowl visual — premium top-down ramen view */}
+        <div className="hidden sm:flex w-[240px] shrink-0 flex-col items-center justify-center p-4 border-l border-orange-100 bg-gradient-to-b from-orange-50/50 to-amber-50/50">
           <div
             className="relative"
-            style={{ width: 180, height: 180, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
+            style={{ width: 200, height: 200, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
           >
-            {/* Bowl rim (outer circle) */}
+            {/* Shadow under bowl */}
+            <div className="absolute rounded-full" style={{ bottom: -6, left: 10, right: 10, height: 12, background: 'radial-gradient(ellipse, rgba(0,0,0,0.15), transparent)', filter: 'blur(4px)' }} />
+
+            {/* Bowl rim — ceramic feel */}
             <div className="absolute inset-0 rounded-full" style={{
-              background: 'linear-gradient(135deg, #D4A855, #A88840)',
-              boxShadow: '0 4px 16px rgba(139,110,46,0.3), inset 0 2px 4px rgba(255,255,255,0.2)',
+              background: 'conic-gradient(from 120deg, #E8D5B0, #F5E6CC, #D4B88C, #E8D5B0, #F0DEB8, #D4B88C, #E8D5B0)',
+              boxShadow: '0 6px 24px rgba(100,70,30,0.25), inset 0 1px 3px rgba(255,255,255,0.4)',
             }} />
 
-            {/* Bowl interior (inner circle) */}
+            {/* Inner rim highlight */}
+            <div className="absolute rounded-full" style={{ top: 6, left: 6, right: 6, bottom: 6, background: 'conic-gradient(from 300deg, #C4A87A, #D4B88C, #B8966A, #C4A87A)', opacity: 0.6 }} />
+
+            {/* Bowl interior */}
             <div className="absolute rounded-full overflow-hidden" style={{
-              top: 8, left: 8, right: 8, bottom: 8,
-              background: selectedBroth ? getBrothColor(selectedBroth.name) : '#FFF8F0',
+              top: 10, left: 10, right: 10, bottom: 10,
+              background: selectedBroth
+                ? `radial-gradient(ellipse at 40% 40%, ${getBrothColor(selectedBroth.name)}cc, ${getBrothColor(selectedBroth.name)})`
+                : 'radial-gradient(ellipse at 40% 40%, #FFF8F0, #F5ECD7)',
               transition: 'background 0.6s ease',
-              boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.15)',
+              boxShadow: 'inset 0 6px 20px rgba(0,0,0,0.2), inset 0 -2px 8px rgba(0,0,0,0.05)',
             }}>
               {/* Empty state */}
               {!selectedBroth && !selectedNoodle && !selectedProtein && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   {brothGroup ? (
-                    <span className="text-gray-300 text-xs font-medium">Pick ingredients!</span>
+                    <span style={{ color: '#ccc', fontSize: 12, fontWeight: 500 }}>Pick ingredients!</span>
                   ) : (
-                    <span className="text-4xl">🍜</span>
+                    <span style={{ fontSize: 40 }}>🍜</span>
                   )}
                 </div>
               )}
 
-              {/* Noodles — curved lines across the bowl */}
+              {/* Noodles — organic swirl pattern */}
               {selectedNoodle && (
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                  {[15, 30, 45, 60, 75].map((y, i) => (
-                    <path key={i}
-                      d={`M${10+i*3},${y} Q${30+i*5},${y-8} 50,${y} Q${70-i*5},${y+8} ${90-i*3},${y}`}
-                      stroke={getNoodleColor(selectedNoodle.name)}
-                      fill="none" strokeWidth={getNoodleThick(selectedNoodle.name) ? 3 : 2}
-                      opacity={0.7} strokeLinecap="round"
-                    />
-                  ))}
+                  <path d="M20,25 Q35,20 50,28 Q65,36 80,30" stroke={getNoodleColor(selectedNoodle.name)} fill="none" strokeWidth={getNoodleThick(selectedNoodle.name) ? 3.5 : 2} opacity={0.65} strokeLinecap="round" />
+                  <path d="M15,40 Q30,34 48,42 Q66,50 85,43" stroke={getNoodleColor(selectedNoodle.name)} fill="none" strokeWidth={getNoodleThick(selectedNoodle.name) ? 3 : 1.8} opacity={0.6} strokeLinecap="round" />
+                  <path d="M22,55 Q40,48 55,56 Q70,64 82,57" stroke={getNoodleColor(selectedNoodle.name)} fill="none" strokeWidth={getNoodleThick(selectedNoodle.name) ? 3.5 : 2} opacity={0.55} strokeLinecap="round" />
+                  <path d="M18,68 Q38,62 52,70 Q68,78 83,70" stroke={getNoodleColor(selectedNoodle.name)} fill="none" strokeWidth={getNoodleThick(selectedNoodle.name) ? 3 : 1.8} opacity={0.5} strokeLinecap="round" />
+                  <path d="M25,80 Q42,75 58,82 Q72,88 80,82" stroke={getNoodleColor(selectedNoodle.name)} fill="none" strokeWidth={getNoodleThick(selectedNoodle.name) ? 2.5 : 1.5} opacity={0.45} strokeLinecap="round" />
                 </svg>
               )}
 
-              {/* Protein — center of bowl */}
+              {/* Protein — offset to upper-left like real plating */}
               {selectedProtein && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500"
-                  style={{ fontSize: 36, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))', animation: 'floatIn 0.4s ease-out' }}>
+                <div className="absolute transition-all duration-500"
+                  style={{ top: '22%', left: '20%', fontSize: 32, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.35))', animation: 'floatIn 0.4s ease-out' }}>
                   {getProteinEmoji(selectedProtein.name)}
                 </div>
               )}
 
-              {/* Toppings — scattered around the bowl surface */}
+              {/* Toppings — arranged artfully */}
               {selectedToppings.length > 0 && <BowlToppings toppings={selectedToppings} />}
               {selectedProtein && selectedToppings.length === 0 && <Garnish />}
 
-              {/* Broth shimmer overlay */}
+              {/* Broth depth — darker at edges */}
+              <div className="absolute inset-0 rounded-full pointer-events-none" style={{
+                background: 'radial-gradient(circle at 40% 38%, transparent 40%, rgba(0,0,0,0.08) 100%)',
+              }} />
+
+              {/* Light reflection on broth surface */}
               {selectedBroth && (
-                <div className="absolute inset-0 rounded-full" style={{
-                  background: 'radial-gradient(ellipse at 35% 35%, rgba(255,255,255,0.15) 0%, transparent 50%)',
+                <div className="absolute rounded-full pointer-events-none" style={{
+                  top: '15%', left: '20%', width: '30%', height: '20%',
+                  background: 'radial-gradient(ellipse, rgba(255,255,255,0.2) 0%, transparent 70%)',
+                  transform: 'rotate(-15deg)',
                 }} />
               )}
             </div>
 
-            {/* Chopsticks */}
-            <div className="absolute" style={{ top: -5, right: -10, transform: 'rotate(30deg)', transformOrigin: 'bottom left' }}>
-              <div style={{ width: 4, height: 70, background: 'linear-gradient(to bottom, #D2691E, #8B4513)', borderRadius: 2, position: 'absolute', left: 0 }} />
-              <div style={{ width: 4, height: 70, background: 'linear-gradient(to bottom, #D2691E, #8B4513)', borderRadius: 2, position: 'absolute', left: 8 }} />
+            {/* Chopsticks — crossing the rim naturally */}
+            <div className="absolute" style={{ top: -12, right: -8, transform: 'rotate(35deg)' }}>
+              <div style={{ width: 5, height: 80, background: 'linear-gradient(to bottom, #D2691E 0%, #A0522D 40%, #654321 100%)', borderRadius: '2px 2px 1px 1px', position: 'absolute', left: 0, boxShadow: '1px 1px 3px rgba(0,0,0,0.2)' }} />
+              <div style={{ width: 5, height: 80, background: 'linear-gradient(to bottom, #CD853F 0%, #8B6914 40%, #5C4033 100%)', borderRadius: '2px 2px 1px 1px', position: 'absolute', left: 9, boxShadow: '1px 1px 3px rgba(0,0,0,0.2)' }} />
             </div>
+
+            {/* Steam — only when complete */}
+            {isComplete && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 pointer-events-none">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="absolute rounded-full" style={{
+                    width: 6 + i * 3, height: 6 + i * 3,
+                    left: -8 + i * 12, background: 'rgba(255,255,255,0.4)',
+                    animation: `steam ${1.5 + i * 0.4}s ease-out infinite`,
+                    animationDelay: `${i * 0.3}s`,
+                  }} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Summary badges */}
