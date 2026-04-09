@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback } from 'react';
 import type { Order, OrderItem } from '../../hooks/useOrders';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -13,6 +14,7 @@ interface Props {
   onComplete: (orderId: number) => void;
   onMarkPreparing?: (orderId: number) => void;
   on86?: (menuItemId: number, itemName: string) => void;
+  onDismiss?: (orderId: number) => void;
   tick?: number;
 }
 
@@ -26,9 +28,34 @@ function groupByCustomer(items: OrderItem[]): Map<number, OrderItem[]> {
   return new Map([...groups.entries()].sort((a, b) => a[0] - b[0]));
 }
 
-export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds, isHistory, onCheck, onUncheck, onComplete, onMarkPreparing, on86, tick }: Props) {
+export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds, isHistory, onCheck, onUncheck, onComplete, onMarkPreparing, on86, onDismiss, tick }: Props) {
   const t = useTheme();
   const kitchenItems = order.items.filter((i) => i.show_in_kitchen);
+
+  // Long-press popup state
+  const [showLongPressMenu, setShowLongPressMenu] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTouchStart = useCallback(() => {
+    if (isHistory) return;
+    longPressTimer.current = setTimeout(() => {
+      setShowLongPressMenu(true);
+    }, 500);
+  }, [isHistory]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
 
   // Compute elapsed time directly in render, driven by parent's shared tick
   const elapsedSec = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 1000);
@@ -135,7 +162,7 @@ export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds
 
   return (
     <div
-      className={`rounded-xl overflow-hidden transition-all ${
+      className={`rounded-xl overflow-hidden transition-all relative ${
         isNew ? 'animate-new-order' :
         ''
       } ${isHistory ? 'opacity-60' : ''}`}
@@ -143,8 +170,63 @@ export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds
         background: t.bgCard,
         border: isNew ? `2px solid ${t.primary}` : allDone && !isHistory ? `1px solid ${t.success}60` : `1px solid ${t.border}`,
         boxShadow: allDone && !isHistory ? `0 4px 12px ${t.success}15` : undefined,
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
       }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+      onMouseDown={handleTouchStart}
+      onMouseUp={handleTouchEnd}
+      onMouseLeave={handleTouchEnd}
     >
+      {/* Long-press popup menu */}
+      {showLongPressMenu && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)', borderRadius: 'inherit' }}>
+          <div className="flex flex-col gap-2 p-4 w-full max-w-[220px]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Mark all items done then complete
+                const undoneItems = kitchenItems.filter(i => !i.is_done);
+                undoneItems.forEach(i => onCheck(i.id));
+                setTimeout(() => onComplete(order.id), 100);
+                setShowLongPressMenu(false);
+              }}
+              className="w-full py-3 rounded-lg font-bold text-sm transition-colors"
+              style={{ background: t.success, color: '#fff' }}
+            >
+              Complete Order
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onDismiss) {
+                  onDismiss(order.id);
+                } else {
+                  // Fallback: complete order to remove from view
+                  onComplete(order.id);
+                }
+                setShowLongPressMenu(false);
+              }}
+              className="w-full py-3 rounded-lg font-bold text-sm transition-colors"
+              style={{ background: t.accent, color: '#fff' }}
+            >
+              Dismiss
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLongPressMenu(false);
+              }}
+              className="w-full py-3 rounded-lg font-bold text-sm transition-colors"
+              style={{ background: t.border, color: t.text }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: `1px solid ${t.border}` }}>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xl font-black" style={{ color: t.text }}>{order.order_number}</span>

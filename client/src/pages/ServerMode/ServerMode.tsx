@@ -340,16 +340,48 @@ export default function ServerMode() {
           />
         )}
         {view === 'menu' && (
-          <MenuGrid
-            items={items}
-            categories={categories}
-            cart={cart}
-            onAddSimple={addSimpleItem}
-            onRemove={removeItem}
-            onOpenBuilder={(categoryId, item, price, showInKitchen) => setBuilderTarget({ categoryId, item, price, showInKitchen })}
-            onOpenVariant={(item) => setVariantTarget(item)}
-            onReview={() => setView('review')}
-          />
+          <div className="flex h-full">
+            <div className="flex-1 min-w-0 overflow-auto">
+              <MenuGrid
+                items={items}
+                categories={categories}
+                cart={cart}
+                onAddSimple={addSimpleItem}
+                onRemove={removeItem}
+                onOpenBuilder={(categoryId, item, price, showInKitchen) => setBuilderTarget({ categoryId, item, price, showInKitchen })}
+                onOpenVariant={(item) => setVariantTarget(item)}
+                onReview={() => setView('review')}
+              />
+            </div>
+            {/* Order summary sidebar */}
+            {cart.length > 0 && (
+              <div className="w-[200px] shrink-0 bg-slate-800 border-l border-slate-700/50 flex flex-col overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-700/50 text-center">
+                  <span className="text-xs font-bold text-white">
+                    {orderType === 'dine_in' ? `Table ${tableNumber}` : 'To-Go'}
+                  </span>
+                </div>
+                <div className="flex-1 overflow-auto px-2 py-2 space-y-1">
+                  {cart.map((c) => (
+                    <div key={c.id} className="flex items-start justify-between text-[11px] leading-tight py-1 border-b border-slate-700/30">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-white font-medium">{c.quantity}x</span>{' '}
+                        <span className="text-slate-300">{c.item_name}</span>
+                        {c.notes && <div className="text-[10px] text-slate-500 truncate">{c.notes}</div>}
+                      </div>
+                      <span className="text-slate-400 ml-1 shrink-0">{currency}{(c.item_price * c.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-3 py-2 border-t border-slate-700/50 text-right">
+                  <span className="text-xs text-slate-400">Subtotal </span>
+                  <span className="text-sm font-bold text-emerald-400">
+                    {currency}{cart.reduce((s, i) => s + i.item_price * i.quantity, 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
         {view === 'review' && (
           <OrderReview

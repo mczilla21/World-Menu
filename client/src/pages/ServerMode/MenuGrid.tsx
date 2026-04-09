@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { MenuItem, Category } from '../../hooks/useMenu';
 import type { CartItem } from '../../stores/orderStore';
 import { useOrderStore } from '../../stores/orderStore';
@@ -17,12 +17,38 @@ interface Props {
   onReview: () => void;
 }
 
+/** Sort categories into a logical dining service order:
+ *  1. Drinks/Beverages
+ *  2. Appetizers/Starters/Sides
+ *  3. Main courses (everything else, keep existing sort_order)
+ *  4. Desserts/Sweets
+ */
+function sortCategoriesInServiceOrder(cats: Category[]): Category[] {
+  const getPriority = (name: string): number => {
+    const lower = name.toLowerCase();
+    if (lower.includes('drink') || lower.includes('beverage')) return 0;
+    if (lower.includes('appetizer') || lower.includes('starter') || lower.includes('side')) return 1;
+    if (lower.includes('dessert') || lower.includes('sweet')) return 3;
+    return 2; // main courses
+  };
+
+  return [...cats].sort((a, b) => {
+    const pa = getPriority(a.name);
+    const pb = getPriority(b.name);
+    if (pa !== pb) return pa - pb;
+    return a.sort_order - b.sort_order;
+  });
+}
+
 export default function MenuGrid({ items, categories, cart, onAddSimple, onRemove, onOpenBuilder, onOpenVariant, onReview }: Props) {
   const [stepIndex, setStepIndex] = useState(0);
   const [builderCats, setBuilderCats] = useState<Set<number>>(new Set());
   const { currentCustomer, customerCount, setCurrentCustomer, addCustomer } = useOrderStore();
   const { settings } = useSettings();
   const { t } = useI18n();
+
+  // Sort categories into service order
+  const sortedCategories = useMemo(() => sortCategoriesInServiceOrder(categories), [categories]);
 
   useEffect(() => {
     // Fetch all modifier groups + item assignments to know which items have modifiers
@@ -34,8 +60,8 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
     });
   }, []);
 
-  const currentCat = categories[stepIndex];
-  const isLastStep = stepIndex === categories.length - 1;
+  const currentCat = sortedCategories[stepIndex];
+  const isLastStep = stepIndex === sortedCategories.length - 1;
   const isBuilderTab = builderCats.has(currentCat?.id ?? -1);
   const filtered = currentCat ? items.filter((i) => i.category_id === currentCat.id) : [];
 
@@ -109,9 +135,14 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
         </button>
       </div>
 
+      {/* Step indicator */}
+      <div className="px-4 py-1.5 bg-slate-800/60 border-b border-slate-700/30 text-xs font-semibold text-slate-400 tracking-wide">
+        Step {stepIndex + 1} of {sortedCategories.length}: <span className="text-white">{currentCat?.name ?? ''}</span>
+      </div>
+
       {/* Category tabs - wrap to multiple rows */}
       <div className="flex flex-wrap gap-1.5 px-3 py-2.5 shrink-0 bg-slate-850 border-b border-slate-700/30">
-        {categories.map((c, i) => {
+        {sortedCategories.map((c, i) => {
           const count = catItemCount(c.id);
           return (
             <button
@@ -260,7 +291,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
               : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
           }`}
         >
-          {t('Back')}
+          ← {t('Back')}
         </button>
 
         {/* Cart summary - center */}
@@ -288,7 +319,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
 
         {/* Next button */}
         <button
-          onClick={() => setStepIndex(Math.min(categories.length - 1, stepIndex + 1))}
+          onClick={() => setStepIndex(Math.min(sortedCategories.length - 1, stepIndex + 1))}
           disabled={isLastStep}
           className={`px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
             isLastStep
@@ -296,7 +327,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
               : 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-lg shadow-blue-600/20'
           }`}
         >
-          {t('Next')}
+          {t('Next')} →
         </button>
       </div>
     </div>
