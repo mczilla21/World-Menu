@@ -76,11 +76,11 @@ export default function MenuItemCard({ item, translatedName, translatedDesc, cur
       )}
 
       {item.image ? (
-        <div className="w-full aspect-[3/2] bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="w-full aspect-[3/2] bg-gray-100">
           <img
             src={`/uploads/${item.image}`}
             alt={translatedName}
-            className={`w-full h-full ${item.image.endsWith('.svg') ? 'object-contain p-2' : 'object-cover'}`}
+            className="w-full h-full object-cover"
             loading="lazy"
           />
         </div>
