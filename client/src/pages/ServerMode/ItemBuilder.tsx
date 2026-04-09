@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOrderStore } from '../../stores/orderStore';
+import { useTheme } from '../../hooks/useTheme';
+import { useSettings } from '../../hooks/useSettings';
 
 interface Modifier {
   id: number;
@@ -27,6 +29,9 @@ interface Props {
 let bowlCounter = 0;
 
 export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPrice = 0 }: Props) {
+  const t = useTheme();
+  const { settings } = useSettings();
+  const currency = settings.currency_symbol || '$';
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [stepIdx, setStepIdx] = useState(0);
@@ -51,7 +56,12 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
       });
   }, [categoryId]);
 
-  if (loading) return <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">Loading...</div>;
+  if (loading) return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.8)' }}>
+      <div className="animate-pulse text-lg" style={{ color: t.textSecondary }}>Loading...</div>
+    </div>
+  );
+
   if (groups.length === 0) {
     onAdd({
       id: `simple-${item.id}-${Date.now()}`,
@@ -77,7 +87,6 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
   const toggleSelection = (modId: number) => {
     const group = currentGroup;
     const sel = new Set(currentSel);
-
     if (group.selection_type === 'single') {
       if (sel.has(modId)) sel.delete(modId);
       else { sel.clear(); sel.add(modId); }
@@ -129,41 +138,46 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
 
   const handleNext = () => {
     if (!canProceed) return;
-    if (isLastStep) {
-      handleDone();
-    } else {
-      setStepIdx(stepIdx + 1);
-    }
+    if (isLastStep) handleDone();
+    else setStepIdx(stepIdx + 1);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
-      <div className="bg-slate-800 px-4 py-3 flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)' }}>
+      {/* Header */}
+      <div className="px-4 py-3 flex items-center justify-between shrink-0" style={{ background: t.bgCard, borderBottom: `1px solid ${t.border}` }}>
         <div className="flex items-center gap-3">
-          <button onClick={onClose} className="text-slate-400 hover:text-white text-xl">\u2715</button>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: t.bg, color: t.textMuted }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
           <div>
-            <h2 className="font-bold text-lg">{item.name}</h2>
+            <h2 className="font-bold text-lg" style={{ color: t.text }}>{item.name}</h2>
             {(itemPrice > 0 || totalExtra > 0) && (
-              <p className="text-sm text-yellow-400">
-                {itemPrice > 0 ? `$${(itemPrice + totalExtra).toFixed(2)}` : `+$${totalExtra.toFixed(2)}`}
-                {totalExtra > 0 && itemPrice > 0 && <span className="text-slate-500 ml-1">(+${totalExtra.toFixed(2)} extras)</span>}
+              <p className="text-sm" style={{ color: t.primary }}>
+                {itemPrice > 0 ? `${currency}${(itemPrice + totalExtra).toFixed(2)}` : `+${currency}${totalExtra.toFixed(2)}`}
+                {totalExtra > 0 && itemPrice > 0 && <span style={{ color: t.textMuted, marginLeft: 4 }}>(+{currency}{totalExtra.toFixed(2)} extras)</span>}
               </p>
             )}
           </div>
         </div>
         <div className="flex gap-1.5">
           {groups.map((_, i) => (
-            <div key={i} className={`w-2.5 h-2.5 rounded-full ${i === stepIdx ? 'bg-blue-500' : i < stepIdx ? 'bg-green-500' : 'bg-slate-600'}`} />
+            <div key={i} className="w-3 h-3 rounded-full" style={{ background: i === stepIdx ? t.primary : i < stepIdx ? t.success : t.border }} />
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4">
-        <h3 className="text-lg font-bold mb-1 text-center">{currentGroup.name}</h3>
-        <p className="text-sm text-slate-400 text-center mb-4">
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-4" style={{ background: t.bg }}>
+        <h3 className="text-lg font-bold mb-1 text-center" style={{ color: t.text }}>{currentGroup.name}</h3>
+        <p className="text-sm text-center mb-4" style={{ color: t.textSecondary }}>
           {currentGroup.selection_type === 'single' && 'Tap to select one'}
-          {currentGroup.selection_type === 'multi' && 'Tap to select \u2014 pick one or more'}
-          {currentGroup.selection_type === 'toggle' && 'All included \u2014 uncheck to remove'}
+          {currentGroup.selection_type === 'multi' && 'Tap to select — pick one or more'}
+          {currentGroup.selection_type === 'toggle' && 'All included — uncheck to remove'}
+          {currentGroup.required ? '' : ' (optional)'}
+          {currentGroup.selection_type !== 'single' && currentSel.size > 0 && (
+            <span style={{ color: t.primary, marginLeft: 8, fontWeight: 600 }}>{currentSel.size} selected</span>
+          )}
         </p>
 
         <div className="grid gap-3 max-w-lg mx-auto grid-cols-2">
@@ -175,18 +189,21 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
                 <button
                   key={mod.id}
                   onClick={() => toggleSelection(mod.id)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                    isSelected ? 'bg-green-800/60' : 'bg-slate-800 text-slate-500 line-through'
-                  }`}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all active:scale-95"
+                  style={{
+                    background: isSelected ? `${t.success}20` : t.bgCard,
+                    border: `2px solid ${isSelected ? `${t.success}50` : t.border}`,
+                    textDecoration: isSelected ? 'none' : 'line-through',
+                    color: isSelected ? t.text : t.textMuted,
+                  }}
                 >
-                  <span className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
-                    isSelected ? 'border-green-500 bg-green-600' : 'border-slate-600'
-                  }`}>
-                    {isSelected && <span className="text-xs">\u2713</span>}
+                  <span className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{
+                    border: `2px solid ${isSelected ? t.success : t.border}`,
+                    background: isSelected ? t.success : 'transparent',
+                  }}>
+                    {isSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                   </span>
-                  <div className="text-left">
-                    <div className="text-sm font-medium">{mod.name}</div>
-                  </div>
+                  <span className="text-sm font-medium">{mod.name}</span>
                 </button>
               );
             }
@@ -195,36 +212,47 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
               <button
                 key={mod.id}
                 onClick={() => toggleSelection(mod.id)}
-                className={`rounded-xl p-4 text-left transition-all active:scale-95 ${
-                  isSelected ? 'bg-blue-700 ring-2 ring-blue-400' : 'bg-slate-700 hover:bg-slate-600'
-                }`}
+                className="rounded-xl p-4 text-left transition-all active:scale-95"
+                style={{
+                  background: isSelected ? `${t.info}30` : t.bgCard,
+                  border: `2px solid ${isSelected ? t.info : t.border}`,
+                  color: t.text,
+                }}
               >
-                <div className="font-medium">{mod.name}</div>
-                {mod.extra_price > 0 && <div className="text-yellow-400 text-sm mt-1">+${mod.extra_price.toFixed(2)}</div>}
+                <div className="font-semibold text-sm">{mod.name}</div>
+                {mod.extra_price > 0 && <div className="text-sm mt-1" style={{ color: t.primary }}>+{currency}{mod.extra_price.toFixed(2)}</div>}
+                {isSelected && (
+                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: t.info }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="px-4 pb-4 shrink-0 flex gap-3">
+      {/* Footer */}
+      <div className="px-4 pb-4 pt-2 shrink-0 flex gap-3" style={{ background: t.bg }}>
         {stepIdx > 0 && (
           <button
             onClick={() => setStepIdx(stepIdx - 1)}
-            className="flex-1 bg-slate-700 py-3 rounded-xl font-medium"
+            className="flex-1 py-3.5 rounded-xl font-semibold transition-colors"
+            style={{ background: t.bgCard, color: t.textSecondary }}
           >
-            \u2190 Back
+            ← Back
           </button>
         )}
         <button
           onClick={handleNext}
-          className={`flex-1 py-3 rounded-xl font-bold text-lg ${
-            canProceed
-              ? (isLastStep ? 'bg-green-600' : 'bg-blue-600')
-              : 'bg-slate-700 text-slate-500'
-          }`}
+          disabled={!canProceed}
+          className="flex-1 py-3.5 rounded-xl font-bold text-lg transition-all active:scale-[0.97] disabled:opacity-30"
+          style={{
+            background: isLastStep ? t.success : t.primary,
+            color: isLastStep ? '#fff' : t.primaryText,
+          }}
         >
-          {isLastStep ? 'ADD TO ORDER' : 'Next \u2192'}
+          {isLastStep ? 'ADD TO ORDER' : 'Next →'}
         </button>
       </div>
     </div>
