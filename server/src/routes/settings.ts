@@ -2,13 +2,17 @@ import type { FastifyInstance } from 'fastify';
 import { getDb } from '../db/connection.js';
 import { broadcastToAll } from '../ws/broadcast.js';
 
+let settingsCache: Record<string, string> | null = null;
+
 export function registerSettingsRoutes(app: FastifyInstance) {
-  // Get all settings
+  // Get all settings (cached in memory to reduce DB reads on low-spec hardware)
   app.get('/api/settings', () => {
+    if (settingsCache) return settingsCache;
     const db = getDb();
     const rows = db.prepare('SELECT key, value FROM settings').all() as any[];
     const result: Record<string, string> = {};
     for (const row of rows) result[row.key] = row.value;
+    settingsCache = result;
     return result;
   });
 
@@ -29,6 +33,7 @@ export function registerSettingsRoutes(app: FastifyInstance) {
     if (!requireEmployeePin(req, reply)) return;
     const db = getDb();
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(req.params.key, req.body.value);
+    settingsCache = null;
     broadcastToAll({ type: 'SETTINGS_UPDATED' });
     return { ok: true };
   });
@@ -42,6 +47,7 @@ export function registerSettingsRoutes(app: FastifyInstance) {
       if (key === 'pin') continue; // Don't store the auth pin as a setting
       upsert.run(key, value);
     }
+    settingsCache = null;
     broadcastToAll({ type: 'SETTINGS_UPDATED' });
     return { ok: true };
   });

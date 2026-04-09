@@ -26,6 +26,7 @@ function playChime() {
 export default function KitchenMode() {
   const [showHistory, setShowHistory] = useState(false);
   const [showStationPicker, setShowStationPicker] = useState(false);
+  const [elapsedTick, setElapsedTick] = useState(0);
   const [stationFilter, setStationFilter] = useState<Set<number>>(() => {
     try {
       const saved = sessionStorage.getItem('kitchen_station');
@@ -55,6 +56,12 @@ export default function KitchenMode() {
       initialLoadDone.current = true;
     }
   }, [activeOrders, finishedOrders]);
+
+  // Single shared timer for all OrderCards — ticks every 30s to reduce CPU usage
+  useEffect(() => {
+    const i = setInterval(() => setElapsedTick(t => t + 1), 30000);
+    return () => clearInterval(i);
+  }, []);
 
   const handleWsMessage = useCallback((msg: any) => {
     if (msg.type === 'NEW_ORDER') {
@@ -283,6 +290,7 @@ export default function KitchenMode() {
                 onComplete={handleComplete}
                 onMarkPreparing={handleMarkPreparing}
                 on86={handle86}
+                tick={elapsedTick}
               />
             );
           })}

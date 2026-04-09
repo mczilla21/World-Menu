@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import type { Order, OrderItem } from '../../hooks/useOrders';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -14,6 +13,7 @@ interface Props {
   onComplete: (orderId: number) => void;
   onMarkPreparing?: (orderId: number) => void;
   on86?: (menuItemId: number, itemName: string) => void;
+  tick?: number;
 }
 
 function groupByCustomer(items: OrderItem[]): Map<number, OrderItem[]> {
@@ -26,18 +26,12 @@ function groupByCustomer(items: OrderItem[]): Map<number, OrderItem[]> {
   return new Map([...groups.entries()].sort((a, b) => a[0] - b[0]));
 }
 
-export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds, isHistory, onCheck, onUncheck, onComplete, onMarkPreparing, on86 }: Props) {
+export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds, isHistory, onCheck, onUncheck, onComplete, onMarkPreparing, on86, tick }: Props) {
   const t = useTheme();
   const kitchenItems = order.items.filter((i) => i.show_in_kitchen);
-  const [elapsedSec, setElapsedSec] = useState(() => Math.floor((Date.now() - new Date(order.created_at).getTime()) / 1000));
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsedSec(Math.floor((Date.now() - new Date(order.created_at).getTime()) / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [order.created_at]);
-
+  // Compute elapsed time directly in render, driven by parent's shared tick
+  const elapsedSec = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 1000);
   const elapsed = Math.floor(elapsedSec / 60);
 
   if (kitchenItems.length === 0) return null;

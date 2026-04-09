@@ -126,7 +126,7 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
   }, []);
 
   useEffect(() => { fetchFloor(); fetchStatus(); }, [fetchFloor, fetchStatus]);
-  useEffect(() => { const i = setInterval(fetchStatus, 8000); return () => clearInterval(i); }, [fetchStatus]);
+  useEffect(() => { const i = setInterval(fetchStatus, 15000); return () => clearInterval(i); }, [fetchStatus]);
 
   const handleWs = useCallback((msg: any) => {
     if (['NEW_ORDER', 'ORDER_FINISHED', 'ORDER_UPDATED', 'TABLE_CLOSED', 'WAITER_CALLED', 'CALL_RESOLVED'].includes(msg.type)) fetchStatus();

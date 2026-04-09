@@ -13,6 +13,9 @@ export function getDb(): DatabaseSync {
     }
     db = new DatabaseSync(config.dbPath);
     db.exec('PRAGMA journal_mode = WAL');
+    db.exec('PRAGMA synchronous = NORMAL');
+    db.exec('PRAGMA cache_size = -8000');
+    db.exec('PRAGMA temp_store = MEMORY');
     db.exec('PRAGMA foreign_keys = ON');
   }
   return db;

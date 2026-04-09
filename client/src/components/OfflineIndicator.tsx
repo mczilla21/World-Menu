@@ -28,7 +28,7 @@ export default function OfflineIndicator() {
     // Periodically check queue
     const interval = setInterval(() => {
       setQueueCount(getQueueLength());
-    }, 5000);
+    }, 30000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
