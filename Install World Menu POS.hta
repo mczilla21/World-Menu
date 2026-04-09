@@ -58,14 +58,19 @@ function getSourceDir() {
   return htaPath.substring(0, htaPath.lastIndexOf('\\'));
 }
 
-// Find the world-menu-pos folder (could be a subfolder or the same folder)
-function getInstallDir() {
+// Always install to C:\world-menu-pos
+var installDir = 'C:\\world-menu-pos';
+
+// Find where the source files are (on USB or wherever HTA is)
+function getSourceFiles() {
   var src = getSourceDir();
-  // If package.json is in the same folder, that IS the install dir
   if (fso.FileExists(src + '\\package.json')) return src;
-  // If there's a world-menu-pos subfolder, use that
   if (fso.FolderExists(src + '\\world-menu-pos') && fso.FileExists(src + '\\world-menu-pos\\package.json')) return src + '\\world-menu-pos';
   return src;
+}
+
+function getInstallDir() {
+  return installDir;
 }
 
 function getVersion() {
@@ -131,10 +136,8 @@ function checkNode() {
 function startInstall() { showStep(2); setTimeout(doInstall, 300); }
 
 function doInstall() {
-  var installDir = getInstallDir();
-
   setIcon('i1', 'run');
-  log('Setting up World Menu at ' + installDir + '...');
+  log('Installing World Menu to ' + installDir + '...');
 
   // Check Node
   if (!nodeFound) {
@@ -143,7 +146,22 @@ function doInstall() {
     document.getElementById('errBox').innerHTML = 'We need Node.js to run World Menu.<br>Download it free from <b>nodejs.org</b> then come back!';
     return;
   }
-  setIcon('i1', 'ok'); log('Node.js is ready!');
+
+  // Copy files from source (USB/download) to C:\world-menu-pos
+  var sourceDir = getSourceFiles();
+  if (sourceDir !== installDir) {
+    log('Copying files from ' + sourceDir + '...');
+    shell.Run('cmd /c if not exist "' + installDir + '" mkdir "' + installDir + '"', 0, true);
+    // Copy everything except node_modules and database
+    shell.Run('cmd /c robocopy "' + sourceDir + '" "' + installDir + '" /E /XD node_modules .git /XF restaurant.db restaurant.db-shm restaurant.db-wal /NFL /NDL /NJH /NJS /NC /NS >nul 2>&1', 0, true);
+    // If robocopy not available, fall back to xcopy
+    if (!fso.FileExists(installDir + '\\package.json')) {
+      shell.Run('cmd /c xcopy "' + sourceDir + '\\*" "' + installDir + '\\" /E /I /H /Y /Q >nul 2>&1', 0, true);
+    }
+    log('Files copied!');
+  }
+
+  setIcon('i1', 'ok'); log('Node.js ready, files in place!');
 
   setIcon('i2', 'run'); log('Installing dependencies (hang tight)...');
   try {
