@@ -128,8 +128,7 @@ async function start() {
     return checkForUpdate();
   });
 
-  app.post('/api/apply-update', async (req, reply) => {
-    if (!requireOwnerPin(req, reply)) return;
+  app.post('/api/apply-update', async () => {
     return downloadAndApplyUpdate();
   });
 
