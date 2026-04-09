@@ -504,6 +504,30 @@ export default function ServerMode() {
                 </button>
               )}
               {tablePopup.status !== 'empty' && (
+                <button
+                  onClick={async () => {
+                    const newTable = prompt(`Transfer table ${tablePopup.number} to which table number?`);
+                    if (!newTable || newTable.trim() === '' || newTable.trim() === tablePopup.number) return;
+                    const firstOrder = tablePopup.orders[0];
+                    if (!firstOrder) return;
+                    try {
+                      const res = await fetch(`/api/orders/${firstOrder.id}/transfer`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ new_table_number: newTable.trim() }),
+                      });
+                      if (!res.ok) throw new Error('Transfer failed');
+                      setTablePopup(null);
+                    } catch {
+                      alert('Failed to transfer table. Please try again.');
+                    }
+                  }}
+                  className="w-full py-3 rounded-xl font-semibold text-sm bg-amber-600 hover:bg-amber-500 text-white transition-colors"
+                >
+                  Transfer Table
+                </button>
+              )}
+              {tablePopup.status !== 'empty' && (
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleCloseTable(tablePopup.number, 'complete')}

@@ -6,18 +6,21 @@ import { getPrinterSettings, printReceipt } from '../printer.js';
 function generateOrderNumber(): string {
   const db = getDb();
   const today = new Date().toISOString().slice(0, 10);
-  const prefixRow = db.prepare("SELECT value FROM settings WHERE key = 'order_prefix'").get() as any;
-  const prefix = prefixRow?.value || 'A';
+  const prefix = (db.prepare("SELECT value FROM settings WHERE key = 'order_prefix'").get() as any)?.value || 'A';
 
-  const upsert = db.prepare(`
-    INSERT INTO order_sequence (date_key, last_number) VALUES (?, 1)
-    ON CONFLICT(date_key) DO UPDATE SET last_number = last_number + 1
-  `);
-  upsert.run(today);
+  // Use a transaction to prevent race conditions
+  let num: number;
+  db.exec('BEGIN');
+  try {
+    db.prepare("INSERT INTO order_sequence (date_key, last_number) VALUES (?, 0) ON CONFLICT(date_key) DO UPDATE SET last_number = last_number + 1").run(today);
+    num = (db.prepare('SELECT last_number FROM order_sequence WHERE date_key = ?').get(today) as any).last_number;
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
 
-  const row = db.prepare('SELECT last_number FROM order_sequence WHERE date_key = ?').get(today) as any;
-  const num = String(row.last_number).padStart(3, '0');
-  return `${prefix}${num}`;
+  return `${prefix}${String(num).padStart(3, '0')}`;
 }
 
 function getOrderWithItems(orderId: number) {
@@ -64,6 +67,15 @@ export function registerOrderRoutes(app: FastifyInstance) {
       table_number, items, source = 'server',
       order_type = 'dine_in', customer_name = '', tip_amount = 0,
     } = req.body;
+    // Check for duplicate (same table, same item count, within 5 seconds)
+    const recent = db.prepare(
+      "SELECT id FROM orders WHERE table_number = ? AND created_at > datetime('now', '-5 seconds') AND closed = 0"
+    ).get(table_number) as any;
+    if (recent) {
+      // Return existing order instead of creating duplicate
+      return getOrderWithItems(recent.id);
+    }
+
     const order_number = generateOrderNumber();
 
     // Validate item prices and quantities
@@ -501,5 +513,62 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
     broadcastToAll({ type: 'TABLE_REOPENED', tableNumber });
     return { ok: true };
+  });
+
+  // Get receipt data for any order (active or closed)
+  app.get<{ Params: { id: string } }>('/api/orders/:id/receipt', (req, reply) => {
+    const db = getDb();
+    const orderId = Number(req.params.id);
+    const order = getOrderWithItems(orderId);
+    if (!order) return reply.code(404).send({ error: 'Order not found' });
+
+    const settingsRow = db.prepare("SELECT value FROM settings WHERE key = 'restaurant_name'").get() as any;
+    const taxRateRow = db.prepare("SELECT value FROM settings WHERE key = 'tax_rate'").get() as any;
+    const restaurantName = settingsRow?.value || 'Restaurant';
+    const taxRate = parseFloat(taxRateRow?.value || '0');
+
+    const subtotal = (order.items || []).reduce((s: number, i: any) => s + (i.item_price * i.quantity), 0);
+    const taxAmount = order.tax_amount ?? (subtotal * taxRate / 100);
+    const tipAmount = order.tip_amount || 0;
+    const total = subtotal + taxAmount + tipAmount;
+
+    return {
+      restaurant_name: restaurantName,
+      order_id: order.id,
+      order_number: order.order_number,
+      table_number: order.table_number,
+      order_type: order.order_type,
+      customer_name: order.customer_name,
+      items: order.items,
+      subtotal,
+      tax_amount: taxAmount,
+      tip_amount: tipAmount,
+      total,
+      payment_method: order.payment_method || null,
+      created_at: order.created_at,
+      status: order.status,
+      date: new Date().toLocaleString(),
+    };
+  });
+
+  // Transfer order to a different table
+  app.patch<{ Params: { id: string }; Body: { new_table_number: string } }>('/api/orders/:id/transfer', (req, reply) => {
+    const db = getDb();
+    const orderId = Number(req.params.id);
+    const { new_table_number } = req.body;
+
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId) as any;
+    if (!order) return reply.code(404).send({ error: 'Order not found' });
+
+    const oldTable = order.table_number;
+
+    // Update all unclosed orders on this table to the new table
+    db.prepare('UPDATE orders SET table_number = ? WHERE table_number = ? AND closed = 0').run(new_table_number, oldTable);
+
+    // Broadcast so both floor plan tiles update
+    broadcastToAll({ type: 'TABLE_CLOSED', tableNumber: oldTable });
+    broadcastToAll({ type: 'NEW_ORDER', order: getOrderWithItems(orderId) });
+
+    return { ok: true, old_table: oldTable, new_table: new_table_number };
   });
 }

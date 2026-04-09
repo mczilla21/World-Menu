@@ -14,7 +14,12 @@ export function registerUploadRoutes(app: FastifyInstance) {
       fs.mkdirSync(config.uploadsDir, { recursive: true });
     }
 
-    const ext = path.extname(data.filename) || '.jpg';
+    const ext = path.extname(data.filename).toLowerCase() || '.jpg';
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'];
+    if (!allowedExts.includes(ext)) {
+      return reply.status(400).send({ error: `File type not allowed. Allowed types: ${allowedExts.join(', ')}` });
+    }
+
     const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
     const filePath = path.join(config.uploadsDir, safeName);
 
