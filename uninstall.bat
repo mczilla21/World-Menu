@@ -31,9 +31,13 @@ rmdir /s /q "%APPDATA%\Microsoft\Windows\Start Menu\Programs\World Menu POS" >nu
 :: Remove registry (Add/Remove Programs)
 reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WorldMenuPOS" /f >nul 2>&1
 
-:: Remove C:\world-menu-pos if it exists
+:: Remove install directories
+if exist "C:\Program Files\World Menu POS" (
+    echo   Removing C:\Program Files\World Menu POS...
+    rmdir /s /q "C:\Program Files\World Menu POS" >nul 2>&1
+)
 if exist "C:\world-menu-pos" (
-    echo   Removing C:\world-menu-pos...
+    echo   Removing C:\world-menu-pos (legacy)...
     rmdir /s /q "C:\world-menu-pos" >nul 2>&1
 )
 
