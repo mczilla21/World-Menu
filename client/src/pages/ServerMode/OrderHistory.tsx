@@ -214,9 +214,9 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
                         </div>
                       ))}
                     </div>
-                    {order.status === 'voided' && order.notes && (
+                    {order.status === 'voided' && (
                       <div className="mt-2 text-[10px] text-red-400 bg-red-900/20 rounded-lg px-3 py-1.5">
-                        {order.notes.split(' | ').filter((n: string) => n.startsWith('VOIDED')).join(' ')}
+                        Order voided
                       </div>
                     )}
                     {(orderTotal > 0 || order.tip_amount > 0) && (

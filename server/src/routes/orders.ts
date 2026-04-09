@@ -464,11 +464,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
     if (!order) return reply.code(404).send({ error: 'Order not found' });
     const voidedBy = req.body?.employee_name || 'Unknown';
     const voidedAt = new Date().toISOString();
-    // Store void info in the notes field
-    const voidNote = `VOIDED by ${voidedBy} at ${new Date().toLocaleString()}`;
-    const existingNotes = order.notes || '';
-    db.prepare("UPDATE orders SET status = 'voided', is_archived = 1, closed = 1, notes = ? WHERE id = ?")
-      .run(existingNotes ? `${existingNotes} | ${voidNote}` : voidNote, id);
+    db.prepare("UPDATE orders SET status = 'voided', is_archived = 1, closed = 1 WHERE id = ?").run(id);
     broadcastToAll({ type: 'ORDER_UPDATED', order: getOrderWithItems(id) });
     return { ok: true, voided_by: voidedBy, voided_at: voidedAt };
   });
