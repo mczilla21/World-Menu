@@ -179,25 +179,28 @@ function Steam() {
 
 function BowlToppings({ toppings }: { toppings: { name: string }[] }) {
   if (toppings.length === 0) return null;
-  // Position emojis scattered around the bowl
+  // Spread toppings across the full bowl surface in a circular pattern
+  // Positions are within the inner circle (avoid edges where rim is)
   const positions = [
-    { x: '15%', y: '12%' }, { x: '55%', y: '8%' }, { x: '75%', y: '15%' },
-    { x: '25%', y: '25%' }, { x: '65%', y: '22%' }, { x: '40%', y: '18%' },
-    { x: '10%', y: '30%' }, { x: '80%', y: '28%' }, { x: '50%', y: '30%' },
-    { x: '35%', y: '5%' },
+    { x: '18%', y: '18%' }, { x: '62%', y: '15%' },
+    { x: '72%', y: '42%' }, { x: '15%', y: '55%' },
+    { x: '55%', y: '65%' }, { x: '35%', y: '35%' },
+    { x: '68%', y: '68%' }, { x: '22%', y: '72%' },
+    { x: '48%', y: '18%' }, { x: '78%', y: '25%' },
+    { x: '10%', y: '38%' }, { x: '42%', y: '78%' },
   ];
   return (
     <>
-      {toppings.slice(0, 10).map((t, i) => (
+      {toppings.slice(0, 12).map((t, i) => (
         <div
           key={i}
           className="absolute pointer-events-none"
           style={{
             left: positions[i % positions.length].x,
             top: positions[i % positions.length].y,
-            fontSize: 11,
-            animation: `garnishDrop 0.3s ease-out ${i * 0.05}s both`,
-            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
+            fontSize: 14,
+            animation: `garnishDrop 0.3s ease-out ${i * 0.06}s both`,
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.3))',
           }}
         >
           {getToppingEmoji(t.name)}
