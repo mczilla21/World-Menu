@@ -234,6 +234,8 @@ async function start() {
     ensure('card_surcharge', '3');
     ensure('license_key', '');
     ensure('license_status', 'demo');
+    ensure('helcim_api_token', '');
+    ensure('helcim_account_id', '');
   } catch {}
 
   // Auto-close stale orders older than 48 hours (runs on startup + every 6 hours)

@@ -126,27 +126,62 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const handleCardPay = async () => {
     setCardProcessing(true);
     try {
+      // Step 1: Get checkout token from server
       const res = await fetch('/api/payments/create-intent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_number: tableNumber, amount: Math.round(cardTotal * 100) }),
       });
-      await res.json();
-      await new Promise(r => setTimeout(r, 2000));
-      setCardDone(true);
-      if (enableReceiptPrompt) {
-        // Auto-print merchant copy immediately
-        printReceiptCopy('merchant');
-        // Show receipt prompt instead of auto-completing
-        setReceiptPrompt(true);
+      const data = await res.json();
+
+      if (data.checkoutToken) {
+        // Step 2: Load HelcimPay.js and open payment modal
+        const script = document.createElement('script');
+        script.src = 'https://mypostest.helcim.com/helcim-pay/services/start.js';
+        document.body.appendChild(script);
+
+        // Step 3: Listen for payment result
+        const handleMessage = (event: MessageEvent) => {
+          const eventData = event.data;
+          if (typeof eventData === 'string' && eventData.includes('helcim')) {
+            try {
+              const parsed = JSON.parse(eventData);
+              if (parsed.eventName === 'helcim-pay-success') {
+                window.removeEventListener('message', handleMessage);
+                setCardDone(true);
+                setCardProcessing(false);
+                onComplete('card', cardTotal);
+              } else if (parsed.eventName === 'helcim-pay-error' || parsed.eventName === 'helcim-pay-close') {
+                window.removeEventListener('message', handleMessage);
+                setCardProcessing(false);
+                if (parsed.eventName === 'helcim-pay-error') {
+                  alert('Payment declined. Please try again.');
+                }
+              }
+            } catch {}
+          }
+        };
+        window.addEventListener('message', handleMessage);
+
+        // Step 4: Open the HelcimPay.js modal
+        script.onload = () => {
+          if (typeof (window as any).appendHelcimPayIframe === 'function') {
+            (window as any).appendHelcimPayIframe(data.checkoutToken);
+          }
+        };
+      } else if (data.error) {
+        setCardProcessing(false);
+        alert('Payment setup failed: ' + data.error);
       } else {
-        setTimeout(() => onComplete('card', cardTotal), 1500);
+        // No payment provider configured — simulate for testing
+        await new Promise(r => setTimeout(r, 2000));
+        setCardDone(true);
+        setCardProcessing(false);
+        onComplete('card', cardTotal);
       }
     } catch {
       setCardProcessing(false);
       alert('Payment failed — please try again or use a different payment method.');
-      return;
     }
-    setCardProcessing(false);
   };
 
   const handleGiftRedeem = async () => {
