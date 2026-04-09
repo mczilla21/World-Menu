@@ -31,11 +31,6 @@ export default function SettingsManager() {
   const [adminPin, setAdminPin] = useState(settings.admin_pin || '');
   const [cardSurcharge, setCardSurcharge] = useState(settings.card_surcharge || '3');
 
-  // License
-  const [licenseKey, setLicenseKey] = useState(settings.license_key || '');
-  const [licenseStatus, setLicenseStatus] = useState<'demo' | 'active' | 'owner'>('demo');
-  const [licenseActivating, setLicenseActivating] = useState(false);
-
   // Idle screen
   const [idleEnabled, setIdleEnabled] = useState(settings.idle_screen_enabled === '1');
   const [idleTimeout, setIdleTimeout] = useState(settings.idle_screen_timeout || '3');
@@ -83,36 +78,11 @@ export default function SettingsManager() {
     setIdleTimeout(settings.idle_screen_timeout || '3');
     setIdleMessage(settings.idle_screen_message || 'Welcome! Tap to start ordering');
     setIdleBgImage(settings.idle_screen_bg_image || '');
-    setLicenseKey(settings.license_key || '');
-    // Determine license status from current key
-    const k = settings.license_key || '';
-    if (k === 'OWNER') setLicenseStatus('owner');
-    else if (k.startsWith('WM-')) setLicenseStatus('active');
-    else setLicenseStatus('demo');
   }, [settings]);
 
   useEffect(() => {
     fetch('/api/packaging-options').then(r => r.json()).then(setPackagingOptions).catch(() => {});
   }, []);
-
-  const handleActivateLicense = async () => {
-    setLicenseActivating(true);
-    try {
-      await updateSetting('license_key', licenseKey.trim());
-      const res = await fetch('/api/license');
-      const data = await res.json();
-      if (data.valid) {
-        setLicenseStatus(data.plan === 'owner' ? 'owner' : 'active');
-        await updateSetting('license_status', data.plan === 'owner' ? 'owner' : 'active');
-      } else {
-        setLicenseStatus('demo');
-        await updateSetting('license_status', 'demo');
-      }
-    } catch {
-      setLicenseStatus('demo');
-    }
-    setLicenseActivating(false);
-  };
 
   const handleSave = async () => {
     await updateSettings({
@@ -196,44 +166,6 @@ export default function SettingsManager() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      {/* License */}
-      <div className="bg-slate-800 rounded-xl p-4 space-y-4">
-        <h3 className="font-semibold text-slate-200">License</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">Status:</span>
-          {licenseStatus === 'demo' && (
-            <span className="text-xs font-bold text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full">Demo</span>
-          )}
-          {licenseStatus === 'active' && (
-            <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">Active</span>
-          )}
-          {licenseStatus === 'owner' && (
-            <span className="text-xs font-bold text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded-full">Owner</span>
-          )}
-        </div>
-        {licenseStatus === 'demo' && (
-          <p className="text-xs text-orange-300/70">Demo mode: limited to 5 tables, 3 employees. Enter a license key to unlock full access.</p>
-        )}
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block">License Key</label>
-          <div className="flex gap-2">
-            <input
-              value={licenseKey}
-              onChange={e => setLicenseKey(e.target.value.toUpperCase())}
-              placeholder="WM-XXXX-XXXX-XXXX"
-              className="flex-1 bg-slate-700 rounded-lg px-4 py-3 text-white outline-none font-mono tracking-wider"
-            />
-            <button
-              onClick={handleActivateLicense}
-              disabled={licenseActivating}
-              className="px-5 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-            >
-              {licenseActivating ? '...' : 'Activate'}
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Restaurant Info */}
       <div className="bg-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="font-semibold text-slate-200">Restaurant Info</h3>

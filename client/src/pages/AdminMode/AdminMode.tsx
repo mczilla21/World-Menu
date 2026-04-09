@@ -8,6 +8,7 @@ const MenuItemManager = lazy(() => import('./MenuItemManager'));
 const ModifierManager = lazy(() => import('./ModifierManager'));
 const TranslationManager = lazy(() => import('./TranslationManager'));
 const SettingsManager = lazy(() => import('./SettingsManager'));
+const LicenseManager = lazy(() => import('./LicenseManager'));
 const ReportsDashboard = lazy(() => import('./ReportsDashboard'));
 const TaxReports = lazy(() => import('./TaxReports'));
 const FloorPlanEditor = lazy(() => import('./FloorPlanEditor'));
@@ -73,6 +74,7 @@ const sections: { key: Section; label: string; icon: string; color: string; acti
     key: 'settings', label: 'Settings', icon: '⚙️', color: '#f1f5f9', activeColor: '#64748b',
     subtabs: [
       { key: 'settings', label: 'Restaurant Settings', emoji: '⚙️', color: '#64748b' },
+      { key: 'license', label: 'License', emoji: '🔑', color: '#8b5cf6' },
     ],
   },
 ];
@@ -196,6 +198,7 @@ export default function AdminMode() {
 
           {/* Settings */}
           {subTab === 'settings' && <SettingsManager />}
+          {subTab === 'license' && <LicenseManager />}
         </Suspense>
       </div>
     </div>
