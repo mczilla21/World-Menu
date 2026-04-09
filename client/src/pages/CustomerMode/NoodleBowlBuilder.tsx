@@ -408,144 +408,92 @@ export default function NoodleBowlBuilder({
 
       {/* Main content — bowl on right, selections on left */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Right: Bowl visual (sticky) */}
-        <div className="hidden sm:flex w-[200px] shrink-0 flex-col items-center justify-center p-3 border-l border-orange-100 bg-gradient-to-b from-orange-50/50 to-amber-50/50">
+        {/* Right: Bowl visual — top-down view */}
+        <div className="hidden sm:flex w-[220px] shrink-0 flex-col items-center justify-center p-3 border-l border-orange-100 bg-gradient-to-b from-orange-50/50 to-amber-50/50">
+          {/* Top-down bowl */}
           <div
             className="relative"
-            style={{ width: 160, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
+            style={{ width: 180, height: 180, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
           >
-            {/* Steam */}
-            {isComplete && <Steam />}
+            {/* Bowl rim (outer circle) */}
+            <div className="absolute inset-0 rounded-full" style={{
+              background: 'linear-gradient(135deg, #D4A855, #A88840)',
+              boxShadow: '0 4px 16px rgba(139,110,46,0.3), inset 0 2px 4px rgba(255,255,255,0.2)',
+            }} />
 
-            {/* Bowl rim */}
-            <div
-              className="relative z-10 mx-auto"
-              style={{
-                width: '100%',
-                height: 14,
-                background: 'linear-gradient(to bottom, #C9A96E, #A88840)',
-                borderRadius: '50%',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              }}
-            />
-
-            {/* Bowl body */}
-            <div
-              className="relative mx-auto overflow-hidden"
-              style={{
-                width: '94%',
-                height: 95,
-                marginTop: -7,
-                background: '#FFF8F0',
-                borderRadius: '0 0 50% 50% / 0 0 100% 100%',
-                boxShadow: '0 8px 28px rgba(139,110,46,0.18), inset 0 -4px 12px rgba(139,110,46,0.08)',
-                border: '2px solid #C4A265',
-                borderTop: 'none',
-              }}
-            >
-              {/* Empty state — show pre-filled for ramen, empty for build-your-own */}
-              {!selectedBroth && !selectedNoodle && !selectedProtein && !brothGroup && (
-                // Ramen/fixed recipe — show a pre-filled bowl
-                <div className="absolute inset-0" style={{
-                  background: 'linear-gradient(to bottom, transparent 15%, #D4A84360 30%, #B8862D90 100%)',
-                  borderRadius: '0 0 50% 50% / 0 0 100% 100%',
-                }}>
-                  <div className="absolute top-[20%] left-1/2 -translate-x-1/2 text-[36px]">🍜</div>
-                  <NoodleLines color="#F5DEB3" thick={false} />
-                </div>
-              )}
-              {!selectedBroth && !selectedNoodle && !selectedProtein && brothGroup && (
+            {/* Bowl interior (inner circle) */}
+            <div className="absolute rounded-full overflow-hidden" style={{
+              top: 8, left: 8, right: 8, bottom: 8,
+              background: selectedBroth ? getBrothColor(selectedBroth.name) : '#FFF8F0',
+              transition: 'background 0.6s ease',
+              boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.15)',
+            }}>
+              {/* Empty state */}
+              {!selectedBroth && !selectedNoodle && !selectedProtein && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-gray-300 text-sm font-medium">Pick your ingredients!</span>
-                </div>
-              )}
-
-              {/* Broth layer */}
-              <div
-                className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out"
-                style={{
-                  height: selectedBroth ? '75%' : '0%',
-                  background: selectedBroth ? getBrothGradient(selectedBroth.name) : 'transparent',
-                  borderRadius: '0 0 50% 50% / 0 0 100% 100%',
-                  opacity: 0.75,
-                }}
-              />
-
-              {/* Broth wave */}
-              {selectedBroth && (
-                <div
-                  className="absolute left-0 right-0 transition-all duration-700 ease-out"
-                  style={{ top: selectedBroth ? '25%' : '100%' }}
-                >
-                  <svg viewBox="0 0 200 12" className="w-full" preserveAspectRatio="none" style={{ height: 12 }}>
-                    <path
-                      d="M0,6 Q25,0 50,6 Q75,12 100,6 Q125,0 150,6 Q175,12 200,6"
-                      fill="none"
-                      stroke={getBrothColor(selectedBroth.name)}
-                      strokeWidth="3"
-                      opacity="0.4"
-                    />
-                  </svg>
-                </div>
-              )}
-
-              {/* Noodle layer */}
-              {selectedNoodle && (
-                <div
-                  className="absolute left-[5%] right-[5%] transition-opacity duration-500"
-                  style={{ top: '28%', height: '40%', opacity: 1 }}
-                >
-                  {isWonton(selectedNoodle.name) ? (
-                    <WontonShapes color={getNoodleColor(selectedNoodle.name)} />
+                  {brothGroup ? (
+                    <span className="text-gray-300 text-xs font-medium">Pick ingredients!</span>
                   ) : (
-                    <NoodleLines color={getNoodleColor(selectedNoodle.name)} thick={getNoodleThick(selectedNoodle.name)} />
+                    <span className="text-4xl">🍜</span>
                   )}
                 </div>
               )}
 
-              {/* Protein layer */}
+              {/* Noodles — curved lines across the bowl */}
+              {selectedNoodle && (
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                  {[15, 30, 45, 60, 75].map((y, i) => (
+                    <path key={i}
+                      d={`M${10+i*3},${y} Q${30+i*5},${y-8} 50,${y} Q${70-i*5},${y+8} ${90-i*3},${y}`}
+                      stroke={getNoodleColor(selectedNoodle.name)}
+                      fill="none" strokeWidth={getNoodleThick(selectedNoodle.name) ? 3 : 2}
+                      opacity={0.7} strokeLinecap="round"
+                    />
+                  ))}
+                </svg>
+              )}
+
+              {/* Protein — center of bowl */}
               {selectedProtein && (
-                <div
-                  className="absolute top-[5%] left-1/2 -translate-x-1/2 leading-none transition-all duration-500"
-                  style={{ animation: 'floatIn 0.4s ease-out', fontSize: 30, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))' }}
-                >
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500"
+                  style={{ fontSize: 36, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))', animation: 'floatIn 0.4s ease-out' }}>
                   {getProteinEmoji(selectedProtein.name)}
                 </div>
               )}
 
-              {/* Toppings */}
+              {/* Toppings — scattered around the bowl surface */}
               {selectedToppings.length > 0 && <BowlToppings toppings={selectedToppings} />}
-              {/* Fallback garnish dots if no toppings group but protein selected */}
               {selectedProtein && selectedToppings.length === 0 && <Garnish />}
+
+              {/* Broth shimmer overlay */}
+              {selectedBroth && (
+                <div className="absolute inset-0 rounded-full" style={{
+                  background: 'radial-gradient(ellipse at 35% 35%, rgba(255,255,255,0.15) 0%, transparent 50%)',
+                }} />
+              )}
             </div>
 
-            {/* Bowl shadow */}
-            <div
-              className="mx-auto"
-              style={{
-                width: '70%',
-                height: 8,
-                marginTop: -4,
-                background: 'radial-gradient(ellipse, rgba(0,0,0,0.1), transparent)',
-                borderRadius: '50%',
-              }}
-            />
+            {/* Chopsticks */}
+            <div className="absolute" style={{ top: -5, right: -10, transform: 'rotate(30deg)', transformOrigin: 'bottom left' }}>
+              <div style={{ width: 4, height: 70, background: 'linear-gradient(to bottom, #D2691E, #8B4513)', borderRadius: 2, position: 'absolute', left: 0 }} />
+              <div style={{ width: 4, height: 70, background: 'linear-gradient(to bottom, #D2691E, #8B4513)', borderRadius: 2, position: 'absolute', left: 8 }} />
+            </div>
           </div>
 
-          {/* Selection summary badges */}
-          <div className="flex gap-1.5 mt-2 flex-wrap justify-center">
+          {/* Summary badges */}
+          <div className="flex gap-1 mt-3 flex-wrap justify-center">
             {selectedBroth && (
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: getBrothColor(selectedBroth.name) + '25', color: getBrothColor(selectedBroth.name) }}>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: getBrothColor(selectedBroth.name) + '25', color: getBrothColor(selectedBroth.name) }}>
                 {translateModifier(selectedBroth.id, selectedBroth.name)}
               </span>
             )}
             {selectedNoodle && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
                 {translateModifier(selectedNoodle.id, selectedNoodle.name)}
               </span>
             )}
             {selectedProtein && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
                 {getProteinEmoji(selectedProtein.name)} {translateModifier(selectedProtein.id, selectedProtein.name)}
               </span>
             )}
