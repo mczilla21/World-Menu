@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFF3E0"/><stop offset="100%" stop-color="#FF9800"/></radialGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Basket -->
+<ellipse cx="200" cy="280" rx="130" ry="35" fill="#8D6E63"/>
+<rect x="70" y="200" width="260" height="80" rx="10" fill="#A1887F"/>
+<ellipse cx="200" cy="200" rx="130" ry="35" fill="#BCAAA4"/>
+<!-- Basket weave pattern -->
+<g stroke="#8D6E63" stroke-width="1" opacity="0.3">
+<line x1="100" y1="210" x2="100" y2="270"/><line x1="140" y1="205" x2="140" y2="275"/>
+<line x1="180" y1="203" x2="180" y2="278"/><line x1="220" y1="203" x2="220" y2="278"/>
+<line x1="260" y1="205" x2="260" y2="275"/><line x1="300" y1="210" x2="300" y2="270"/>
+</g>
+<!-- Paper liner -->
+<ellipse cx="200" cy="195" rx="120" ry="30" fill="#FFF9C4" opacity="0.6"/>
+<!-- Chicken pieces -->
+<g>
+<ellipse cx="155" cy="175" rx="30" ry="22" fill="#E6A817" stroke="#C49000" stroke-width="1.5"/>
+<ellipse cx="155" cy="175" rx="20" ry="14" fill="#EDBA3A" opacity="0.5"/>
+<ellipse cx="210" cy="168" rx="28" ry="24" fill="#DAA520" stroke="#C49000" stroke-width="1.5"/>
+<ellipse cx="210" cy="168" rx="18" ry="15" fill="#E6B830" opacity="0.5"/>
+<ellipse cx="260" cy="175" rx="30" ry="20" fill="#E6A817" stroke="#C49000" stroke-width="1.5"/>
+<ellipse cx="260" cy="175" rx="20" ry="12" fill="#EDBA3A" opacity="0.5"/>
+<ellipse cx="180" cy="190" rx="25" ry="18" fill="#D4960F" stroke="#B88000" stroke-width="1.5"/>
+<ellipse cx="230" cy="188" rx="27" ry="20" fill="#DAA520" stroke="#B88000" stroke-width="1.5"/>
+<ellipse cx="145" cy="195" rx="22" ry="16" fill="#D4960F" stroke="#B88000" stroke-width="1.5"/>
+</g>
+<!-- Crispy texture dots -->
+<g fill="#C49000" opacity="0.4">
+<circle cx="145" cy="170" r="2"/><circle cx="160" cy="180" r="1.5"/><circle cx="200" cy="165" r="2"/>
+<circle cx="220" cy="172" r="1.5"/><circle cx="250" cy="170" r="2"/><circle cx="270" cy="180" r="1.5"/>
+</g>
+<!-- Dipping sauce -->
+<ellipse cx="330" cy="260" rx="30" ry="10" fill="#8D6E63"/>
+<ellipse cx="330" cy="257" rx="30" ry="10" fill="#A1887F"/>
+<ellipse cx="330" cy="254" rx="26" ry="8" fill="#FF5722"/>
+<!-- Steam -->
+<g opacity="0.3">
+<path d="M180,140 Q185,125 190,140" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;0,-10;0,0" dur="2s" repeatCount="indefinite"/></path>
+<path d="M220,135 Q225,120 230,135" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;0,-12;0,0" dur="2.3s" repeatCount="indefinite"/></path>
+</g>
+<!-- Label -->
+<text x="200" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" font-weight="bold" fill="#E65100">Crispy Chicken</text>
+</svg>

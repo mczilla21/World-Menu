@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFFDE7"/><stop offset="100%" stop-color="#FFD54F"/></radialGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Plate -->
+<ellipse cx="200" cy="270" rx="150" ry="40" fill="#D7CCC8"/>
+<ellipse cx="200" cy="265" rx="150" ry="40" fill="#EFEBE9"/>
+<!-- Rangoon 1 (front center) -->
+<polygon points="200,180 160,240 240,240" fill="#DAA520" stroke="#B8860B" stroke-width="2"/>
+<polygon points="200,180 180,210 220,210" fill="#E6B422" opacity="0.5"/>
+<!-- Cream cheese ooze -->
+<path d="M185,235 Q180,245 175,240" fill="#FFF9C4" stroke="#FFF176" stroke-width="2"/>
+<ellipse cx="178" cy="242" rx="6" ry="4" fill="#FFFDE7"/>
+<!-- Rangoon 2 (left) -->
+<polygon points="130,200 100,250 160,250" fill="#DAA520" stroke="#B8860B" stroke-width="2"/>
+<polygon points="130,200 115,225 145,225" fill="#E6B422" opacity="0.5"/>
+<path d="M115,248 Q110,258 107,252" fill="#FFF9C4" stroke="#FFF176" stroke-width="2"/>
+<ellipse cx="109" cy="254" rx="5" ry="3" fill="#FFFDE7"/>
+<!-- Rangoon 3 (right) -->
+<polygon points="270,195 240,248 300,248" fill="#DAA520" stroke="#B8860B" stroke-width="2"/>
+<polygon points="270,195 255,222 285,222" fill="#E6B422" opacity="0.5"/>
+<path d="M285,245 Q290,255 293,250" fill="#FFF9C4" stroke="#FFF176" stroke-width="2"/>
+<ellipse cx="291" cy="252" rx="5" ry="3" fill="#FFFDE7"/>
+<!-- Rangoon 4 (back) -->
+<polygon points="200,155 175,200 225,200" fill="#C49B20" stroke="#A08018" stroke-width="2"/>
+<!-- Crispy texture -->
+<g stroke="#B8860B" stroke-width="0.5" opacity="0.3">
+<line x1="190" y1="195" x2="210" y2="195"/><line x1="185" y1="210" x2="215" y2="210"/><line x1="180" y1="225" x2="220" y2="225"/>
+</g>
+<!-- Sparkle -->
+<g fill="#FFD700" opacity="0.8">
+<polygon points="310,150 313,158 321,158 315,163 317,171 310,166 303,171 305,163 299,158 307,158">
+<animate attributeName="opacity" values="0.8;0.3;0.8" dur="1.8s" repeatCount="indefinite"/>
+</polygon>
+<polygon points="90,160 92,165 97,165 93,168 94,173 90,170 86,173 87,168 83,165 88,165">
+<animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.5s" repeatCount="indefinite"/>
+</polygon>
+</g>
+<!-- Label -->
+<text x="200" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" font-weight="bold" fill="#BF8C00">Crab Rangoon</text>
+</svg>

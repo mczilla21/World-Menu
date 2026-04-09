@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFE0B2"/><stop offset="100%" stop-color="#E65100"/></radialGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Steam -->
+<g opacity="0.5">
+<path d="M140,100 Q145,78 150,100 Q155,78 160,100" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;0,-16;0,0" dur="2s" repeatCount="indefinite"/></path>
+<path d="M200,88 Q205,65 210,88 Q215,65 220,88" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;0,-20;0,0" dur="2.3s" repeatCount="indefinite"/></path>
+<path d="M250,100 Q255,78 260,100 Q265,78 270,100" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
+<animateTransform attributeName="transform" type="translate" values="0,0;0,-14;0,0" dur="1.9s" repeatCount="indefinite"/></path>
+</g>
+<!-- Bowl -->
+<ellipse cx="200" cy="250" rx="145" ry="90" fill="#BF360C"/>
+<ellipse cx="200" cy="250" rx="140" ry="85" fill="#D84315"/>
+<!-- Broth (red-orange tom yum) -->
+<ellipse cx="200" cy="230" rx="130" ry="70" fill="#FF6D00"/>
+<!-- Coconut milk swirl -->
+<path d="M160,225 Q180,215 200,225 Q220,235 240,225" fill="none" stroke="#FFFDE7" stroke-width="4" opacity="0.6"/>
+<circle cx="180" cy="230" r="8" fill="#FFFDE7" opacity="0.3"/>
+<!-- Noodles -->
+<g stroke="#F0DC82" stroke-width="3" fill="none" opacity="0.6">
+<path d="M120,232 Q150,217 180,232 Q210,247 240,232 Q270,217 300,232"/>
+<path d="M115,242 Q145,227 175,242 Q205,257 235,242 Q265,227 295,242"/>
+</g>
+<!-- Ground meat -->
+<g fill="#6D4C41">
+<circle cx="150" cy="215" r="4"/><circle cx="162" cy="218" r="3.5"/><circle cx="175" cy="213" r="4"/><circle cx="225" cy="216" r="3.5"/><circle cx="238" cy="220" r="4"/>
+</g>
+<!-- Egg -->
+<ellipse cx="270" cy="210" rx="20" ry="16" fill="#FFF"/><ellipse cx="270" cy="210" rx="12" ry="9" fill="#FFD700"/>
+<!-- Lettuce -->
+<ellipse cx="130" cy="205" rx="15" ry="10" fill="#81C784" opacity="0.8"/>
+<!-- Bean sprouts -->
+<g stroke="#F5F5DC" stroke-width="2" fill="none">
+<path d="M200,210 Q205,205 210,210"/><path d="M285,218 Q290,213 295,218"/>
+</g>
+<!-- Mushrooms -->
+<ellipse cx="245" cy="200" rx="10" ry="6" fill="#8D6E63"/><rect x="243" y="200" width="4" height="7" fill="#A1887F"/>
+<!-- Green onion -->
+<circle cx="155" cy="200" r="4" fill="#4CAF50"/><circle cx="165" cy="203" r="3" fill="#66BB6A"/>
+<!-- Cilantro -->
+<path d="M290,200 Q295,195 292,190 M292,202 Q297,196 294,191" stroke="#43A047" stroke-width="1.5" fill="none"/>
+<!-- Bowl rim -->
+<ellipse cx="200" cy="180" rx="140" ry="30" fill="none" stroke="#BF360C" stroke-width="6"/>
+<!-- Chopsticks -->
+<line x1="280" y1="140" x2="340" y2="100" stroke="#C4873B" stroke-width="5" stroke-linecap="round"/>
+<line x1="290" y1="145" x2="350" y2="105" stroke="#A0704B" stroke-width="5" stroke-linecap="round"/>
+<!-- Label -->
+<text x="200" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="bold" fill="#BF360C">Tom Yum Ramen</text>
+</svg>

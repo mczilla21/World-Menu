@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#EFEBE9"/><stop offset="100%" stop-color="#795548"/></radialGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Plate -->
+<ellipse cx="200" cy="300" rx="140" ry="35" fill="#9E9E9E"/>
+<ellipse cx="200" cy="295" rx="140" ry="35" fill="#E0E0E0"/>
+<!-- Skewer 1 -->
+<line x1="100" y1="280" x2="250" y2="130" stroke="#A1887F" stroke-width="6" stroke-linecap="round"/>
+<!-- Meatballs on skewer 1 -->
+<circle cx="140" cy="240" r="22" fill="#5D4037"/><circle cx="140" cy="240" r="22" fill="#6D4C41" opacity="0.6"/>
+<line x1="130" y1="235" x2="150" y2="235" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<line x1="132" y1="245" x2="148" y2="245" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<circle cx="175" cy="205" r="22" fill="#5D4037"/><circle cx="175" cy="205" r="22" fill="#6D4C41" opacity="0.6"/>
+<line x1="165" y1="200" x2="185" y2="200" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<line x1="167" y1="210" x2="183" y2="210" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<circle cx="210" cy="170" r="22" fill="#5D4037"/><circle cx="210" cy="170" r="22" fill="#6D4C41" opacity="0.6"/>
+<line x1="200" y1="165" x2="220" y2="165" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<line x1="202" y1="175" x2="218" y2="175" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<!-- Skewer 2 -->
+<line x1="150" y1="290" x2="300" y2="140" stroke="#A1887F" stroke-width="6" stroke-linecap="round"/>
+<!-- Meatballs on skewer 2 -->
+<circle cx="190" cy="250" r="22" fill="#5D4037"/><circle cx="190" cy="250" r="22" fill="#795548" opacity="0.5"/>
+<line x1="180" y1="245" x2="200" y2="245" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<circle cx="225" cy="215" r="22" fill="#5D4037"/><circle cx="225" cy="215" r="22" fill="#795548" opacity="0.5"/>
+<line x1="215" y1="210" x2="235" y2="210" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<circle cx="260" cy="180" r="22" fill="#5D4037"/><circle cx="260" cy="180" r="22" fill="#795548" opacity="0.5"/>
+<line x1="250" y1="175" x2="270" y2="175" stroke="#3E2723" stroke-width="2" opacity="0.5"/>
+<!-- Dipping sauce -->
+<ellipse cx="310" cy="280" rx="35" ry="12" fill="#8D6E63"/>
+<ellipse cx="310" cy="276" rx="35" ry="12" fill="#A1887F"/>
+<ellipse cx="310" cy="273" rx="30" ry="9" fill="#E65100"/>
+<!-- Garnish -->
+<circle cx="95" cy="260" r="5" fill="#4CAF50"/><circle cx="85" cy="268" r="4" fill="#66BB6A"/>
+<path d="M80,255 Q85,248 82,242" stroke="#43A047" stroke-width="2" fill="none"/>
+<!-- Smoke wisps -->
+<g opacity="0.3">
+<path d="M180,155 Q185,140 190,155" fill="none" stroke="#999" stroke-width="2">
+<animateTransform attributeName="transform" type="translate" values="0,0;0,-10;0,0" dur="2s" repeatCount="indefinite"/></path>
+</g>
+<!-- Label -->
+<text x="200" y="375" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="bold" fill="#4E342E">Grilled Meatballs</text>
+</svg>

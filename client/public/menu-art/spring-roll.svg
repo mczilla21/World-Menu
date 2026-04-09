@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#F1F8E9"/><stop offset="100%" stop-color="#8BC34A"/></radialGradient>
+</defs>
+<circle cx="200" cy="200" r="195" fill="url(#bg)"/>
+<!-- Plate -->
+<ellipse cx="200" cy="260" rx="150" ry="40" fill="#E0E0E0"/>
+<ellipse cx="200" cy="255" rx="150" ry="40" fill="#F5F5F5"/>
+<!-- Spring roll 1 (cut, showing filling) -->
+<rect x="110" y="170" width="100" height="40" rx="10" fill="#DAA520" stroke="#B8860B" stroke-width="2"/>
+<ellipse cx="210" cy="190" rx="12" ry="20" fill="#C8A415"/>
+<!-- Filling visible -->
+<circle cx="205" cy="183" r="4" fill="#81C784"/><circle cx="210" cy="192" r="3" fill="#FF8A65"/><circle cx="203" cy="196" r="3" fill="#F5F5DC"/>
+<!-- Spring roll 2 -->
+<rect x="130" y="210" width="100" height="40" rx="10" fill="#DAA520" stroke="#B8860B" stroke-width="2"/>
+<ellipse cx="230" cy="230" rx="12" ry="20" fill="#C8A415"/>
+<circle cx="225" cy="223" r="4" fill="#81C784"/><circle cx="230" cy="232" r="3" fill="#FF8A65"/><circle cx="223" cy="236" r="3" fill="#F5F5DC"/>
+<!-- Spring roll 3 (whole) -->
+<rect x="180" y="145" width="90" height="35" rx="10" fill="#DAA520" stroke="#B8860B" stroke-width="2" transform="rotate(-15,225,162)"/>
+<!-- Crispy texture lines -->
+<g stroke="#B8860B" stroke-width="0.5" opacity="0.4">
+<line x1="120" y1="178" x2="200" y2="178"/><line x1="120" y1="185" x2="200" y2="185"/><line x1="120" y1="195" x2="200" y2="195"/>
+<line x1="140" y1="218" x2="220" y2="218"/><line x1="140" y1="228" x2="220" y2="228"/><line x1="140" y1="238" x2="220" y2="238"/>
+</g>
+<!-- Dipping sauce bowl -->
+<ellipse cx="310" cy="230" rx="35" ry="12" fill="#8D6E63"/>
+<ellipse cx="310" cy="225" rx="35" ry="12" fill="#A1887F"/>
+<ellipse cx="310" cy="222" rx="30" ry="9" fill="#E53935"/>
+<!-- Chili flakes in sauce -->
+<circle cx="305" cy="221" r="1.5" fill="#B71C1C"/><circle cx="315" cy="223" r="1" fill="#B71C1C"/>
+<!-- Lettuce garnish -->
+<ellipse cx="100" cy="210" rx="20" ry="30" fill="#66BB6A" opacity="0.7"/>
+<ellipse cx="90" cy="200" rx="15" ry="25" fill="#81C784" opacity="0.6"/>
+<!-- Sparkle -->
+<g fill="#FFD700" opacity="0.7">
+<polygon points="280,140 283,148 291,148 285,153 287,161 280,156 273,161 275,153 269,148 277,148">
+<animate attributeName="opacity" values="0.7;0.3;0.7" dur="1.5s" repeatCount="indefinite"/>
+</polygon>
+</g>
+<!-- Label -->
+<text x="200" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#33691E">Spring Rolls</text>
+</svg>

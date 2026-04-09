@@ -137,8 +137,19 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
 
         // Skip these — protect user data
         if (['node_modules', '.git', 'restaurant.db', 'restaurant.db-shm', 'restaurant.db-wal', 'update-download.zip', 'update-temp', 'data'].includes(entry.name)) continue;
-        // Skip uploads folder inside server/ (user's food photos)
-        if (entry.name === 'uploads' && (src.includes('server') || src.includes('data'))) continue;
+        // In uploads folder: only copy SVG files (default art), skip user photos (jpg/png/webp)
+        if (entry.name === 'uploads' && entry.isDirectory() && (src.includes('server') || src.includes('data'))) {
+          // Copy SVGs only from uploads
+          const uploadsPath = path.join(src, 'uploads');
+          const destUploads = path.join(dest, 'uploads');
+          if (fs.existsSync(uploadsPath)) {
+            if (!fs.existsSync(destUploads)) fs.mkdirSync(destUploads, { recursive: true });
+            for (const f of fs.readdirSync(uploadsPath)) {
+              if (f.endsWith('.svg')) fs.copyFileSync(path.join(uploadsPath, f), path.join(destUploads, f));
+            }
+          }
+          continue;
+        }
 
         if (entry.isDirectory()) {
           if (!fs.existsSync(destPath)) fs.mkdirSync(destPath, { recursive: true });
