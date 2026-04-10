@@ -38,8 +38,8 @@ android {
 
 dependencies {
     // Stripe Terminal SDK — tap-to-pay
-    implementation("com.stripe:stripeterminal-core:4.2.0")
-    implementation("com.stripe:stripeterminal-taptopayplugin:4.2.0")
+    implementation("com.stripe:stripeterminal-core:4.5.0")
+    implementation("com.stripe:stripeterminal-taptopay:4.5.0")
 
     // Android essentials
     implementation("androidx.core:core-ktx:1.15.0")
