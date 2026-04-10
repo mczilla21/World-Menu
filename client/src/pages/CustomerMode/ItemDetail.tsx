@@ -36,7 +36,10 @@ interface Props {
   translateModifier: (modId: number, fallback: string) => string;
 }
 
+import { useSettings } from '../../hooks/useSettings';
+
 export default function ItemDetail({ item, translatedName, translatedDesc, currency, nativeName, themeColor, onClose, translateModGroup, translateModifier }: Props) {
+  const { settings } = useSettings();
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
   const [groupsLoaded, setGroupsLoaded] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -140,14 +143,13 @@ export default function ItemDetail({ item, translatedName, translatedDesc, curre
     onClose();
   };
 
-  // Detect bowl builder items:
-  // 1. Build-your-own: has broth + noodle + protein modifier groups
-  // 2. Ramen/noodle items: category contains "ramen" or "noodle" and has modifiers
-  const hasBuildSteps = groups.length >= 3
+  // Bowl builder — only when enabled in settings
+  const bowlBuilderEnabled = settings.bowl_builder_enabled === '1';
+  const hasBuildSteps = bowlBuilderEnabled && groups.length >= 3
     && groups.some(g => /broth|soup/i.test(g.name))
     && groups.some(g => /noodle/i.test(g.name))
     && groups.some(g => /protein|meat/i.test(g.name));
-  const isNoodleCategory = /ramen|noodle/i.test(item.category_name || '');
+  const isNoodleCategory = bowlBuilderEnabled && /ramen|noodle/i.test(item.category_name || '');
   const isBowlBuilder = groupsLoaded && (hasBuildSteps || (isNoodleCategory && groups.length > 0));
 
   // Loading state while modifier groups haven't loaded yet

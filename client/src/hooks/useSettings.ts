@@ -42,6 +42,8 @@ const defaultSettings: Settings = {
   // License
   license_key: '',
   license_status: 'demo',
+  // Features
+  bowl_builder_enabled: '0',
   // Payment
   card_surcharge: '3',
   // Idle screen

@@ -534,6 +534,18 @@ export default function SettingsManager() {
             <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-1 ${customerMode ? 'translate-x-5' : ''}`} />
           </button>
         </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-slate-200">Interactive Bowl Builder</div>
+            <div className="text-xs text-slate-500">Animated noodle bowl builder for ramen/noodle restaurants</div>
+          </div>
+          <button
+            onClick={() => updateSetting('bowl_builder_enabled', settings.bowl_builder_enabled === '1' ? '0' : '1')}
+            className={`w-12 h-7 rounded-full transition-colors ${settings.bowl_builder_enabled === '1' ? 'bg-green-600' : 'bg-slate-600'}`}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-1 ${settings.bowl_builder_enabled === '1' ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* QR Code Generator */}
