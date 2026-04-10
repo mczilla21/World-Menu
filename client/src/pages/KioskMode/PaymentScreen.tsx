@@ -124,92 +124,54 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   };
 
   const [cardError, setCardError] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardName, setCardName] = useState('');
+
+  const formatCardNumber = (v: string) => {
+    const digits = v.replace(/\D/g, '').slice(0, 16);
+    return digits.replace(/(.{4})/g, '$1 ').trim();
+  };
+
+  const formatExpiry = (v: string) => {
+    const digits = v.replace(/\D/g, '').slice(0, 4);
+    if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
+    return digits;
+  };
 
   const handleCardPay = async () => {
+    const digits = cardNumber.replace(/\s/g, '');
+    if (digits.length < 13) { setCardError('Enter a valid card number'); return; }
+    if (cardExpiry.replace(/\D/g, '').length < 4) { setCardError('Enter expiry as MM/YY'); return; }
+    if (cardCvv.length < 3) { setCardError('Enter CVV'); return; }
+
     setCardProcessing(true);
     setCardError('');
     try {
-      // Step 1: Get checkout token from server
-      console.log('[Payment] Requesting checkout token...');
-      const res = await fetch('/api/payments/create-intent', {
+      const res = await fetch('/api/payments/helcim/charge', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table_number: tableNumber, amount: Math.round(cardTotal * 100) }),
+        body: JSON.stringify({
+          table_number: tableNumber,
+          amount: Math.round(cardTotal * 100),
+          card_number: digits,
+          expiry: cardExpiry,
+          cvv: cardCvv,
+          cardholder_name: cardName,
+        }),
       });
       const data = await res.json();
-      console.log('[Payment] Server response:', data);
-
-      if (data.checkoutToken) {
-        // Hide processing UI so Helcim modal can render on top
-        setCardProcessing(false);
-
-        // Step 2: Listen for payment result BEFORE loading script
-        const handleMessage = (event: MessageEvent) => {
-          const eventData = event.data;
-          if (typeof eventData === 'string') {
-            try {
-              const parsed = JSON.parse(eventData);
-              console.log('[Payment] Helcim message:', parsed.eventName);
-              if (parsed.eventName === 'helcim-pay-success') {
-                window.removeEventListener('message', handleMessage);
-                setCardDone(true);
-                onComplete('card', cardTotal);
-              } else if (parsed.eventName === 'helcim-pay-error') {
-                window.removeEventListener('message', handleMessage);
-                setCardError('Payment declined. Please try again.');
-              } else if (parsed.eventName === 'helcim-pay-close') {
-                window.removeEventListener('message', handleMessage);
-                setView('summary');
-              }
-            } catch {}
-          }
-        };
-        window.addEventListener('message', handleMessage);
-
-        // Step 3: Load HelcimPay.js and open checkout modal
-        const existingScript = document.querySelector('script[src*="helcim-pay"]');
-        if (existingScript) existingScript.remove();
-        // Also remove any leftover Helcim iframes
-        document.getElementById('helcimPayIframe')?.remove();
-
-        const script = document.createElement('script');
-        // Always use production script — works with both sandbox and production tokens
-        script.src = 'https://secure.helcim.app/helcim-pay/services/start.js';
-        script.onload = () => {
-          console.log('[Payment] Helcim script loaded');
-          if (typeof (window as any).appendHelcimPayIframe === 'function') {
-            console.log('[Payment] Opening Helcim checkout...');
-            (window as any).appendHelcimPayIframe(data.checkoutToken);
-            // Ensure the Helcim iframe is on top of everything
-            setTimeout(() => {
-              const iframe = document.getElementById('helcimPayIframe');
-              if (iframe) {
-                iframe.style.zIndex = '99999';
-                iframe.style.position = 'fixed';
-                console.log('[Payment] Helcim iframe found and z-indexed');
-              } else {
-                console.warn('[Payment] Helcim iframe not found after appendHelcimPayIframe');
-                setCardError('Card terminal failed to load. Try again.');
-              }
-            }, 500);
-          } else {
-            console.error('[Payment] appendHelcimPayIframe function not found');
-            setCardError('Card terminal script failed. Try again.');
-          }
-        };
-        script.onerror = () => {
-          console.error('[Payment] Failed to load Helcim script');
-          setCardError('Could not load card terminal. Check internet connection.');
-        };
-        document.body.appendChild(script);
-      } else if (data.error) {
-        setCardProcessing(false);
-        setCardError(data.error);
-      } else {
-        // No payment provider configured — simulate for testing
-        await new Promise(r => setTimeout(r, 2000));
+      if (data.ok) {
         setCardDone(true);
         setCardProcessing(false);
-        onComplete('card', cardTotal);
+        if (enableReceiptPrompt) {
+          setReceiptPrompt(true);
+        } else {
+          onComplete('card', cardTotal);
+        }
+      } else {
+        setCardProcessing(false);
+        setCardError(data.error || 'Payment declined');
       }
     } catch {
       setCardProcessing(false);
@@ -340,7 +302,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                 <div className="text-left"><div className="text-xl font-bold text-white">Cash</div><div className="text-xs" style={{ color: '#ffffffbb' }}>No processing fee</div></div>
                 <span className="ml-auto text-xl font-black text-white">{currency}{cashTotal.toFixed(2)}</span>
               </button>
-              <button onClick={() => { setView('card'); handleCardPay(); }} className="w-full rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-[0.98]" style={{ background: `linear-gradient(to bottom, ${theme.info}, ${theme.infoDark})`, boxShadow: `0 4px 12px ${theme.info}30` }}>
+              <button onClick={() => setView('card')} className="w-full rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-[0.98]" style={{ background: `linear-gradient(to bottom, ${theme.info}, ${theme.infoDark})`, boxShadow: `0 4px 12px ${theme.info}30` }}>
                 <span className="text-4xl">💳</span>
                 <div className="text-left">
                   <div className="text-xl font-bold text-white">Card</div>
@@ -403,29 +365,92 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
         {/* Card */}
         {view === 'card' && (
           <div className="flex-1 flex items-center justify-center p-6">
-            <div className="text-center">
+            <div className="text-center w-full max-w-sm">
               {!cardDone ? (
                 <>
-                  <div className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center animate-pulse" style={{ background: `${theme.info}20` }}><span className="text-5xl">💳</span></div>
-                  <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
-                    {cardProcessing ? 'Connecting...' : 'Waiting for Helcim...'}
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: `${theme.info}20` }}><span className="text-3xl">💳</span></div>
+                  <h2 className="text-xl font-bold mb-4" style={{ color: theme.text }}>
+                    {cardProcessing ? 'Processing...' : 'Enter Card Details'}
                   </h2>
-                  <p style={{ color: theme.textMuted }}>
-                    {cardProcessing ? 'Setting up card terminal' : 'The payment window should appear. If not, try again.'}
-                  </p>
                   {cardError && (
-                    <div className="mt-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: '#ef444420', color: '#ef4444' }}>
+                    <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: '#ef444420', color: '#ef4444' }}>
                       {cardError}
                     </div>
                   )}
-                  <div className="flex gap-3 mt-6 justify-center">
-                    {!cardProcessing && (
-                      <button onClick={() => { setCardError(''); handleCardPay(); }} className="px-8 py-3 rounded-xl font-semibold" style={{ background: theme.info, color: '#fff' }}>
-                        Retry
+                  {!cardProcessing && (
+                    <div className="space-y-3 text-left">
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>Card Number</label>
+                        <input
+                          value={cardNumber}
+                          onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                          placeholder="4242 4242 4242 4242"
+                          maxLength={19}
+                          inputMode="numeric"
+                          autoFocus
+                          className="w-full px-4 py-3.5 rounded-xl text-lg tracking-widest outline-none"
+                          style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>Expiry</label>
+                          <input
+                            value={cardExpiry}
+                            onChange={e => setCardExpiry(formatExpiry(e.target.value))}
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            inputMode="numeric"
+                            className="w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
+                            style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>CVV</label>
+                          <input
+                            value={cardCvv}
+                            onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            placeholder="123"
+                            maxLength={4}
+                            inputMode="numeric"
+                            type="password"
+                            className="w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
+                            style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>Name on Card (optional)</label>
+                        <input
+                          value={cardName}
+                          onChange={e => setCardName(e.target.value)}
+                          placeholder="John Doe"
+                          className="w-full px-4 py-3 rounded-xl outline-none"
+                          style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                        />
+                      </div>
+                      <button
+                        onClick={handleCardPay}
+                        className="w-full py-4 rounded-2xl font-bold text-lg text-white transition-all active:scale-[0.98] mt-2"
+                        style={{ background: theme.info, boxShadow: `0 4px 12px ${theme.info}30` }}
+                      >
+                        Pay {currency}{cardTotal.toFixed(2)}
                       </button>
-                    )}
-                    <button onClick={() => { setCardError(''); setView('summary'); document.getElementById('helcimPayIframe')?.remove(); }} className="px-8 py-3 rounded-xl" style={{ background: theme.bgCardHover, color: theme.textSecondary }}>Cancel</button>
-                  </div>
+                      <button
+                        onClick={() => { setCardError(''); setView('summary'); }}
+                        className="w-full py-3 rounded-xl font-semibold"
+                        style={{ background: theme.bgCardHover, color: theme.textSecondary }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {cardProcessing && (
+                    <div className="mt-4">
+                      <div className="animate-spin w-8 h-8 border-4 rounded-full mx-auto mb-3" style={{ borderColor: `${theme.info}30`, borderTopColor: theme.info }} />
+                      <p style={{ color: theme.textMuted }}>Charging card...</p>
+                    </div>
+                  )}
                 </>
               ) : receiptPrompt ? (
                 <>
