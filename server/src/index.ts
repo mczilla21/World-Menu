@@ -266,6 +266,7 @@ async function start() {
 
   // Start auto cloud backup (every 6 hours + on startup)
   startAutoBackup();
+
 }
 
 start().catch((err) => {

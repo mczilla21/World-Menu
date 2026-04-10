@@ -6,6 +6,23 @@ interface TranslationMap {
   [entityId: number]: { name?: string; description?: string };
 }
 
+// Global refresh trigger — incremented when TRANSLATIONS_UPDATED arrives
+let translationRefreshKey = 0;
+const translationListeners = new Set<() => void>();
+
+// Listen for WebSocket translation updates (called once from any component)
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (e) => {
+    try {
+      const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+      if (data?.type === 'TRANSLATIONS_UPDATED') {
+        translationRefreshKey++;
+        translationListeners.forEach(fn => fn());
+      }
+    } catch {}
+  });
+}
+
 /**
  * Fetches menu item and category translations for the current display language.
  * Returns helpers to get translated names — falls back to the original name.
@@ -16,6 +33,14 @@ export function useMenuTranslations() {
   const nativeLang = settings.native_language || 'en';
   const [itemTranslations, setItemTranslations] = useState<TranslationMap>({});
   const [catTranslations, setCatTranslations] = useState<TranslationMap>({});
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Listen for translation updates
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    translationListeners.add(handler);
+    return () => { translationListeners.delete(handler); };
+  }, []);
 
   // Only fetch translations if display language differs from native
   const needsTranslation = lang && lang !== nativeLang && lang !== 'en';
@@ -50,12 +75,20 @@ export function useMenuTranslations() {
 
         setItemTranslations(iMap);
         setCatTranslations(cMap);
+
+        // If translations came back empty, the server is translating in the background
+        // Retry after a few seconds to pick up the results
+        if (items.length === 0 && cats.length === 0) {
+          setTimeout(() => setRefreshKey(k => k + 1), 5000);
+          setTimeout(() => setRefreshKey(k => k + 1), 15000);
+          setTimeout(() => setRefreshKey(k => k + 1), 30000);
+        }
       } catch {
         setItemTranslations({});
         setCatTranslations({});
       }
     })();
-  }, [lang, needsTranslation]);
+  }, [lang, needsTranslation, refreshKey]);
 
   const itemName = useCallback((id: number, fallback: string) => {
     return itemTranslations[id]?.name || fallback;

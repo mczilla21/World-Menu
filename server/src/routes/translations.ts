@@ -2,6 +2,70 @@ import type { FastifyInstance } from 'fastify';
 import { getDb } from '../db/connection.js';
 import { broadcastToAll } from '../ws/broadcast.js';
 
+// Track in-progress translations to avoid duplicates
+const translatingLangs = new Set<string>();
+
+async function translateText(text: string, from: string, to: string): Promise<string> {
+  if (!text?.trim()) return '';
+  try {
+    const res = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(`${from}|${to}`)}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (res.ok) {
+      const data = await res.json() as any;
+      if (data.responseStatus === 200 && data.responseData?.translatedText) {
+        return data.responseData.translatedText;
+      }
+    }
+  } catch {}
+  return '';
+}
+
+function triggerBackgroundTranslate(entityType: string, lang: string) {
+  const key = `${entityType}:${lang}`;
+  if (translatingLangs.has(key)) return;
+  translatingLangs.add(key);
+
+  const db = getDb();
+  const nativeLang = (db.prepare("SELECT value FROM settings WHERE key = 'native_language'").get() as any)?.value || 'en';
+
+  (async () => {
+    try {
+      const entities = entityType === 'menu_item'
+        ? db.prepare('SELECT id, name, description FROM menu_items WHERE is_active = 1').all() as any[]
+        : db.prepare('SELECT id, name FROM categories').all() as any[];
+
+      const upsert = db.prepare(`
+        INSERT INTO translations (entity_type, entity_id, field, lang, value)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(entity_type, entity_id, field, lang) DO UPDATE SET value = excluded.value
+      `);
+
+      console.log(`[Auto-translate] Translating ${entities.length} ${entityType}s to ${lang}...`);
+
+      for (const entity of entities) {
+        const translated = await translateText(entity.name, nativeLang, lang);
+        if (translated) upsert.run(entityType, entity.id, 'name', lang, translated);
+        await new Promise(r => setTimeout(r, 300));
+
+        if (entityType === 'menu_item' && entity.description) {
+          const descTranslated = await translateText(entity.description, nativeLang, lang);
+          if (descTranslated) upsert.run(entityType, entity.id, 'description', lang, descTranslated);
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+
+      console.log(`[Auto-translate] ${entityType} → ${lang} complete!`);
+      broadcastToAll({ type: 'MENU_UPDATED' });
+    } catch (e) {
+      console.error(`[Auto-translate] Failed:`, e);
+    } finally {
+      translatingLangs.delete(key);
+    }
+  })();
+}
+
 export function registerTranslationRoutes(app: FastifyInstance) {
   // Get all translations for an entity
   app.get<{ Params: { entityType: string; entityId: string } }>(
@@ -38,9 +102,16 @@ export function registerTranslationRoutes(app: FastifyInstance) {
       }
 
       if (lang) {
-        return db.prepare(
+        const existing = db.prepare(
           'SELECT * FROM translations WHERE entity_type = ? AND lang = ?'
         ).all(entityType, lang);
+
+        // If no translations exist for this language, trigger auto-translate in background
+        if (existing.length === 0 && lang !== 'en') {
+          triggerBackgroundTranslate(entityType, lang);
+        }
+
+        return existing;
       }
 
       return db.prepare(
