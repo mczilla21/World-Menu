@@ -164,6 +164,7 @@ export function registerPaymentRoutes(app: FastifyInstance) {
           body: JSON.stringify({
             amount: amount / 100, // API expects dollars, we send cents
             currency: 'USD',
+            ipAddress: req.ip || '127.0.0.1',
             cardData: {
               cardNumber: card_number.replace(/\s/g, ''),
               cardExpiry: `${expiryMonth}${expiryYear}`,
