@@ -630,19 +630,21 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
       subtotal={subtotal}
       currency={currency}
       enableReceiptPrompt={true}
-      onComplete={(method, amount) => {
-        if (orderId) {
-          fetch(`/api/orders/${orderId}/payment`, {
-            method: 'PATCH',
+      onComplete={async (method, amount) => {
+        try {
+          if (orderId) {
+            await fetch(`/api/orders/${orderId}/payment`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ payment_method: method }),
+            });
+          }
+          await fetch(`/api/tables/${encodeURIComponent(tableNumber)}/close`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ payment_method: method }),
-          }).catch(() => {});
-        }
-        fetch(`/api/tables/${encodeURIComponent(tableNumber)}/close`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'complete' }),
-        }).catch(() => {});
+            body: JSON.stringify({ mode: 'complete' }),
+          });
+        } catch {}
         onDone();
       }}
       onBack={onDone}

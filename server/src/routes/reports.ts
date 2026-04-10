@@ -8,8 +8,8 @@ export function registerReportRoutes(app: FastifyInstance) {
     const today = new Date().toISOString().slice(0, 10);
 
     const orders = db.prepare(
-      "SELECT * FROM orders WHERE date(created_at) = ? AND is_archived = 0"
-    ).all(today) as any[];
+      "SELECT * FROM orders WHERE date(created_at) = date('now', 'localtime') AND is_archived = 0 AND status != 'voided'"
+    ).all() as any[];
 
     const orderIds = orders.map(o => o.id);
     let items: any[] = [];

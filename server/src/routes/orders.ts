@@ -217,7 +217,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
   // List finished orders
   app.get('/api/orders/finished', () => {
     const db = getDb();
-    const orders = db.prepare("SELECT * FROM orders WHERE status = 'finished' AND closed = 0 AND is_archived = 0 ORDER BY finished_at DESC LIMIT 50").all() as any[];
+    const orders = db.prepare("SELECT * FROM orders WHERE status = 'finished' AND is_archived = 0 AND date(created_at) >= date('now', '-1 day', 'localtime') ORDER BY finished_at DESC LIMIT 50").all() as any[];
     return orders.map(o => {
       o.items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(o.id);
       return o;
