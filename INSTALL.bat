@@ -9,16 +9,33 @@ echo        W O R L D   M E N U   P O S   -   S E T U P
 echo   ============================================================
 echo.
 
-:: Check Node.js
+:: Check Node.js — auto-install if missing
 node --version >nul 2>&1
 if errorlevel 1 (
-    echo   ERROR: Node.js is not installed!
-    echo   Download it free from https://nodejs.org
-    echo.
-    pause
-    exit /b 1
+    echo   Node.js not found — installing automatically...
+    echo   Downloading Node.js... (this may take a minute)
+    powershell -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi' -OutFile '%TEMP%\node-install.msi'" >nul 2>&1
+    if not exist "%TEMP%\node-install.msi" (
+        echo   ERROR: Could not download Node.js. Check internet connection.
+        echo   Or download manually from https://nodejs.org
+        pause
+        exit /b 1
+    )
+    echo   Installing Node.js silently...
+    msiexec /i "%TEMP%\node-install.msi" /qn /norestart >nul 2>&1
+    del "%TEMP%\node-install.msi" >nul 2>&1
+    :: Refresh PATH so node is available
+    set "PATH=%PATH%;C:\Program Files\nodejs"
+    node --version >nul 2>&1
+    if errorlevel 1 (
+        echo   ERROR: Node.js install failed. Please install manually from https://nodejs.org
+        pause
+        exit /b 1
+    )
+    echo   Node.js installed!
+) else (
+    echo   Node.js found.
 )
-echo   Node.js found.
 
 :: Ensure directories exist
 if not exist "server\data" mkdir "server\data"

@@ -139,12 +139,26 @@ function doInstall() {
   setIcon('i1', 'run');
   log('Installing World Menu to ' + installDir + '...');
 
-  // Check Node
+  // Check Node — auto-install if missing
   if (!nodeFound) {
-    setIcon('i1', 'fail'); log('Node.js not found!');
-    document.getElementById('errBox').style.display = '';
-    document.getElementById('errBox').innerHTML = 'We need Node.js to run World Menu.<br>Download it free from <b>nodejs.org</b> then come back!';
-    return;
+    log('Node.js not found — downloading automatically...');
+    setIcon('i1', 'run');
+    try {
+      shell.Run('cmd /c powershell -Command "Invoke-WebRequest -Uri \'https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi\' -OutFile \'%TEMP%\\node-install.msi\'"', 0, true);
+      log('Installing Node.js silently...');
+      shell.Run('cmd /c msiexec /i "%TEMP%\\node-install.msi" /qn /norestart', 0, true);
+      shell.Run('cmd /c del "%TEMP%\\node-install.msi"', 0, true);
+      // Verify
+      var exec2 = shell.Exec('cmd /c "C:\\Program Files\\nodejs\\node.exe" --version 2>&1');
+      var out2 = ""; while (!exec2.StdOut.AtEndOfStream) out2 += exec2.StdOut.ReadLine();
+      if (out2.indexOf("v") === 0) { nodeFound = true; log('Node.js ' + out2 + ' installed!'); }
+      else { setIcon('i1', 'fail'); log('Node.js install failed'); document.getElementById('errBox').style.display = ''; document.getElementById('errBox').innerHTML = 'Could not install Node.js automatically.<br>Download from <b>nodejs.org</b> and try again.'; return; }
+    } catch(e) {
+      setIcon('i1', 'fail'); log('Download failed: ' + e.message);
+      document.getElementById('errBox').style.display = '';
+      document.getElementById('errBox').innerHTML = 'Could not download Node.js. Check internet connection.<br>Or download from <b>nodejs.org</b> manually.';
+      return;
+    }
   }
 
   // Copy files from source (USB/download) to C:\world-menu-pos
