@@ -108,10 +108,9 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     const amount = (amountCents / 100).toFixed(2);
 
     try {
-      // Use sandbox API when in sandbox mode, production otherwise
+      // Helcim uses the same API endpoint for sandbox and production — the token determines which
       const isSandbox = getSetting('sandbox_mode') === '1';
-      const helcimApiBase = isSandbox ? 'https://api.mypostest.helcim.com' : 'https://api.helcim.com';
-      const response = await fetch(`${helcimApiBase}/v2/helcim-pay/initialize`, {
+      const response = await fetch('https://api.helcim.com/v2/helcim-pay/initialize', {
         method: 'POST',
         headers: {
           'api-token': apiToken,
