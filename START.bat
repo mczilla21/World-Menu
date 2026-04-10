@@ -54,5 +54,12 @@ echo.
 echo   ============================================================
 echo.
 
-:: Start the server (open http://localhost:3000 in your browser)
+:: Start the server — auto-restart after updates
+:loop
+cd /d "%~dp0"
 cd server && npx tsx src/index.ts
+echo.
+echo   Server stopped. Restarting in 3 seconds...
+echo   (Close this window to stop World Menu)
+timeout /t 3 /nobreak >nul
+goto loop

@@ -205,7 +205,13 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     // Broadcast to all clients
     broadcastToAll({ type: 'APP_UPDATED', version: info.latestVersion });
 
-    return { ok: true, message: `Updated to v${info.latestVersion}! Close this window and reopen START.bat to finish.` };
+    // Auto-restart: exit process so START.bat loop restarts with new code
+    setTimeout(() => {
+      console.log('Restarting server with new code...');
+      process.exit(0);
+    }, 2000);
+
+    return { ok: true, message: `Updated to v${info.latestVersion}! Server is restarting...` };
   } catch (err: any) {
     return { ok: false, message: err.message || 'Update failed' };
   }
