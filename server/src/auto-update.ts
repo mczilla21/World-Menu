@@ -167,6 +167,15 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     fs.rmSync(zipPath, { force: true });
     fs.rmSync(extractDir, { recursive: true, force: true });
 
+    // Install any new dependencies
+    console.log('Installing dependencies...');
+    try {
+      execSync('npm install --omit=dev', { cwd: PROJECT_ROOT, timeout: 120000, stdio: 'pipe' });
+      console.log('Dependencies installed');
+    } catch {
+      console.error('npm install failed — some features may not work until manually installed');
+    }
+
     // Rebuild client
     console.log('Rebuilding client...');
     try {
