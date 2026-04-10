@@ -5,6 +5,8 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useMenu } from '../../hooks/useMenu';
 import { useI18n } from '../../i18n/useI18n';
 import { useTheme } from '../../hooks/useTheme';
+import { useMenuTranslations } from '../../hooks/useMenuTranslations';
+import LangToggle from '../../components/LangToggle';
 import OrderCard from './OrderCard';
 
 function playChime() {
@@ -56,6 +58,7 @@ export default function KitchenMode() {
   const { items: menuItems, categories } = useMenu();
   const { t } = useI18n();
   const theme = useTheme();
+  const { itemName: tItem } = useMenuTranslations();
   const initialLoadDone = useRef(false);
 
   // Build a map of menu_item_id -> category_id
@@ -264,6 +267,7 @@ export default function KitchenMode() {
           >
             {showHistory ? 'Active' : `History (${finishedOrders.length})`}
           </button>
+          <LangToggle />
           <button onClick={() => navigate('/staff-select')} style={{ fontSize: 12, color: theme.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>← Back</button>
           <button onClick={switchRole} style={{ fontSize: 11, color: theme.textSecondary, background: 'none', border: 'none', cursor: 'pointer' }}>Logout</button>
         </div>

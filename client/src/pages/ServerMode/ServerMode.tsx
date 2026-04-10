@@ -17,6 +17,7 @@ import ApprovalBadge from './ApprovalBadge';
 import LangToggle from '../../components/LangToggle';
 import type { MenuItem, ItemVariant } from '../../hooks/useMenu';
 import { useI18n } from '../../i18n/useI18n';
+import { useMenuTranslations } from '../../hooks/useMenuTranslations';
 
 type View = 'table' | 'menu' | 'review' | 'history' | 'sent' | 'overview' | 'payment';
 
@@ -63,6 +64,7 @@ export default function ServerMode() {
   const { settings } = useSettings();
   const { tableNumber, cart, orderType, customerName, setTable, setExistingOrder, setOrderType, setCustomerName, addItem, addSimpleItem, removeItem, incrementItem, updateItemNote, clearCart, submitOrder } = useOrderStore();
   const { t } = useI18n();
+  const { itemName: tItem } = useMenuTranslations();
 
   // Persist server view state across role switches
   useEffect(() => {
@@ -366,7 +368,7 @@ export default function ServerMode() {
                     <div key={c.id} className="flex items-start justify-between text-[11px] leading-tight py-1 border-b border-slate-700/30">
                       <div className="flex-1 min-w-0">
                         <span className="text-white font-medium">{c.quantity}x</span>{' '}
-                        <span className="text-slate-300">{c.item_name}</span>
+                        <span className="text-slate-300">{c.menu_item_id ? tItem(c.menu_item_id, c.item_name) : c.item_name}</span>
                         {c.notes && <div className="text-[10px] text-slate-500 truncate">{c.notes}</div>}
                       </div>
                       <span className="text-slate-400 ml-1 shrink-0">{currency}{(c.item_price * c.quantity).toFixed(2)}</span>
@@ -493,7 +495,7 @@ export default function ServerMode() {
                           <div key={i} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className={`w-2 h-2 rounded-full ${item.is_done ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                              <span className="text-slate-200">{item.quantity}x {item.item_name}</span>
+                              <span className="text-slate-200">{item.quantity}x {item.menu_item_id ? tItem(item.menu_item_id, item.item_name) : item.item_name}</span>
                             </div>
                             <span className="text-slate-400">{currency}{(item.item_price * item.quantity).toFixed(2)}</span>
                           </div>

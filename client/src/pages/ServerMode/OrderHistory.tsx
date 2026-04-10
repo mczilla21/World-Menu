@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Order } from '../../hooks/useOrders';
 import { useSettings } from '../../hooks/useSettings';
+import { useMenuTranslations } from '../../hooks/useMenuTranslations';
 
 interface Props {
   onBack: () => void;
@@ -44,6 +45,7 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
   const [clearing, setClearing] = useState(false);
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
+  const { itemName: tItem } = useMenuTranslations();
 
   const fetchOrders = () => {
     setLoading(true);
@@ -189,7 +191,7 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
                       {order.items.map(item => (
                         <div key={item.id}>
                           <div className="text-sm text-slate-300 flex items-center justify-between">
-                            <span>{item.quantity > 1 ? `${item.quantity}x ` : ''}{item.item_name}{item.variant_name ? ` (${item.variant_name})` : ''}</span>
+                            <span>{item.quantity > 1 ? `${item.quantity}x ` : ''}{item.menu_item_id ? tItem(item.menu_item_id, item.item_name) : item.item_name}{item.variant_name ? ` (${item.variant_name})` : ''}</span>
                             <div className="flex items-center gap-2 shrink-0">
                               {(item.item_price || 0) * item.quantity > 0 && (
                                 <span className="text-[11px] text-slate-600">{currency}{((item.item_price || 0) * item.quantity).toFixed(2)}</span>

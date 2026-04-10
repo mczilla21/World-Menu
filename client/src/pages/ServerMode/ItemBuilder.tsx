@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useOrderStore } from '../../stores/orderStore';
 import { useTheme } from '../../hooks/useTheme';
 import { useSettings } from '../../hooks/useSettings';
+import { useMenuTranslations } from '../../hooks/useMenuTranslations';
 
 interface Modifier {
   id: number;
@@ -33,6 +34,7 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
   const t = useTheme();
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
+  const { itemName: tItemName } = useMenuTranslations();
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [stepIdx, setStepIdx] = useState(0);
@@ -152,7 +154,7 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
           <div>
-            <h2 className="font-bold text-lg" style={{ color: t.text }}>{item.name}</h2>
+            <h2 className="font-bold text-lg" style={{ color: t.text }}>{tItemName(item.id, item.name)}</h2>
             {(itemPrice > 0 || totalExtra > 0) && (
               <p className="text-sm" style={{ color: t.primary }}>
                 {itemPrice > 0 ? `${currency}${(itemPrice + totalExtra).toFixed(2)}` : `+${currency}${totalExtra.toFixed(2)}`}

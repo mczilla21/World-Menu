@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CartItem } from '../../stores/orderStore';
 import { useSettings } from '../../hooks/useSettings';
+import { useMenuTranslations } from '../../hooks/useMenuTranslations';
 
 interface Props {
   cart: CartItem[];
@@ -30,6 +31,7 @@ export default function OrderReview({ cart, tableNumber, orderType, customerName
   const grouped = groupByCustomer(cart);
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
+  const { itemName: tItem } = useMenuTranslations();
 
   const grandTotal = cart.reduce((sum, i) => sum + i.item_price * i.quantity, 0);
 
@@ -87,7 +89,7 @@ export default function OrderReview({ cart, tableNumber, orderType, customerName
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <span className="font-medium text-white">
-                          {item.item_name}
+                          {item.menu_item_id ? tItem(item.menu_item_id, item.item_name) : item.item_name}
                           {item.variant_name && <span className="text-blue-300 ml-1">({item.variant_name})</span>}
                         </span>
                         {item.combo_slot_label && (

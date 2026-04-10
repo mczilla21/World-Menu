@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import type { Order, OrderItem } from '../../hooks/useOrders';
 import { useTheme } from '../../hooks/useTheme';
+import { useMenuTranslations } from '../../hooks/useMenuTranslations';
 
 interface Props {
   order: Order;
@@ -30,6 +31,7 @@ function groupByCustomer(items: OrderItem[]): Map<number, OrderItem[]> {
 
 export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds, isHistory, onCheck, onUncheck, onComplete, onMarkPreparing, on86, onDismiss, tick }: Props) {
   const t = useTheme();
+  const { itemName: tItem } = useMenuTranslations();
   const kitchenItems = order.items.filter((i) => i.show_in_kitchen);
 
   // Long-press popup state
@@ -113,7 +115,7 @@ export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-base font-medium">
-              {item.item_name}
+              {item.menu_item_id ? tItem(item.menu_item_id, item.item_name) : item.item_name}
               {item.variant_name && <span className="text-blue-300 ml-1">({item.variant_name})</span>}
             </span>
             {isNewItem && (
