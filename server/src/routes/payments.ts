@@ -132,6 +132,58 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   });
 
+  // Direct card charge — requires "Payment API" permission on the Helcim API token
+  app.post<{ Body: { table_number: string; amount: number; card_number: string; expiry: string; cvv: string; cardholder_name?: string } }>(
+    '/api/payments/helcim/charge',
+    async (req, reply) => {
+      const apiToken = getSetting('helcim_api_token');
+      if (!apiToken) return reply.status(400).send({ error: 'Helcim not configured' });
+
+      const { amount, card_number, expiry, cvv, cardholder_name } = req.body;
+      if (!card_number || !expiry || !cvv || !amount) {
+        return reply.status(400).send({ error: 'Missing card details' });
+      }
+
+      const cleaned = expiry.replace(/[^0-9]/g, '');
+      const cardExpiry = cleaned.slice(0, 2) + (cleaned.length === 4 ? cleaned.slice(2, 4) : cleaned.slice(2));
+
+      try {
+        const { randomUUID } = await import('crypto');
+        const response = await fetch('https://api.helcim.com/v2/payment/purchase', {
+          method: 'POST',
+          headers: {
+            'api-token': apiToken,
+            'idempotency-key': randomUUID(),
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: amount / 100,
+            currency: 'USD',
+            ipAddress: req.ip || '127.0.0.1',
+            ecommerce: true,
+            cardData: {
+              cardNumber: card_number.replace(/\s/g, ''),
+              cardExpiry,
+              cardCVV: cvv,
+              cardHolderName: cardholder_name || 'Customer',
+            },
+          }),
+        });
+
+        const data = await response.json() as any;
+        console.log('[Helcim charge]', response.status, JSON.stringify(data));
+        if (data.status === 'APPROVED' || data.transactionId) {
+          return { ok: true, transactionId: data.transactionId, status: data.status, approvalCode: data.approvalCode };
+        }
+        const errMsg = data.errors?.cardNumber || data.errors?.message || data.errors?.[0]?.message || data.message || JSON.stringify(data);
+        return reply.status(400).send({ error: errMsg });
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
   // ============================================
   // UNIFIED - uses whichever is configured (priority: helcim > square > stripe)
   // ============================================
