@@ -132,53 +132,78 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   });
 
-  // Direct card charge — requires "Payment API" permission on the Helcim API token
+  // Helcim.js direct charge — uses Helcim.js config token (not API token)
+  // This bypasses the "Not allowed to send full card number" restriction
   app.post<{ Body: { table_number: string; amount: number; card_number: string; expiry: string; cvv: string; cardholder_name?: string } }>(
     '/api/payments/helcim/charge',
     async (req, reply) => {
-      const apiToken = getSetting('helcim_api_token');
-      if (!apiToken) return reply.status(400).send({ error: 'Helcim not configured' });
+      const jsToken = getSetting('helcim_js_token');
+      if (!jsToken) return reply.status(400).send({ error: 'Helcim.js not configured — add token in Admin → Settings' });
 
-      const { amount, card_number, expiry, cvv, cardholder_name } = req.body;
+      const { amount, card_number, expiry, cvv, cardholder_name, table_number } = req.body;
       if (!card_number || !expiry || !cvv || !amount) {
         return reply.status(400).send({ error: 'Missing card details' });
       }
 
       const cleaned = expiry.replace(/[^0-9]/g, '');
-      const cardExpiry = cleaned.slice(0, 2) + (cleaned.length === 4 ? cleaned.slice(2, 4) : cleaned.slice(2));
+      const expiryMonth = cleaned.slice(0, 2);
+      const expiryYear = cleaned.length >= 4 ? cleaned.slice(2, 4) : cleaned.slice(2);
+      const amountDollars = (amount / 100).toFixed(2);
 
       try {
-        const { randomUUID } = await import('crypto');
-        const response = await fetch('https://api.helcim.com/v2/payment/purchase', {
+        // Use sandbox or production endpoint based on sandbox_mode setting
+        const isSandbox = getSetting('sandbox_mode') === '1';
+        const helcimUrl = isSandbox
+          ? 'https://mypostest.helcim.com/helcim.js/version2'
+          : 'https://secure.myhelcim.com/helcim.js/version2';
+
+        // Helcim.js uses form POST, not JSON
+        const formData = new URLSearchParams();
+        formData.append('token', jsToken);
+        formData.append('language', 'en');
+        formData.append('test', isSandbox ? '1' : '0');
+        formData.append('amount', amountDollars);
+        formData.append('cardNumber', card_number.replace(/\s/g, ''));
+        formData.append('cardExpiryMonth', expiryMonth);
+        formData.append('cardExpiryYear', expiryYear);
+        formData.append('cardCVV', cvv);
+        formData.append('cardHolderName', cardholder_name || 'Customer');
+        formData.append('cardHolderAddress', '');
+        formData.append('cardHolderPostalCode', '');
+
+        console.log('[Helcim.js] Charging', amountDollars, 'via', helcimUrl);
+        const response = await fetch(helcimUrl, {
           method: 'POST',
-          headers: {
-            'api-token': apiToken,
-            'idempotency-key': randomUUID(),
-            'Content-Type': 'application/json',
-            'accept': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: amount / 100,
-            currency: 'USD',
-            ipAddress: req.ip || '127.0.0.1',
-            ecommerce: true,
-            cardData: {
-              cardNumber: card_number.replace(/\s/g, ''),
-              cardExpiry,
-              cardCVV: cvv,
-              cardHolderName: cardholder_name || 'Customer',
-            },
-          }),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData.toString(),
         });
 
-        const data = await response.json() as any;
-        console.log('[Helcim charge]', response.status, JSON.stringify(data));
-        if (data.status === 'APPROVED' || data.transactionId) {
-          return { ok: true, transactionId: data.transactionId, status: data.status, approvalCode: data.approvalCode };
+        const text = await response.text();
+        console.log('[Helcim.js] Response status:', response.status);
+        console.log('[Helcim.js] Response body:', text.slice(0, 500));
+
+        // Helcim.js returns XML or JSON depending on config
+        // Try to parse as JSON first
+        try {
+          const data = JSON.parse(text);
+          if (data.response === 1 || data.status === 'APPROVED') {
+            return { ok: true, transactionId: data.transactionId, approvalCode: data.approvalCode };
+          }
+          return reply.status(400).send({ error: data.responseMessage || data.message || 'Payment declined' });
+        } catch {
+          // Parse XML response
+          const responseMatch = text.match(/<response>(\d+)<\/response>/);
+          const msgMatch = text.match(/<responseMessage>(.*?)<\/responseMessage>/);
+          const txnMatch = text.match(/<transactionId>(\d+)<\/transactionId>/);
+          const approvalMatch = text.match(/<approvalCode>(.*?)<\/approvalCode>/);
+
+          if (responseMatch && responseMatch[1] === '1') {
+            return { ok: true, transactionId: txnMatch?.[1], approvalCode: approvalMatch?.[1] };
+          }
+          return reply.status(400).send({ error: msgMatch?.[1] || 'Payment declined — ' + text.slice(0, 200) });
         }
-        const errMsg = data.errors?.cardNumber || data.errors?.message || data.errors?.[0]?.message || data.message || JSON.stringify(data);
-        return reply.status(400).send({ error: errMsg });
       } catch (err: any) {
+        console.error('[Helcim.js] Error:', err.message);
         return reply.status(500).send({ error: err.message });
       }
     }

@@ -390,8 +390,13 @@ export default function SettingsManager() {
           <p className="text-[10px] text-slate-400">Get API token at <span className="text-blue-400">helcim.com → Settings → API Access</span></p>
           <input value={settings.helcim_api_token || ''} onChange={e => updateSetting('helcim_api_token', e.target.value.trim())}
             placeholder="API Token" type="password" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
-          {settings.helcim_api_token ? (
+          <p className="text-[10px] text-slate-400">Helcim.js token from <span className="text-blue-400">Integrations → Helcim.js Configurations</span></p>
+          <input value={settings.helcim_js_token || ''} onChange={e => updateSetting('helcim_js_token', e.target.value.trim())}
+            placeholder="Helcim.js Token" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+          {settings.helcim_js_token ? (
             <div className="flex items-center gap-2 text-xs text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Helcim connected</div>
+          ) : settings.helcim_api_token ? (
+            <div className="flex items-center gap-2 text-xs text-amber-400"><span className="w-2 h-2 rounded-full bg-amber-400" /> Need Helcim.js token for card payments</div>
           ) : (
             <div className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-slate-600" /> Not connected</div>
           )}

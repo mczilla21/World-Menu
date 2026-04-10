@@ -235,6 +235,7 @@ async function start() {
     ensure('license_status', 'demo');
     ensure('helcim_api_token', '');
     ensure('helcim_account_id', '');
+    ensure('helcim_js_token', '');
   } catch {}
 
   // Auto-close stale orders older than 48 hours (runs on startup + every 6 hours)
