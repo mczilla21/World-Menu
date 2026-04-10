@@ -389,7 +389,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                           inputMode="numeric"
                           autoFocus
                           className="w-full px-4 py-3.5 rounded-xl text-lg tracking-widest outline-none"
-                          style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                          style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -402,7 +402,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                             maxLength={5}
                             inputMode="numeric"
                             className="w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
-                            style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                            style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
                           />
                         </div>
                         <div>
@@ -415,7 +415,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                             inputMode="numeric"
                             type="password"
                             className="w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
-                            style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                            style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
                           />
                         </div>
                       </div>
@@ -426,7 +426,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                           onChange={e => setCardName(e.target.value)}
                           placeholder="John Doe"
                           className="w-full px-4 py-3 rounded-xl outline-none"
-                          style={{ background: theme.bgInput || theme.bgCardHover, color: theme.text, border: `1px solid ${theme.border}` }}
+                          style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
                         />
                       </div>
                       <button

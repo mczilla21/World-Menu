@@ -173,10 +173,13 @@ export function registerPaymentRoutes(app: FastifyInstance) {
         });
 
         const data = await response.json() as any;
+        console.log('[Helcim] Response status:', response.status, 'Data:', JSON.stringify(data));
         if (data.status === 'APPROVED' || data.transactionId) {
           return { ok: true, transactionId: data.transactionId, status: data.status, approvalCode: data.approvalCode };
         }
-        return reply.status(400).send({ error: data.errors?.[0]?.message || data.message || 'Payment declined' });
+        // Return detailed error for debugging
+        const errMsg = data.errors?.[0]?.message || data.errors?.message || data.message || data.error || JSON.stringify(data);
+        return reply.status(400).send({ error: errMsg });
       } catch (err: any) {
         return reply.status(500).send({ error: err.message });
       }
