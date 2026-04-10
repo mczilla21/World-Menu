@@ -70,7 +70,7 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
       downloadUrl: release.zipball_url || '',
       releaseName: release.name || '',
       releaseDate: release.published_at || '',
-      releaseUrl: release.html_url || '',
+      releaseUrl: '',
     };
   } catch (err: any) {
     return { available: false, currentVersion, latestVersion: '', downloadUrl: '', releaseName: '', releaseDate: '', releaseUrl: '', message: err.message || 'Network error' };
