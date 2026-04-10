@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { getDb } from '../db/connection.js';
 import { broadcastToAll } from '../ws/broadcast.js';
+import { autoTranslateCategory } from '../auto-translate.js';
 
 export function registerCategoryRoutes(app: FastifyInstance) {
   app.get('/api/categories', () => {
@@ -15,6 +16,7 @@ export function registerCategoryRoutes(app: FastifyInstance) {
         .prepare('INSERT INTO categories (name, sort_order, show_in_kitchen) VALUES (?, ?, ?)')
         .run(name, sort_order, show_in_kitchen ? 1 : 0);
       const category = getDb().prepare('SELECT * FROM categories WHERE id = ?').get(result.lastInsertRowid);
+      autoTranslateCategory(Number(result.lastInsertRowid), name).catch(() => {});
       broadcastToAll({ type: 'MENU_UPDATED' });
       return category;
     }

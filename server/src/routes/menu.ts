@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { getDb } from '../db/connection.js';
 import { broadcastToAll } from '../ws/broadcast.js';
+import { autoTranslateItem } from '../auto-translate.js';
 
 function enrichItems(items: any[]) {
   const db = getDb();
@@ -58,10 +59,13 @@ export function registerMenuRoutes(app: FastifyInstance) {
         .run(category_id, name, sort_order, price, description, image, tags,
           is_popular ? 1 : 0, prep_time_minutes, is_special ? 1 : 0, special_price, serves, is_alcohol ? 1 : 0, ingredients);
       broadcastToAll({ type: 'MENU_UPDATED' });
+      const newId = Number(result.lastInsertRowid);
+      // Auto-translate in background (don't await — returns immediately)
+      autoTranslateItem(newId, name, description).catch(() => {});
       const item = getDb().prepare(`
         SELECT m.*, c.name as category_name, c.show_in_kitchen as category_show_in_kitchen
         FROM menu_items m JOIN categories c ON m.category_id = c.id WHERE m.id = ?
-      `).get(result.lastInsertRowid);
+      `).get(newId);
       return enrichItems([item])[0];
     }
   );
