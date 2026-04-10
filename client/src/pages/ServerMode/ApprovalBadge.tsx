@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSettings } from '../../hooks/useSettings';
+import { useConfirm } from '../../components/ConfirmModal';
 
 interface PendingOrder {
   id: number;
@@ -15,6 +16,7 @@ export default function ApprovalBadge() {
   const [showPanel, setShowPanel] = useState(false);
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
+  const confirmDialog = useConfirm();
 
   const fetchPending = useCallback(async () => {
     try {
@@ -62,7 +64,7 @@ export default function ApprovalBadge() {
   };
 
   const handleReject = async (orderId: number) => {
-    if (!confirm('Reject this order? The customer will be notified.')) return;
+    if (!await confirmDialog({ title: 'Reject Order?', message: 'The customer will be notified.', confirmText: 'Reject', danger: true })) return;
     await fetch(`/api/orders/${orderId}/reject`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     setOrders(prev => prev.filter(o => o.id !== orderId));
   };

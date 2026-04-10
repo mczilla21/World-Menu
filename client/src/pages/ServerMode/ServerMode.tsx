@@ -18,6 +18,7 @@ import LangToggle from '../../components/LangToggle';
 import type { MenuItem, ItemVariant } from '../../hooks/useMenu';
 import { useI18n } from '../../i18n/useI18n';
 import { useMenuTranslations } from '../../hooks/useMenuTranslations';
+import { useConfirm } from '../../components/ConfirmModal';
 
 type View = 'table' | 'menu' | 'review' | 'history' | 'sent' | 'overview' | 'payment';
 
@@ -65,6 +66,7 @@ export default function ServerMode() {
   const { tableNumber, cart, orderType, customerName, setTable, setExistingOrder, setOrderType, setCustomerName, addItem, addSimpleItem, removeItem, incrementItem, updateItemNote, clearCart, submitOrder } = useOrderStore();
   const { t } = useI18n();
   const { itemName: tItem } = useMenuTranslations();
+  const confirm = useConfirm();
 
   // Persist server view state across role switches
   useEffect(() => {
@@ -214,10 +216,11 @@ export default function ServerMode() {
   };
 
   const handleCloseTable = async (tableNum: string, mode: 'complete' | 'cancel') => {
-    const msg = mode === 'cancel'
-      ? `Cancel all orders on table ${tableNum}? They will be voided and won't count in reports.`
-      : `Close table ${tableNum}? Orders will be marked as completed.`;
-    if (!confirm(msg)) return;
+    const ok = await confirm(mode === 'cancel'
+      ? { title: `Cancel Table ${tableNum}?`, message: 'All orders will be voided and won\'t count in reports.', confirmText: 'Cancel Orders', danger: true }
+      : { title: `Close Table ${tableNum}?`, message: 'Orders will be marked as completed.', confirmText: 'Close Table' }
+    );
+    if (!ok) return;
     await fetch(`/api/tables/${encodeURIComponent(tableNum)}/close`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -236,14 +239,12 @@ export default function ServerMode() {
     navigate('/');
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
     if (view === 'review') setView('menu');
     else if (view === 'menu') {
       if (cart.length > 0) {
-        if (confirm('Leave? Cart will be cleared.')) {
-          clearCart();
-          setView('table');
-        }
+        const ok = await confirm({ title: 'Leave?', message: 'Cart will be cleared.', confirmText: 'Leave', danger: true });
+        if (ok) { clearCart(); setView('table'); }
       } else {
         setView('table');
       }

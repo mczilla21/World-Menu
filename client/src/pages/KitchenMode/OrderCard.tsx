@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import type { Order, OrderItem } from '../../hooks/useOrders';
 import { useTheme } from '../../hooks/useTheme';
 import { useMenuTranslations } from '../../hooks/useMenuTranslations';
+import { useConfirm } from '../../components/ConfirmModal';
 
 interface Props {
   order: Order;
@@ -32,6 +33,7 @@ function groupByCustomer(items: OrderItem[]): Map<number, OrderItem[]> {
 export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds, isHistory, onCheck, onUncheck, onComplete, onMarkPreparing, on86, onDismiss, tick }: Props) {
   const t = useTheme();
   const { itemName: tItem } = useMenuTranslations();
+  const confirmDialog = useConfirm();
   const kitchenItems = order.items.filter((i) => i.show_in_kitchen);
 
   // Long-press popup state
@@ -147,9 +149,9 @@ export default function OrderCard({ order, minutes, timeColor, isNew, newItemIds
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm(`86 "${item.item_name}"? This will hide it from all menus.`)) {
-                on86(item.menu_item_id, item.item_name);
-              }
+              confirmDialog({ title: `86 "${item.item_name}"?`, message: 'This will hide it from all menus.', confirmText: '86 It', danger: true }).then(ok => {
+                if (ok) on86(item.menu_item_id, item.item_name);
+              });
             }}
             className="shrink-0 px-2 py-1 rounded text-[10px] font-bold transition-colors"
             style={{ background: `${t.danger}30`, color: t.danger }}

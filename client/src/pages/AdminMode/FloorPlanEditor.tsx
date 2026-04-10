@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSettings } from '../../hooks/useSettings';
+import { useConfirm } from '../../components/ConfirmModal';
 
 const FLOOR_THEMES: { key: string; label: string; bg: string }[] = [
   { key: 'dark-wood', label: '🪵 Dark Wood', bg: `linear-gradient(90deg,rgba(30,20,12,0.5) 0%,transparent 50%,rgba(30,20,12,0.5) 100%),repeating-linear-gradient(90deg,#1c1510 0px,#1c1510 28px,#211a14 28px,#211a14 30px,#1e1612 30px,#1e1612 55px,#221c15 55px,#221c15 57px),#1a1410` },
@@ -105,8 +106,9 @@ export default function FloorPlanEditor() {
     if (newTable?.id) setSelected(newTable.id);
   };
 
+  const confirm = useConfirm();
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this table?')) return;
+    if (!await confirm({ title: 'Delete Table?', message: 'This table will be removed from the floor plan.', confirmText: 'Delete', danger: true })) return;
     await fetch(`/api/floor-tables/${id}`, { method: 'DELETE' });
     setSelected(null);
     fetchTables();

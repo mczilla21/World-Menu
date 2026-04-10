@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Order } from '../../hooks/useOrders';
 import { useSettings } from '../../hooks/useSettings';
 import { useMenuTranslations } from '../../hooks/useMenuTranslations';
+import { useConfirm } from '../../components/ConfirmModal';
 
 interface Props {
   onBack: () => void;
@@ -46,6 +47,7 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
   const { itemName: tItem } = useMenuTranslations();
+  const confirm = useConfirm();
 
   const fetchOrders = () => {
     setLoading(true);
@@ -67,7 +69,7 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
   }, []);
 
   const handleClearHistory = async () => {
-    if (!confirm('Settle all active tables?')) return;
+    if (!await confirm({ title: 'Settle All Tables?', message: 'All active tables will be closed.', confirmText: 'Settle All' })) return;
     setClearing(true);
     await fetch('/api/orders/clear-history', { method: 'POST' });
     setOrders([]);
@@ -75,13 +77,13 @@ export default function OrderHistory({ onBack, onGoToTable, canVoid = false }: P
   };
 
   const handleVoidItem = async (itemId: number, itemName: string) => {
-    if (!confirm(`Void "${itemName}" from order?`)) return;
+    if (!await confirm({ title: `Void "${itemName}"?`, message: 'This item will be removed from the order.', confirmText: 'Void Item', danger: true })) return;
     await fetch(`/api/order-items/${itemId}`, { method: 'DELETE' });
     fetchOrders();
   };
 
   const handleVoidOrder = async (orderId: number, orderNumber: string) => {
-    if (!confirm(`Void entire order ${orderNumber}? It will be marked as voided and won't count in reports.`)) return;
+    if (!await confirm({ title: `Void Order ${orderNumber}?`, message: 'It will be marked as voided and won\'t count in reports.', confirmText: 'Void Order', danger: true })) return;
     const emp = (() => { try { return JSON.parse(sessionStorage.getItem('wm_employee') || ''); } catch { return null; } })();
     await fetch(`/api/orders/${orderId}/void`, {
       method: 'POST',
