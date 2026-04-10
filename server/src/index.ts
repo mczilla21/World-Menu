@@ -237,6 +237,7 @@ async function start() {
     ensure('helcim_account_id', '');
     ensure('helcim_js_token', '');
     ensure('stripe_secret_key', '');
+    ensure('stripe_publishable_key', '');
   } catch {}
 
   // Auto-close stale orders older than 48 hours (runs on startup + every 6 hours)

@@ -55,72 +55,101 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   });
 
-  // Stripe Checkout — simple redirect-based payment
-  app.post<{ Body: { amount: number; table_number?: string; order_id?: number } }>('/api/payments/stripe/checkout', async (req, reply) => {
+  // Stripe direct charge — card form page in popup, tokenizes via Stripe.js
+  app.get<{ Querystring: { amount: string; table: string } }>('/api/payments/stripe/pay', (req, reply) => {
     const stripeKey = getSetting('stripe_secret_key');
-    if (!stripeKey) return reply.status(400).send({ error: 'Stripe not configured — add key in Admin → Settings' });
+    const pubKey = getSetting('stripe_publishable_key');
+    if (!stripeKey || !pubKey) return reply.status(400).send('Stripe not configured');
 
-    const amount = req.body.amount;
-    if (!amount || amount <= 0) return reply.status(400).send({ error: 'Amount must be > 0' });
+    const amount = req.query.amount || '0.00';
+    const amountCents = Math.round(parseFloat(amount) * 100);
+    const table = req.query.table || '';
+    const currency = (getDb().prepare("SELECT value FROM settings WHERE key = 'currency_symbol'").get() as any)?.value || '$';
 
-    try {
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(stripeKey);
+    reply.type('text/html').send(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Card Payment</title>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{background:#1e293b;border-radius:20px;padding:32px;width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+h2{text-align:center;margin-bottom:8px;font-size:20px}
+.amount{text-align:center;font-size:36px;font-weight:900;color:#22c55e;margin-bottom:24px}
+#card-element{background:#334155;border:2px solid #475569;border-radius:12px;padding:16px;margin-bottom:16px}
+#card-element.StripeElement--focus{border-color:#3b82f6}
+#card-element.StripeElement--invalid{border-color:#ef4444}
+button{width:100%;background:#3b82f6;color:#fff;border:none;border-radius:16px;padding:18px;font-size:18px;font-weight:700;cursor:pointer}
+button:hover{background:#2563eb}
+button:disabled{opacity:0.5;cursor:not-allowed}
+.cancel{background:#334155;margin-top:8px;font-size:14px}
+.cancel:hover{background:#475569}
+.error{color:#ef4444;text-align:center;font-size:14px;margin-bottom:12px;min-height:20px}
+.ok{text-align:center;padding:40px}
+.ok .icon{font-size:80px;margin-bottom:16px}
+.ok h2{color:#22c55e}
+.ok p{color:#94a3b8}
+.spinner{display:none;text-align:center;padding:20px}
+.spinner div{width:40px;height:40px;border:4px solid #3b82f630;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style></head><body>
+<div class="card" id="main">
+  <h2>Card Payment</h2>
+  <div class="amount">${currency}${amount}</div>
+  <div id="card-element"></div>
+  <div class="error" id="error"></div>
+  <button id="payBtn" onclick="pay()">Pay ${currency}${amount}</button>
+  <button class="cancel" onclick="window.close()">Cancel</button>
+</div>
+<script>
+var stripe = Stripe('${pubKey}');
+var elements = stripe.elements();
+var card = elements.create('card', {
+  style: {
+    base: { color: '#f8fafc', fontSize: '18px', '::placeholder': { color: '#64748b' } },
+    invalid: { color: '#ef4444' }
+  },
+  hidePostalCode: true
+});
+card.mount('#card-element');
+card.on('change', function(e) {
+  document.getElementById('error').textContent = e.error ? e.error.message : '';
+});
 
-      // Figure out our server URL for redirects
-      const serverUrl = `http://localhost:${process.env.PORT || 3000}`;
+async function pay() {
+  var btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+  document.getElementById('error').textContent = '';
 
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        mode: 'payment',
-        line_items: [{
-          price_data: {
-            currency: 'usd',
-            product_data: { name: `Table ${req.body.table_number || 'Order'}` },
-            unit_amount: amount,
-          },
-          quantity: 1,
-        }],
-        success_url: `${serverUrl}/api/payments/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${serverUrl}/api/payments/stripe/cancel`,
-        metadata: { table_number: req.body.table_number || '', order_id: String(req.body.order_id || '') },
-      });
-
-      return { url: session.url, sessionId: session.id };
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  // Create payment intent on server
+  var res = await fetch('/api/payments/stripe/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount: ${amountCents}, table_number: '${table}' })
   });
+  var data = await res.json();
+  if (data.error) {
+    document.getElementById('error').textContent = data.error;
+    btn.disabled = false;
+    btn.textContent = 'Pay ${currency}${amount}';
+    return;
+  }
 
-  // Stripe success redirect — shows a simple "paid" page that auto-closes
-  app.get<{ Querystring: { session_id: string } }>('/api/payments/stripe/success', (req, reply) => {
-    reply.type('text/html').send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>body{font-family:system-ui;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
-.box{text-align:center}.ok{font-size:80px;margin-bottom:16px}h2{color:#22c55e;margin-bottom:8px}p{color:#94a3b8}</style>
-</head><body><div class="box"><div class="ok">✅</div><h2>Payment Approved!</h2><p>You can close this window.</p></div>
-<script>setTimeout(function(){window.close()},2000)</script></body></html>`);
-  });
-
-  app.get('/api/payments/stripe/cancel', (req, reply) => {
-    reply.type('text/html').send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>body{font-family:system-ui;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
-.box{text-align:center}h2{color:#ef4444;margin-bottom:8px}p{color:#94a3b8}</style>
-</head><body><div class="box"><h2>Payment Cancelled</h2><p>You can close this window.</p></div>
-<script>setTimeout(function(){window.close()},2000)</script></body></html>`);
-  });
-
-  // Check if a Stripe session was paid
-  app.get<{ Params: { sessionId: string } }>('/api/payments/stripe/check/:sessionId', async (req, reply) => {
-    const stripeKey = getSetting('stripe_secret_key');
-    if (!stripeKey) return reply.status(400).send({ error: 'Stripe not configured' });
-    try {
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(stripeKey);
-      const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
-      return { paid: session.payment_status === 'paid', status: session.payment_status };
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  // Confirm with Stripe.js
+  var result = await stripe.confirmCardPayment(data.clientSecret, { payment_method: { card: card } });
+  if (result.error) {
+    document.getElementById('error').textContent = result.error.message;
+    btn.disabled = false;
+    btn.textContent = 'Pay ${currency}${amount}';
+  } else {
+    // Success
+    window.opener && window.opener.postMessage(JSON.stringify({ eventName: 'stripe-pay-success', paymentIntentId: result.paymentIntent.id }), '*');
+    document.getElementById('main').innerHTML = '<div class="ok"><div class="icon">\\u2705</div><h2>Approved!</h2><p>You can close this window.</p></div>';
+    setTimeout(function(){ window.close(); }, 2000);
+  }
+}
+</script></body></html>`);
   });
 
   // Stripe Terminal — connection token for Android app

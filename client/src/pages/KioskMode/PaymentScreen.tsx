@@ -129,43 +129,32 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
     setCardProcessing(true);
     setCardError('');
     try {
-      const res = await fetch('/api/payments/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: Math.round(cardTotal * 100), table_number: tableNumber, order_id: orderId }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        // Open Stripe Checkout in popup
-        const popup = window.open(data.url, 'StripePay', 'width=500,height=700,scrollbars=yes,resizable=yes');
-        if (!popup) { setCardProcessing(false); setCardError('Popup blocked — allow popups for this site.'); return; }
-        // Poll for completion — server marks session as paid
-        const pollTimer = setInterval(async () => {
-          if (popup.closed) {
-            clearInterval(pollTimer);
-            // Check if payment went through
-            try {
-              const check = await fetch(`/api/payments/stripe/check/${data.sessionId}`);
-              const result = await check.json();
-              if (result.paid) {
-                setCardDone(true);
-                setCardProcessing(false);
-                if (enableReceiptPrompt) setReceiptPrompt(true);
-                else onComplete('card', cardTotal);
-              } else {
-                setCardProcessing(false);
-                setCardError('Payment not completed.');
-              }
-            } catch {
-              setCardProcessing(false);
-              setCardError('Could not verify payment.');
-            }
-          }
-        }, 500);
-      } else {
-        setCardProcessing(false);
-        setCardError(data.error || 'Failed to start payment');
-      }
+      const amount = cardTotal.toFixed(2);
+      const payUrl = `/api/payments/stripe/pay?amount=${amount}&table=${encodeURIComponent(tableNumber)}`;
+      const popup = window.open(payUrl, 'StripePay', 'width=440,height=520,scrollbars=yes,resizable=yes');
+      if (!popup) { setCardProcessing(false); setCardError('Popup blocked — allow popups for this site.'); return; }
+
+      let paymentCompleted = false;
+      const handleMessage = (event: MessageEvent) => {
+        if (typeof event.data === 'string' && event.data.includes('stripe-pay-success')) {
+          paymentCompleted = true;
+          window.removeEventListener('message', handleMessage);
+          setCardDone(true);
+          setCardProcessing(false);
+          if (enableReceiptPrompt) setReceiptPrompt(true);
+          else onComplete('card', cardTotal);
+        }
+      };
+      window.addEventListener('message', handleMessage);
+
+      const pollTimer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(pollTimer);
+          window.removeEventListener('message', handleMessage);
+          setCardProcessing(false);
+          if (!paymentCompleted) setCardError('Payment window was closed.');
+        }
+      }, 500);
     } catch {
       setCardProcessing(false);
       setCardError('Payment failed — check internet connection.');
