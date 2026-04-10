@@ -134,40 +134,41 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
       const data = await res.json();
 
       if (data.checkoutToken) {
-        // Step 2: Load HelcimPay.js and open payment modal
-        const script = document.createElement('script');
-        script.src = 'https://mypostest.helcim.com/helcim-pay/services/start.js';
-        document.body.appendChild(script);
+        // Hide processing UI so Helcim modal can render
+        setCardProcessing(false);
 
-        // Step 3: Listen for payment result
+        // Step 2: Listen for payment result BEFORE loading script
         const handleMessage = (event: MessageEvent) => {
           const eventData = event.data;
-          if (typeof eventData === 'string' && eventData.includes('helcim')) {
+          if (typeof eventData === 'string') {
             try {
               const parsed = JSON.parse(eventData);
               if (parsed.eventName === 'helcim-pay-success') {
                 window.removeEventListener('message', handleMessage);
                 setCardDone(true);
-                setCardProcessing(false);
                 onComplete('card', cardTotal);
-              } else if (parsed.eventName === 'helcim-pay-error' || parsed.eventName === 'helcim-pay-close') {
+              } else if (parsed.eventName === 'helcim-pay-error') {
                 window.removeEventListener('message', handleMessage);
-                setCardProcessing(false);
-                if (parsed.eventName === 'helcim-pay-error') {
-                  alert('Payment declined. Please try again.');
-                }
+                alert('Payment declined. Please try again.');
+              } else if (parsed.eventName === 'helcim-pay-close') {
+                window.removeEventListener('message', handleMessage);
               }
             } catch {}
           }
         };
         window.addEventListener('message', handleMessage);
 
-        // Step 4: Open the HelcimPay.js modal
+        // Step 3: Load HelcimPay.js and open checkout modal
+        const existingScript = document.querySelector('script[src*="helcim-pay"]');
+        if (existingScript) existingScript.remove();
+        const script = document.createElement('script');
+        script.src = 'https://mypostest.helcim.com/helcim-pay/services/start.js';
         script.onload = () => {
           if (typeof (window as any).appendHelcimPayIframe === 'function') {
             (window as any).appendHelcimPayIframe(data.checkoutToken);
           }
         };
+        document.body.appendChild(script);
       } else if (data.error) {
         setCardProcessing(false);
         alert('Payment setup failed: ' + data.error);
