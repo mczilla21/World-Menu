@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { MenuItem, Category, ItemVariant } from '../../hooks/useMenu';
 import { useSettings } from '../../hooks/useSettings';
 import { ALLERGENS } from '../../constants/allergens';
@@ -48,8 +48,49 @@ export default function MenuItemManager({ items, categories, onUpdate }: Props) 
   const [newModPrice, setNewModPrice] = useState('');
 
   const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const { settings } = useSettings();
   const currency = settings.currency_symbol || '$';
+
+  const handleExport = async () => {
+    try {
+      const res = await fetch('/api/menu/export');
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'menu-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Export failed:', e);
+    }
+  };
+
+  const handleImport = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const res = await fetch('/api/menu/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.ok) {
+        onUpdate();
+      } else {
+        console.error('Import failed:', result);
+      }
+    } catch (e) {
+      console.error('Import failed:', e);
+    }
+    setImporting(false);
+    if (importFileRef.current) importFileRef.current.value = '';
+  };
 
   const handleCreate = async () => {
     if (!name.trim() || !catId) return;
@@ -237,6 +278,33 @@ export default function MenuItemManager({ items, categories, onUpdate }: Props) 
           <li>Tap an item to edit details, add sizes/variants, allergens, and more</li>
           <li>Upload photos by clicking the camera icon on each item</li>
         </ul>
+      </div>
+
+      {/* Import / Export */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleExport}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-colors"
+        >
+          Export Menu
+        </button>
+        <button
+          onClick={() => importFileRef.current?.click()}
+          disabled={importing}
+          className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+        >
+          {importing ? 'Importing...' : 'Import Menu'}
+        </button>
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleImport(file);
+          }}
+        />
       </div>
 
       {/* Add new */}
