@@ -424,7 +424,7 @@ export default function SettingsManager() {
         <div className="bg-slate-700/30 rounded-lg p-3 space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-white">Stripe</span>
-            <span className="text-[10px] text-slate-400 bg-slate-600/50 px-2 py-0.5 rounded-full">2.9% + 30¢</span>
+            <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">Recommended — 2.6% + 10¢</span>
           </div>
           <p className="text-[10px] text-slate-400">Get keys at <span className="text-blue-400">dashboard.stripe.com/apikeys</span></p>
           <input value={settings.stripe_publishable_key || ''} onChange={e => updateSetting('stripe_publishable_key', e.target.value.trim())}

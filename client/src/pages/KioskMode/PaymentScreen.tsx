@@ -125,42 +125,51 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
 
   const [cardError, setCardError] = useState('');
 
-  const handleCardPay = () => {
+  const handleCardPay = async () => {
     setCardProcessing(true);
     setCardError('');
-
-    const amount = cardTotal.toFixed(2);
-    const payUrl = `/api/payments/helcim/pay?amount=${amount}&table=${encodeURIComponent(tableNumber)}`;
-    const popup = window.open(payUrl, 'HelcimPay', 'width=440,height=620,scrollbars=yes,resizable=yes');
-
-    if (!popup) {
+    try {
+      const res = await fetch('/api/payments/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: Math.round(cardTotal * 100), table_number: tableNumber, order_id: orderId }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        // Open Stripe Checkout in popup
+        const popup = window.open(data.url, 'StripePay', 'width=500,height=700,scrollbars=yes,resizable=yes');
+        if (!popup) { setCardProcessing(false); setCardError('Popup blocked — allow popups for this site.'); return; }
+        // Poll for completion — server marks session as paid
+        const pollTimer = setInterval(async () => {
+          if (popup.closed) {
+            clearInterval(pollTimer);
+            // Check if payment went through
+            try {
+              const check = await fetch(`/api/payments/stripe/check/${data.sessionId}`);
+              const result = await check.json();
+              if (result.paid) {
+                setCardDone(true);
+                setCardProcessing(false);
+                if (enableReceiptPrompt) setReceiptPrompt(true);
+                else onComplete('card', cardTotal);
+              } else {
+                setCardProcessing(false);
+                setCardError('Payment not completed.');
+              }
+            } catch {
+              setCardProcessing(false);
+              setCardError('Could not verify payment.');
+            }
+          }
+        }, 500);
+      } else {
+        setCardProcessing(false);
+        setCardError(data.error || 'Failed to start payment');
+      }
+    } catch {
       setCardProcessing(false);
-      setCardError('Popup blocked — please allow popups for this site.');
-      return;
+      setCardError('Payment failed — check internet connection.');
     }
-
-    let paymentCompleted = false;
-
-    const handleMessage = (event: MessageEvent) => {
-      if (typeof event.data === 'string' && event.data.includes('helcim-pay-success')) {
-        paymentCompleted = true;
-        window.removeEventListener('message', handleMessage);
-        setCardDone(true);
-        setCardProcessing(false);
-        if (enableReceiptPrompt) setReceiptPrompt(true);
-        else onComplete('card', cardTotal);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-
-    const pollTimer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(pollTimer);
-        window.removeEventListener('message', handleMessage);
-        setCardProcessing(false);
-        if (!paymentCompleted) setCardError('Payment window was closed.');
-      }
-    }, 500);
   };
 
   const handleGiftRedeem = async () => {
@@ -354,10 +363,10 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                 <>
                   <div className="w-20 h-20 mx-auto mb-5 rounded-full flex items-center justify-center" style={{ background: `${theme.info}20` }}><span className="text-4xl">💳</span></div>
                   <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
-                    {cardProcessing ? 'Waiting for payment...' : 'Card Payment'}
+                    {cardProcessing ? 'Processing...' : 'Card Payment'}
                   </h2>
                   <p className="text-sm mb-4" style={{ color: theme.textMuted }}>
-                    {cardProcessing ? 'Complete the payment in the popup window' : 'A payment window will open'}
+                    {cardProcessing ? 'Complete payment in the secure checkout window' : ''}
                   </p>
                   {cardError && (
                     <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: '#ef444420', color: '#ef4444' }}>

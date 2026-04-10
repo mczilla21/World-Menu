@@ -55,6 +55,74 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   });
 
+  // Stripe Checkout — simple redirect-based payment
+  app.post<{ Body: { amount: number; table_number?: string; order_id?: number } }>('/api/payments/stripe/checkout', async (req, reply) => {
+    const stripeKey = getSetting('stripe_secret_key');
+    if (!stripeKey) return reply.status(400).send({ error: 'Stripe not configured — add key in Admin → Settings' });
+
+    const amount = req.body.amount;
+    if (!amount || amount <= 0) return reply.status(400).send({ error: 'Amount must be > 0' });
+
+    try {
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(stripeKey);
+
+      // Figure out our server URL for redirects
+      const serverUrl = `http://localhost:${process.env.PORT || 3000}`;
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'payment',
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: { name: `Table ${req.body.table_number || 'Order'}` },
+            unit_amount: amount,
+          },
+          quantity: 1,
+        }],
+        success_url: `${serverUrl}/api/payments/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${serverUrl}/api/payments/stripe/cancel`,
+        metadata: { table_number: req.body.table_number || '', order_id: String(req.body.order_id || '') },
+      });
+
+      return { url: session.url, sessionId: session.id };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Stripe success redirect — shows a simple "paid" page that auto-closes
+  app.get<{ Querystring: { session_id: string } }>('/api/payments/stripe/success', (req, reply) => {
+    reply.type('text/html').send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>body{font-family:system-ui;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.box{text-align:center}.ok{font-size:80px;margin-bottom:16px}h2{color:#22c55e;margin-bottom:8px}p{color:#94a3b8}</style>
+</head><body><div class="box"><div class="ok">✅</div><h2>Payment Approved!</h2><p>You can close this window.</p></div>
+<script>setTimeout(function(){window.close()},2000)</script></body></html>`);
+  });
+
+  app.get('/api/payments/stripe/cancel', (req, reply) => {
+    reply.type('text/html').send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>body{font-family:system-ui;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.box{text-align:center}h2{color:#ef4444;margin-bottom:8px}p{color:#94a3b8}</style>
+</head><body><div class="box"><h2>Payment Cancelled</h2><p>You can close this window.</p></div>
+<script>setTimeout(function(){window.close()},2000)</script></body></html>`);
+  });
+
+  // Check if a Stripe session was paid
+  app.get<{ Params: { sessionId: string } }>('/api/payments/stripe/check/:sessionId', async (req, reply) => {
+    const stripeKey = getSetting('stripe_secret_key');
+    if (!stripeKey) return reply.status(400).send({ error: 'Stripe not configured' });
+    try {
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(stripeKey);
+      const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+      return { paid: session.payment_status === 'paid', status: session.payment_status };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   // Stripe Terminal — connection token for Android app
   app.post('/api/payments/stripe/terminal/connection-token', async (req, reply) => {
     const stripeKey = getSetting('stripe_secret_key');
