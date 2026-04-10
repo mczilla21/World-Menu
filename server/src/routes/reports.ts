@@ -5,7 +5,6 @@ export function registerReportRoutes(app: FastifyInstance) {
   // Today's live stats
   app.get('/api/reports/today', () => {
     const db = getDb();
-    const today = new Date().toISOString().slice(0, 10);
 
     const orders = db.prepare(
       "SELECT * FROM orders WHERE date(created_at) = date('now', 'localtime') AND is_archived = 0 AND status != 'voided'"

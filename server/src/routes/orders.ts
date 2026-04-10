@@ -217,7 +217,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
   // List finished orders
   app.get('/api/orders/finished', () => {
     const db = getDb();
-    const orders = db.prepare("SELECT * FROM orders WHERE status = 'finished' AND is_archived = 0 AND date(created_at) >= date('now', '-1 day', 'localtime') ORDER BY finished_at DESC LIMIT 50").all() as any[];
+    const orders = db.prepare("SELECT * FROM orders WHERE status = 'finished' AND is_archived = 0 AND date(created_at) >= date('now', '-7 days', 'localtime') ORDER BY finished_at DESC LIMIT 200").all() as any[];
     return orders.map(o => {
       o.items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(o.id);
       return o;
@@ -455,21 +455,23 @@ export function registerOrderRoutes(app: FastifyInstance) {
   });
 
   // Close table
-  app.post<{ Params: { tableNumber: string }; Body: { mode?: string } }>('/api/tables/:tableNumber/close', (req) => {
+  app.post<{ Params: { tableNumber: string }; Body: { mode?: string; payment_method?: string } }>('/api/tables/:tableNumber/close', (req) => {
     const db = getDb();
     const { tableNumber } = req.params;
     const mode = req.body?.mode || 'complete';
+    const paymentMethod = req.body?.payment_method || '';
 
     if (mode === 'cancel') {
-      // Cancel/void — orders were NOT served, don't count in revenue
       db.prepare(
         "UPDATE orders SET closed = 1, status = 'voided', is_archived = 1 WHERE table_number = ? AND closed = 0"
       ).run(tableNumber);
     } else {
-      // Complete — orders were served, count in revenue
-      db.prepare(
-        "UPDATE orders SET closed = 1, status = 'finished', finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0"
-      ).run(tableNumber);
+      // Complete — close all orders and set payment method if provided
+      const sql = paymentMethod
+        ? "UPDATE orders SET closed = 1, status = 'finished', payment_method = ?, finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0"
+        : "UPDATE orders SET closed = 1, status = 'finished', finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0";
+      if (paymentMethod) db.prepare(sql).run(paymentMethod, tableNumber);
+      else db.prepare(sql).run(tableNumber);
     }
 
     broadcastToAll({ type: 'TABLE_CLOSED', tableNumber });

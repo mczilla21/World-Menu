@@ -632,17 +632,10 @@ function ServerPaymentView({ tableNumber, onDone }: { tableNumber: string; onDon
       enableReceiptPrompt={true}
       onComplete={async (method, amount) => {
         try {
-          if (orderId) {
-            await fetch(`/api/orders/${orderId}/payment`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ payment_method: method }),
-            });
-          }
           await fetch(`/api/tables/${encodeURIComponent(tableNumber)}/close`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode: 'complete' }),
+            body: JSON.stringify({ mode: 'complete', payment_method: method }),
           });
         } catch {}
         onDone();
