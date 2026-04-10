@@ -132,82 +132,95 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   });
 
-  // Helcim.js direct charge — uses Helcim.js config token (not API token)
-  // This bypasses the "Not allowed to send full card number" restriction
-  app.post<{ Body: { table_number: string; amount: number; card_number: string; expiry: string; cvv: string; cardholder_name?: string } }>(
-    '/api/payments/helcim/charge',
-    async (req, reply) => {
-      const jsToken = getSetting('helcim_js_token');
-      if (!jsToken) return reply.status(400).send({ error: 'Helcim.js not configured — add token in Admin → Settings' });
+  // Helcim.js payment page — serves an HTML form that POSTs to Helcim
+  app.get<{ Querystring: { amount: string; table: string } }>('/api/payments/helcim/pay', (req, reply) => {
+    const jsToken = getSetting('helcim_js_token');
+    if (!jsToken) return reply.status(400).send('Helcim.js not configured');
 
-      const { amount, card_number, expiry, cvv, cardholder_name, table_number } = req.body;
-      if (!card_number || !expiry || !cvv || !amount) {
-        return reply.status(400).send({ error: 'Missing card details' });
-      }
+    const isSandbox = getSetting('sandbox_mode') === '1';
+    const helcimUrl = isSandbox
+      ? 'https://mypostest.helcim.com/helcim.js/version2'
+      : 'https://secure.myhelcim.com/helcim.js/version2';
 
-      const cleaned = expiry.replace(/[^0-9]/g, '');
-      const expiryMonth = cleaned.slice(0, 2);
-      const expiryYear = cleaned.length >= 4 ? cleaned.slice(2, 4) : cleaned.slice(2);
-      const amountDollars = (amount / 100).toFixed(2);
+    const amount = req.query.amount || '0.00';
+    const table = req.query.table || '';
+    const currency = (getDb().prepare("SELECT value FROM settings WHERE key = 'currency_symbol'").get() as any)?.value || '$';
 
-      try {
-        // Use sandbox or production endpoint based on sandbox_mode setting
-        const isSandbox = getSetting('sandbox_mode') === '1';
-        const helcimUrl = isSandbox
-          ? 'https://mypostest.helcim.com/helcim.js/version2'
-          : 'https://secure.myhelcim.com/helcim.js/version2';
-
-        // Helcim.js uses form POST, not JSON
-        const formData = new URLSearchParams();
-        formData.append('token', jsToken);
-        formData.append('language', 'en');
-        formData.append('test', isSandbox ? '1' : '0');
-        formData.append('amount', amountDollars);
-        formData.append('cardNumber', card_number.replace(/\s/g, ''));
-        formData.append('cardExpiryMonth', expiryMonth);
-        formData.append('cardExpiryYear', expiryYear);
-        formData.append('cardCVV', cvv);
-        formData.append('cardHolderName', cardholder_name || 'Customer');
-        formData.append('cardHolderAddress', '');
-        formData.append('cardHolderPostalCode', '');
-
-        console.log('[Helcim.js] Charging', amountDollars, 'via', helcimUrl);
-        const response = await fetch(helcimUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formData.toString(),
-        });
-
-        const text = await response.text();
-        console.log('[Helcim.js] Response status:', response.status);
-        console.log('[Helcim.js] Response body:', text.slice(0, 500));
-
-        // Helcim.js returns XML or JSON depending on config
-        // Try to parse as JSON first
-        try {
-          const data = JSON.parse(text);
-          if (data.response === 1 || data.status === 'APPROVED') {
-            return { ok: true, transactionId: data.transactionId, approvalCode: data.approvalCode };
-          }
-          return reply.status(400).send({ error: data.responseMessage || data.message || 'Payment declined' });
-        } catch {
-          // Parse XML response
-          const responseMatch = text.match(/<response>(\d+)<\/response>/);
-          const msgMatch = text.match(/<responseMessage>(.*?)<\/responseMessage>/);
-          const txnMatch = text.match(/<transactionId>(\d+)<\/transactionId>/);
-          const approvalMatch = text.match(/<approvalCode>(.*?)<\/approvalCode>/);
-
-          if (responseMatch && responseMatch[1] === '1') {
-            return { ok: true, transactionId: txnMatch?.[1], approvalCode: approvalMatch?.[1] };
-          }
-          return reply.status(400).send({ error: msgMatch?.[1] || 'Payment declined — ' + text.slice(0, 200) });
-        }
-      } catch (err: any) {
-        console.error('[Helcim.js] Error:', err.message);
-        return reply.status(500).send({ error: err.message });
-      }
+    reply.type('text/html').send(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Card Payment</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .card{background:#1e293b;border-radius:20px;padding:32px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+  h2{text-align:center;margin-bottom:8px;font-size:20px}
+  .amount{text-align:center;font-size:32px;font-weight:900;color:#22c55e;margin-bottom:24px}
+  label{display:block;font-size:12px;color:#94a3b8;margin-bottom:4px;font-weight:600}
+  input{width:100%;background:#334155;border:2px solid #475569;border-radius:12px;padding:14px 16px;color:#f8fafc;font-size:18px;outline:none;margin-bottom:16px}
+  input::placeholder{color:#64748b}
+  input:focus{border-color:#3b82f6}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row input{text-align:center}
+  button{width:100%;background:#3b82f6;color:#fff;border:none;border-radius:16px;padding:18px;font-size:18px;font-weight:700;cursor:pointer;margin-top:8px}
+  button:hover{background:#2563eb}
+  button:disabled{opacity:0.5;cursor:not-allowed}
+  .cancel{background:#334155;margin-top:8px;font-size:14px}
+  .cancel:hover{background:#475569}
+  .error{background:#ef444420;color:#ef4444;padding:12px;border-radius:10px;text-align:center;font-size:14px;margin-bottom:16px;display:none}
+  .spinner{display:none;text-align:center;padding:20px}
+  .spinner div{width:40px;height:40px;border:4px solid #3b82f630;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style></head><body>
+<div class="card">
+  <h2>Card Payment</h2>
+  <div class="amount">${currency}${amount}</div>
+  <div class="error" id="error"></div>
+  <div id="form-area">
+    <form id="payForm" method="POST" action="${helcimUrl}">
+      <input type="hidden" name="token" value="${jsToken}">
+      <input type="hidden" name="amount" value="${amount}">
+      <input type="hidden" name="language" value="en">
+      ${isSandbox ? '<input type="hidden" name="test" value="1">' : ''}
+      <label>Card Number</label>
+      <input name="cardNumber" placeholder="4242 4242 4242 4242" inputmode="numeric" maxlength="19" required autofocus
+        oninput="let v=this.value.replace(/\\D/g,'').slice(0,16);this.value=v.replace(/(\\d{4})/g,'$1 ').trim()">
+      <div class="row">
+        <div><label>Expiry</label><input name="cardExpiryMonth" placeholder="MM" maxlength="2" inputmode="numeric" required
+          oninput="this.value=this.value.replace(/\\D/g,'').slice(0,2)"></div>
+        <div><label>Year</label><input name="cardExpiryYear" placeholder="YY" maxlength="2" inputmode="numeric" required
+          oninput="this.value=this.value.replace(/\\D/g,'').slice(0,2)"></div>
+      </div>
+      <label>CVV</label>
+      <input name="cardCVV" placeholder="123" maxlength="4" inputmode="numeric" required
+        oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4)">
+      <input type="hidden" name="cardHolderName" value="Customer">
+      <input type="hidden" name="cardHolderAddress" value="">
+      <input type="hidden" name="cardHolderPostalCode" value="">
+      <button type="submit">Pay ${currency}${amount}</button>
+    </form>
+    <button class="cancel" onclick="window.close()">Cancel</button>
+  </div>
+  <div class="spinner" id="spinner"><div></div><p>Processing payment...</p></div>
+</div>
+<script>
+document.getElementById('payForm').addEventListener('submit', function() {
+  document.getElementById('form-area').style.display = 'none';
+  document.getElementById('spinner').style.display = 'block';
+});
+// Listen for Helcim response (they redirect back or post message)
+window.addEventListener('message', function(e) {
+  try {
+    var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (d.response == 1) {
+      window.opener && window.opener.postMessage(JSON.stringify({eventName:'helcim-pay-success',transactionId:d.transactionId}), '*');
+      document.querySelector('.card').innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:60px;margin-bottom:16px">✅</div><h2 style="color:#22c55e;margin-bottom:8px">Approved!</h2><p style="color:#94a3b8">You can close this window</p></div>';
+      setTimeout(function(){window.close()}, 2000);
     }
-  );
+  } catch(ex){}
+});
+</script>
+</body></html>`);
+  });
 
   // ============================================
   // UNIFIED - uses whichever is configured (priority: helcim > square > stripe)
