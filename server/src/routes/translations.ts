@@ -110,4 +110,88 @@ export function registerTranslationRoutes(app: FastifyInstance) {
 
     return results;
   });
+
+  // Bulk auto-translate entire menu to a target language
+  app.post<{ Body: { target_lang: string } }>('/api/translations/auto-translate', async (req, reply) => {
+    const { target_lang } = req.body;
+    if (!target_lang) return reply.code(400).send({ error: 'target_lang required' });
+
+    const db = getDb();
+    const nativeLang = (db.prepare("SELECT value FROM settings WHERE key = 'native_language'").get() as any)?.value || 'en';
+    if (target_lang === nativeLang) return { ok: true, translated: 0, message: 'Target is same as native language' };
+
+    // Get all menu items and categories
+    const items = db.prepare('SELECT id, name, description FROM menu_items').all() as any[];
+    const categories = db.prepare('SELECT id, name FROM categories').all() as any[];
+
+    const upsert = db.prepare(`
+      INSERT INTO translations (entity_type, entity_id, field, lang, value)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(entity_type, entity_id, field, lang) DO UPDATE SET value = excluded.value
+    `);
+
+    let translated = 0;
+    const errors: string[] = [];
+
+    // Translate helper
+    async function translateText(text: string): Promise<string> {
+      if (!text || !text.trim()) return '';
+      try {
+        const langPair = `${nativeLang}|${target_lang}`;
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(langPair)}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (res.ok) {
+          const data = await res.json() as any;
+          if (data.responseStatus === 200 && data.responseData?.translatedText) {
+            return data.responseData.translatedText;
+          }
+        }
+      } catch {}
+      return '';
+    }
+
+    // Translate categories
+    for (const cat of categories) {
+      const existing = db.prepare("SELECT value FROM translations WHERE entity_type='category' AND entity_id=? AND field='name' AND lang=?").get(cat.id, target_lang) as any;
+      if (!existing?.value) {
+        const result = await translateText(cat.name);
+        if (result) {
+          upsert.run('category', cat.id, 'name', target_lang, result);
+          translated++;
+        }
+        // Rate limit: 1 req per 500ms for free API
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    // Translate menu items (name + description)
+    for (const item of items) {
+      // Name
+      const existingName = db.prepare("SELECT value FROM translations WHERE entity_type='menu_item' AND entity_id=? AND field='name' AND lang=?").get(item.id, target_lang) as any;
+      if (!existingName?.value) {
+        const result = await translateText(item.name);
+        if (result) {
+          upsert.run('menu_item', item.id, 'name', target_lang, result);
+          translated++;
+        }
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      // Description
+      if (item.description) {
+        const existingDesc = db.prepare("SELECT value FROM translations WHERE entity_type='menu_item' AND entity_id=? AND field='description' AND lang=?").get(item.id, target_lang) as any;
+        if (!existingDesc?.value) {
+          const result = await translateText(item.description);
+          if (result) {
+            upsert.run('menu_item', item.id, 'description', target_lang, result);
+            translated++;
+          }
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+    }
+
+    broadcastToAll({ type: 'MENU_UPDATED' });
+    return { ok: true, translated, total_items: items.length, total_categories: categories.length };
+  });
 }
