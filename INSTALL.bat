@@ -20,6 +20,10 @@ if errorlevel 1 (
 )
 echo   Node.js found.
 
+:: Ensure directories exist
+if not exist "server\data" mkdir "server\data"
+if not exist "server\uploads" mkdir "server\uploads"
+
 :: Install dependencies
 echo   Installing dependencies... (this may take a few minutes)
 call npm install >nul 2>&1

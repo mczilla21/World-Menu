@@ -167,19 +167,28 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     fs.rmSync(zipPath, { force: true });
     fs.rmSync(extractDir, { recursive: true, force: true });
 
+    // Ensure data directory exists
+    const dataDir = path.join(PROJECT_ROOT, 'server', 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(PROJECT_ROOT, 'server', 'uploads');
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
     // Install any new dependencies
     console.log('Installing dependencies...');
     try {
-      execSync('npm install', { cwd: PROJECT_ROOT, timeout: 120000, stdio: 'pipe' });
+      execSync('npm install', { cwd: PROJECT_ROOT, timeout: 180000, stdio: 'pipe' });
       console.log('Dependencies installed');
-    } catch {
-      console.error('npm install failed — some features may not work until manually installed');
+    } catch (e: any) {
+      console.error('npm install failed:', e.stderr?.toString()?.slice(0, 200) || e.message);
+      return { ok: false, message: 'Update downloaded but npm install failed. Run "npm install" manually in ' + PROJECT_ROOT };
     }
 
     // Rebuild client
     console.log('Rebuilding client...');
     try {
-      execSync('npx vite build', { cwd: path.join(PROJECT_ROOT, 'client'), timeout: 120000 });
+      execSync('npx vite build', { cwd: path.join(PROJECT_ROOT, 'client'), timeout: 180000, stdio: 'pipe' });
       // Copy public assets
       const distDir = path.join(PROJECT_ROOT, 'client', 'dist');
       const publicDir = path.join(PROJECT_ROOT, 'client', 'public');
@@ -188,8 +197,9 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
         if (fs.existsSync(src)) fs.copyFileSync(src, path.join(distDir, f));
       }
       console.log('Client rebuilt');
-    } catch (e) {
-      console.error('Client rebuild failed — update applied but needs manual build');
+    } catch (e: any) {
+      console.error('Client build failed:', e.stderr?.toString()?.slice(0, 200) || e.message);
+      return { ok: false, message: 'Update downloaded but client build failed. Run "cd client && npx vite build" manually.' };
     }
 
     // Broadcast to all clients
