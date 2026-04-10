@@ -17,6 +17,12 @@ export default function EmployeeManager() {
   const [rate, setRate] = useState('');
   const [empLang, setEmpLang] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [editRate, setEditRate] = useState('');
+  const [editLang, setEditLang] = useState('');
+  const [editPin, setEditPin] = useState('');
 
   const fetch_ = async () => {
     const [e, t] = await Promise.all([
@@ -38,6 +44,25 @@ export default function EmployeeManager() {
   const toggleActive = async (emp: Employee) => {
     await fetch(`/api/employees/${emp.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: emp.is_active ? 0 : 1 }) });
+    fetch_();
+  };
+
+  const startEdit = (emp: Employee) => {
+    setEditingId(emp.id);
+    setEditName(emp.name);
+    setEditRole(emp.role);
+    setEditRate(String(emp.hourly_rate));
+    setEditLang(emp.language || '');
+    setEditPin(emp.pin);
+  };
+
+  const saveEdit = async (id: number) => {
+    await fetch(`/api/employees/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editName.trim(), role: editRole, hourly_rate: parseFloat(editRate) || 0, language: editLang, pin: editPin }),
+    });
+    setEditingId(null);
     fetch_();
   };
 
@@ -92,20 +117,45 @@ export default function EmployeeManager() {
         <h3 className="font-semibold text-slate-200 mb-3">Employees ({employees.length})</h3>
         <div className="space-y-1.5">
           {employees.map(emp => (
-            <div key={emp.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${emp.is_active ? 'bg-slate-700/50' : 'bg-slate-700/20 opacity-50'}`}>
-              <div className="flex-1">
-                <span className="text-sm font-medium text-white">{emp.name}</span>
-                <span className="text-xs text-slate-400 ml-2">{emp.role}</span>
-                {isOwner && <span className="text-xs text-slate-500 ml-2">PIN: {emp.pin}</span>}
-                {emp.language && <span className="text-xs text-blue-400 ml-2">{LANGUAGE_OPTIONS.find(l => l.code === emp.language)?.name || emp.language}</span>}
-              </div>
-              <span className="text-xs text-emerald-400">{currency}{emp.hourly_rate}/hr</span>
-              <button onClick={() => toggleActive(emp)} className={`text-xs px-2 py-1 rounded ${emp.is_active ? 'bg-red-900/50 text-red-400' : 'bg-emerald-900/50 text-emerald-400'}`}>
-                {emp.is_active ? 'Deactivate' : 'Activate'}
-              </button>
-              <button onClick={() => handleDelete(emp)} className="text-xs px-2 py-1 rounded bg-red-900/30 text-red-500 hover:bg-red-900/50">
-                Delete
-              </button>
+            <div key={emp.id} className={`rounded-lg ${emp.is_active ? 'bg-slate-700/50' : 'bg-slate-700/20 opacity-50'}`}>
+              {editingId === emp.id ? (
+                <div className="p-3 space-y-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" className="bg-slate-600 rounded-lg px-3 py-2 text-white outline-none text-sm" />
+                    <select value={editRole} onChange={e => setEditRole(e.target.value)} className="bg-slate-600 rounded-lg px-3 py-2 text-white outline-none text-sm">
+                      <option value="server">Server</option>
+                      <option value="kitchen">Kitchen</option>
+                      <option value="manager">Manager</option>
+                      <option value="host">Host</option>
+                    </select>
+                    <input value={editRate} onChange={e => setEditRate(e.target.value)} placeholder={`${currency}/hr`} type="number" className="bg-slate-600 rounded-lg px-3 py-2 text-white outline-none text-sm" />
+                    {isOwner && <input value={editPin} onChange={e => setEditPin(e.target.value)} placeholder="PIN" maxLength={4} className="bg-slate-600 rounded-lg px-3 py-2 text-white outline-none text-sm" />}
+                    <select value={editLang} onChange={e => setEditLang(e.target.value)} className="bg-slate-600 rounded-lg px-3 py-2 text-white outline-none text-sm">
+                      <option value="">System Default</option>
+                      {LANGUAGE_OPTIONS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveEdit(emp.id)} className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-semibold text-white">Save</button>
+                    <button onClick={() => setEditingId(null)} className="px-4 py-1.5 bg-slate-600 rounded-lg text-xs text-slate-300">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 px-3 py-2.5">
+                  <div className="flex-1 cursor-pointer" onClick={() => startEdit(emp)}>
+                    <span className="text-sm font-medium text-white">{emp.name}</span>
+                    <span className="text-xs text-slate-400 ml-2">{emp.role}</span>
+                    {isOwner && <span className="text-xs text-slate-500 ml-2">PIN: {emp.pin}</span>}
+                    {emp.language && <span className="text-xs text-blue-400 ml-2">{LANGUAGE_OPTIONS.find(l => l.code === emp.language)?.name || emp.language}</span>}
+                  </div>
+                  <span className="text-xs text-emerald-400">{currency}{emp.hourly_rate}/hr</span>
+                  <button onClick={() => startEdit(emp)} className="text-xs px-2 py-1 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50">Edit</button>
+                  <button onClick={() => toggleActive(emp)} className={`text-xs px-2 py-1 rounded ${emp.is_active ? 'bg-red-900/50 text-red-400' : 'bg-emerald-900/50 text-emerald-400'}`}>
+                    {emp.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button onClick={() => handleDelete(emp)} className="text-xs px-2 py-1 rounded bg-red-900/30 text-red-500 hover:bg-red-900/50">Delete</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
