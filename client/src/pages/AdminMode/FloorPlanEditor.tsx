@@ -209,18 +209,20 @@ export default function FloorPlanEditor() {
       {/* Toolbar — big touch-friendly buttons */}
       <div className="flex gap-2 flex-wrap items-center">
         <button
-          onClick={() => setEditMode(!editMode)}
+          onClick={() => { if (editMode) setShowAddPanel(false); setEditMode(!editMode); }}
           className={`px-5 py-3 rounded-xl text-sm font-bold transition-colors ${editMode ? 'bg-orange-500 text-white' : 'bg-blue-600 text-white'}`}
         >
           {editMode ? '🔓 Done Editing' : '✏️ Edit Layout'}
         </button>
-        <button
-          onClick={() => setShowAddPanel(!showAddPanel)}
-          className={`px-5 py-3 rounded-xl text-sm font-bold transition-colors ${showAddPanel ? 'bg-emerald-500 text-white' : 'bg-emerald-600 text-white'}`}
-        >
-          ➕ Add Seating
-        </button>
-        {tables.length > 0 && (
+        {editMode && (
+          <button
+            onClick={() => setShowAddPanel(!showAddPanel)}
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition-colors ${showAddPanel ? 'bg-emerald-500 text-white' : 'bg-emerald-600 text-white'}`}
+          >
+            ➕ Add Seating
+          </button>
+        )}
+        {editMode && tables.length > 0 && (
           <button onClick={handleAutoArrange} className="px-5 py-3 rounded-xl text-sm font-bold bg-slate-700 text-slate-200">
             🔄 Auto-arrange
           </button>
