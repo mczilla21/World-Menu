@@ -124,54 +124,70 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   };
 
   const [cardError, setCardError] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardName, setCardName] = useState('');
-
-  const formatCardNumber = (v: string) => {
-    const digits = v.replace(/\D/g, '').slice(0, 16);
-    return digits.replace(/(.{4})/g, '$1 ').trim();
-  };
-
-  const formatExpiry = (v: string) => {
-    const digits = v.replace(/\D/g, '').slice(0, 4);
-    if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
-    return digits;
-  };
 
   const handleCardPay = async () => {
-    const digits = cardNumber.replace(/\s/g, '');
-    if (digits.length < 13) { setCardError('Enter a valid card number'); return; }
-    if (cardExpiry.replace(/\D/g, '').length < 4) { setCardError('Enter expiry as MM/YY'); return; }
-    if (cardCvv.length < 3) { setCardError('Enter CVV'); return; }
-
     setCardProcessing(true);
     setCardError('');
     try {
-      const res = await fetch('/api/payments/helcim/charge', {
+      // Step 1: Get checkout token from server
+      const res = await fetch('/api/payments/create-intent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          table_number: tableNumber,
-          amount: Math.round(cardTotal * 100),
-          card_number: digits,
-          expiry: cardExpiry,
-          cvv: cardCvv,
-          cardholder_name: cardName,
-        }),
+        body: JSON.stringify({ table_number: tableNumber, amount: Math.round(cardTotal * 100) }),
       });
       const data = await res.json();
-      if (data.ok) {
+
+      if (data.checkoutToken) {
+        setCardProcessing(false);
+
+        // Step 2: Listen for payment result via postMessage
+        const handleMessage = (event: MessageEvent) => {
+          if (typeof event.data === 'string') {
+            try {
+              const parsed = JSON.parse(event.data);
+              if (parsed.eventName === 'helcim-pay-success') {
+                window.removeEventListener('message', handleMessage);
+                setCardDone(true);
+                if (enableReceiptPrompt) {
+                  setReceiptPrompt(true);
+                } else {
+                  onComplete('card', cardTotal);
+                }
+              } else if (parsed.eventName === 'helcim-pay-error') {
+                window.removeEventListener('message', handleMessage);
+                setCardError('Payment declined. Please try again.');
+              } else if (parsed.eventName === 'helcim-pay-close') {
+                window.removeEventListener('message', handleMessage);
+              }
+            } catch {}
+          }
+        };
+        window.addEventListener('message', handleMessage);
+
+        // Step 3: Open Helcim checkout in popup window (iframe blocked by X-Frame-Options)
+        const checkoutUrl = `https://secure.helcim.app/helcim-pay/${data.checkoutToken}?allowExit`;
+        const popup = window.open(checkoutUrl, 'HelcimPay', 'width=500,height=700,scrollbars=yes,resizable=yes');
+
+        // Poll for popup close (user closed without completing)
+        if (popup) {
+          const pollTimer = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(pollTimer);
+              window.removeEventListener('message', handleMessage);
+              if (!cardDone) setCardError('Payment window was closed.');
+            }
+          }, 500);
+        } else {
+          setCardError('Popup blocked — please allow popups for this site.');
+        }
+      } else if (data.error) {
+        setCardProcessing(false);
+        setCardError(data.error);
+      } else {
+        // No payment provider — simulate
+        await new Promise(r => setTimeout(r, 2000));
         setCardDone(true);
         setCardProcessing(false);
-        if (enableReceiptPrompt) {
-          setReceiptPrompt(true);
-        } else {
-          onComplete('card', cardTotal);
-        }
-      } else {
-        setCardProcessing(false);
-        setCardError(data.error || 'Payment declined');
+        onComplete('card', cardTotal);
       }
     } catch {
       setCardProcessing(false);
@@ -209,7 +225,6 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
 
   return (
     <div className="h-full flex">
-      <style>{`.card-input { background: #334155 !important; color: #f8fafc !important; } .card-input::placeholder { color: #94a3b8 !important; opacity: 1 !important; }`}</style>
       {/* Left — Order + Totals */}
       <div className="w-[400px] flex flex-col" style={{ background: theme.bgCard, color: theme.text, borderRight: `1px solid ${theme.border}` }}>
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${theme.border}` }}>
@@ -303,7 +318,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                 <div className="text-left"><div className="text-xl font-bold text-white">Cash</div><div className="text-xs" style={{ color: '#ffffffbb' }}>No processing fee</div></div>
                 <span className="ml-auto text-xl font-black text-white">{currency}{cashTotal.toFixed(2)}</span>
               </button>
-              <button onClick={() => setView('card')} className="w-full rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-[0.98]" style={{ background: `linear-gradient(to bottom, ${theme.info}, ${theme.infoDark})`, boxShadow: `0 4px 12px ${theme.info}30` }}>
+              <button onClick={() => { setView('card'); handleCardPay(); }} className="w-full rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-[0.98]" style={{ background: `linear-gradient(to bottom, ${theme.info}, ${theme.infoDark})`, boxShadow: `0 4px 12px ${theme.info}30` }}>
                 <span className="text-4xl">💳</span>
                 <div className="text-left">
                   <div className="text-xl font-bold text-white">Card</div>
@@ -369,76 +384,35 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
             <div className="text-center w-full max-w-sm">
               {!cardDone ? (
                 <>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: `${theme.info}20` }}><span className="text-3xl">💳</span></div>
-                  <h2 className="text-xl font-bold mb-4" style={{ color: theme.text }}>
-                    {cardProcessing ? 'Processing...' : 'Enter Card Details'}
+                  <div className="w-20 h-20 mx-auto mb-5 rounded-full flex items-center justify-center" style={{ background: `${theme.info}20` }}><span className="text-4xl">💳</span></div>
+                  <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
+                    {cardProcessing ? 'Opening payment...' : 'Card Payment'}
                   </h2>
+                  <p className="text-sm mb-4" style={{ color: theme.textMuted }}>
+                    {cardProcessing ? 'A secure payment window will open' : 'Complete payment in the Helcim window'}
+                  </p>
                   {cardError && (
                     <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: '#ef444420', color: '#ef4444' }}>
                       {cardError}
                     </div>
                   )}
-                  {!cardProcessing && (
-                    <div className="space-y-3 text-left">
-                      <div>
-                        <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>Card Number</label>
-                        <input
-                          value={cardNumber}
-                          onChange={e => setCardNumber(formatCardNumber(e.target.value))}
-                          placeholder="4242 4242 4242 4242"
-                          maxLength={19}
-                          inputMode="numeric"
-                          autoFocus
-                          className="card-input w-full px-4 py-3.5 rounded-xl text-lg tracking-widest outline-none"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>Expiry</label>
-                          <input
-                            value={cardExpiry}
-                            onChange={e => setCardExpiry(formatExpiry(e.target.value))}
-                            placeholder="MM/YY"
-                            maxLength={5}
-                            inputMode="numeric"
-                            className="card-input w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>CVV</label>
-                          <input
-                            value={cardCvv}
-                            onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                            placeholder="123"
-                            maxLength={4}
-                            inputMode="numeric"
-                            className="card-input w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textMuted }}>Name on Card (optional)</label>
-                        <input
-                          value={cardName}
-                          onChange={e => setCardName(e.target.value)}
-                          placeholder="John Doe"
-                          className="card-input w-full px-4 py-3 rounded-xl outline-none"
-                        />
-                      </div>
+                  <div className="flex flex-col gap-3">
+                    {!cardProcessing && (
                       <button
                         onClick={handleCardPay}
-                        className="w-full py-4 rounded-2xl font-bold text-lg text-white transition-all active:scale-[0.98] mt-2"
+                        className="w-full py-4 rounded-2xl font-bold text-lg text-white transition-all active:scale-[0.98]"
                         style={{ background: theme.info, boxShadow: `0 4px 12px ${theme.info}30` }}
                       >
-                        Pay {currency}{cardTotal.toFixed(2)}
+                        {cardError ? 'Try Again' : 'Pay'} {currency}{cardTotal.toFixed(2)}
                       </button>
-                      <button
-                        onClick={() => { setCardError(''); setView('summary'); }}
-                        className="w-full py-3 rounded-xl font-semibold"
-                        style={{ background: theme.bgCardHover, color: theme.textSecondary }}
-                      >
-                        Cancel
-                      </button>
+                    )}
+                    <button
+                      onClick={() => { setCardError(''); setView('summary'); }}
+                      className="w-full py-3 rounded-xl font-semibold"
+                      style={{ background: theme.bgCardHover, color: theme.textSecondary }}
+                    >
+                      Cancel
+                    </button>
                     </div>
                   )}
                   {cardProcessing && (
