@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../config.js';
 import { getDb } from '../db/connection.js';
+import { runBackupNow, listBackups, downloadBackup } from '../cloud-backup.js';
 
 export function registerBackupRoutes(app: FastifyInstance) {
   // Download database backup
@@ -153,6 +154,54 @@ export function registerBackupRoutes(app: FastifyInstance) {
       return { ok: true, message: 'Backup restored successfully' };
     } catch (e: any) {
       db.exec('ROLLBACK');
+      return { error: e.message || 'Restore failed' };
+    }
+  });
+
+  // Cloud backup — manual trigger
+  app.post('/api/backup/cloud', async () => {
+    return runBackupNow();
+  });
+
+  // List cloud backups
+  app.get('/api/backup/cloud/list', async () => {
+    return listBackups();
+  });
+
+  // Restore from cloud backup
+  app.post<{ Body: { file: string } }>('/api/backup/cloud/restore', async (req) => {
+    const data = await downloadBackup(req.body.file);
+    if (!data) return { error: 'Backup not found' };
+    try {
+      const backup = JSON.parse(data);
+      // Reuse the existing restore logic by injecting into the restore endpoint
+      const db = getDb();
+      db.exec('BEGIN');
+
+      const safeExec = (sql: string) => { try { db.exec(sql); } catch {} };
+      safeExec('DELETE FROM translations');
+      safeExec('DELETE FROM item_allergens');
+      safeExec('DELETE FROM item_variants');
+      safeExec('DELETE FROM modifier_options');
+      safeExec('DELETE FROM modifier_groups');
+      safeExec('DELETE FROM menu_items');
+      safeExec('DELETE FROM categories');
+
+      // Restore each table from the backup
+      for (const [table, rows] of Object.entries(backup)) {
+        if (table === 'sqlite_sequence') continue;
+        for (const row of rows as any[]) {
+          const cols = Object.keys(row);
+          const placeholders = cols.map(() => '?').join(',');
+          try {
+            db.prepare(`INSERT OR REPLACE INTO ${table} (${cols.join(',')}) VALUES (${placeholders})`).run(...cols.map(c => (row as any)[c]));
+          } catch {}
+        }
+      }
+
+      db.exec('COMMIT');
+      return { ok: true, message: 'Cloud backup restored' };
+    } catch (e: any) {
       return { error: e.message || 'Restore failed' };
     }
   });

@@ -30,6 +30,7 @@ import { runDailyReset } from './daily-reset.js';
 import { startAutoDailyLog } from './auto-daylog.js';
 import { checkForUpdate, downloadAndApplyUpdate, startUpdateChecker } from './auto-update.js';
 import { registerLicenseRoutes, startLicenseChecker } from './routes/license.js';
+import { startAutoBackup } from './cloud-backup.js';
 
 const app = Fastify({ logger: false });
 
@@ -238,6 +239,8 @@ async function start() {
     ensure('helcim_js_token', '');
     ensure('stripe_secret_key', '');
     ensure('stripe_publishable_key', '');
+    ensure('supabase_url', '');
+    ensure('supabase_service_key', '');
   } catch {}
 
   // Auto-close stale orders older than 48 hours (runs on startup + every 6 hours)
@@ -260,6 +263,9 @@ async function start() {
   startUpdateChecker();
 
   startLicenseChecker();
+
+  // Start auto cloud backup (every 6 hours + on startup)
+  startAutoBackup();
 }
 
 start().catch((err) => {

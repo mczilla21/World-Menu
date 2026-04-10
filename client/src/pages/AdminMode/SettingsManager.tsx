@@ -778,6 +778,30 @@ export default function SettingsManager() {
           </label>
         </div>
         <p className="text-[10px] text-slate-500">Tip: Download a backup before making major menu changes or closing for the day.</p>
+
+        {/* Cloud Backup */}
+        <div className="mt-4 pt-4 border-t border-slate-700">
+          <h4 className="font-semibold text-slate-200 text-sm mb-2">Cloud Backup</h4>
+          <p className="text-xs text-slate-400 mb-3">Automatic backups every 6 hours to Supabase cloud. If the PC dies, restore to a new machine in minutes.</p>
+          <div className="space-y-2">
+            <input value={settings.supabase_url || ''} onChange={e => updateSetting('supabase_url', e.target.value.trim())}
+              placeholder="Supabase URL (https://xxx.supabase.co)" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+            <input value={settings.supabase_service_key || ''} onChange={e => updateSetting('supabase_service_key', e.target.value.trim())}
+              placeholder="Supabase Service Key (eyJ...)" type="password" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+          </div>
+          {settings.supabase_url && settings.supabase_service_key ? (
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex items-center gap-2 text-xs text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Cloud backup active</div>
+              <button onClick={async () => {
+                const res = await fetch('/api/backup/cloud', { method: 'POST' });
+                const data = await res.json();
+                alert(data.ok ? data.message : 'Backup failed: ' + data.error);
+              }} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">Backup Now</button>
+            </div>
+          ) : (
+            <div className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-slate-600" /> Not configured</div>
+          )}
+        </div>
       </div>
 
       {/* Close Day */}
