@@ -42,9 +42,6 @@ export default function FloorPlanEditor() {
   const [dragging, setDragging] = useState<{ id: number; offsetX: number; offsetY: number } | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [addType, setAddType] = useState('table');
-  const [addLabel, setAddLabel] = useState('');
-  const [addCap, setAddCap] = useState('4');
   const [saving, setSaving] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [gridSize, setGridSize] = useState(20);
@@ -77,20 +74,35 @@ export default function FloorPlanEditor() {
 
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
-  const handleAdd = async () => {
-    if (!addLabel.trim()) return;
+  const labelPrefixes: Record<string, string> = { table: 'T', booth: 'B', bar: 'Bar', patio: 'P' };
+
+  const getNextLabel = (type: string, currentTables: FloorTable[]) => {
+    const prefix = labelPrefixes[type] || 'T';
+    const existing = currentTables
+      .filter(t => t.type === type)
+      .map(t => {
+        const match = t.label.match(new RegExp(`^${prefix}\\s*(\\d+)$`));
+        return match ? parseInt(match[1]) : 0;
+      });
+    const maxNum = existing.length > 0 ? Math.max(...existing) : 0;
+    return `${prefix}${maxNum + 1}`;
+  };
+
+  const handleQuickAdd = async (type: string) => {
+    const label = getNextLabel(type, tables);
+    const cap = tableTypes.find(t => t.key === type)?.defaultCap || 4;
     const count = tables.length;
     const col = count % 6;
     const row = Math.floor(count / 6);
     const startX = 40 + col * 130;
     const startY = 40 + row * 120;
-    await fetch('/api/floor-tables', {
+    const res = await fetch('/api/floor-tables', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: addLabel.trim(), type: addType, capacity: parseInt(addCap) || 4, x: startX, y: startY }),
+      body: JSON.stringify({ label, type, capacity: cap, x: startX, y: startY }),
     });
-    setAddLabel('');
-    setShowAddPanel(false);
-    fetchTables();
+    const newTable = await res.json();
+    await fetchTables();
+    if (newTable?.id) setSelected(newTable.id);
   };
 
   const handleDelete = async (id: number) => {
@@ -204,7 +216,7 @@ export default function FloorPlanEditor() {
         </button>
         <button
           onClick={() => setShowAddPanel(!showAddPanel)}
-          className="px-5 py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white"
+          className={`px-5 py-3 rounded-xl text-sm font-bold transition-colors ${showAddPanel ? 'bg-emerald-500 text-white' : 'bg-emerald-600 text-white'}`}
         >
           ➕ Add Seating
         </button>
@@ -236,6 +248,29 @@ export default function FloorPlanEditor() {
         )}
         {saving && <span className="text-sm text-emerald-400 font-semibold ml-2">Saving...</span>}
       </div>
+
+      {/* Quick-add buttons — tap to instantly add with auto-label */}
+      {showAddPanel && (
+        <div className="bg-slate-800 rounded-2xl p-4">
+          <p className="text-xs text-slate-400 mb-3">Tap to add — auto-named, tap again for more</p>
+          <div className="grid grid-cols-4 gap-3">
+            {tableTypes.map(t => {
+              const count = tables.filter(tb => tb.type === t.key).length;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => handleQuickAdd(t.key)}
+                  className="flex flex-col items-center gap-1.5 py-4 rounded-xl text-sm font-semibold transition-all bg-slate-700 text-slate-300 hover:bg-slate-600 active:scale-95"
+                >
+                  <span className="text-3xl">{t.icon}</span>
+                  <span className="font-bold">{t.label}</span>
+                  {count > 0 && <span className="text-[10px] text-slate-500">{count} placed</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Status bar */}
       <div className="flex gap-4 text-sm text-slate-400 px-1">
@@ -294,37 +329,6 @@ export default function FloorPlanEditor() {
           </div>
         )}
       </div>
-
-      {/* Add seating panel */}
-      {showAddPanel && (
-        <div className="bg-slate-800 rounded-2xl p-5 space-y-4">
-          <h3 className="font-bold text-lg text-slate-200">Add New Seating</h3>
-          <div className="grid grid-cols-4 gap-2">
-            {tableTypes.map(t => (
-              <button key={t.key} onClick={() => { setAddType(t.key); setAddCap(String(t.defaultCap)); }}
-                className={`flex flex-col items-center gap-1.5 py-4 rounded-xl text-sm font-semibold transition-all ${addType === t.key ? 'bg-blue-600 text-white scale-105' : 'bg-slate-700 text-slate-300'}`}>
-                <span className="text-2xl">{t.icon}</span>
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-3">
-            <input value={addLabel} onChange={e => setAddLabel(e.target.value)} placeholder="Label (e.g. T1, B3, Bar 1)"
-              onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              className="flex-1 bg-slate-700 rounded-xl px-4 py-3.5 text-white outline-none text-base" />
-            <input value={addCap} onChange={e => setAddCap(e.target.value)} placeholder="Seats" type="number" min="1"
-              className="w-20 bg-slate-700 rounded-xl px-4 py-3.5 text-white outline-none text-base text-center" />
-          </div>
-          <div className="flex gap-3">
-            <button onClick={handleAdd} disabled={!addLabel.trim()} className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-xl px-4 py-3.5 text-base font-bold">
-              Add {tableTypes.find(t => t.key === addType)?.label}
-            </button>
-            <button onClick={() => setShowAddPanel(false)} className="px-6 py-3.5 rounded-xl text-base font-semibold bg-slate-700 text-slate-300">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Canvas */}
       <div className="bg-slate-800 rounded-2xl overflow-hidden">
@@ -413,6 +417,20 @@ export default function FloorPlanEditor() {
                 {tableTypes.find(t => t.key === selectedTable.type)?.icon} {selectedTable.label}
               </h3>
               <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    const res = await fetch('/api/floor-tables', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ label: getNextLabel(selectedTable.type, tables), type: selectedTable.type, capacity: selectedTable.capacity, x: selectedTable.x + 30, y: selectedTable.y + 30, width: selectedTable.width, height: selectedTable.height }),
+                    });
+                    const newTable = await res.json();
+                    fetchTables();
+                    if (newTable?.id) setSelected(newTable.id);
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white"
+                >
+                  📋 Duplicate
+                </button>
                 <button onClick={() => handleDelete(selectedTable.id)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600/80 text-white">
                   🗑 Delete
                 </button>
