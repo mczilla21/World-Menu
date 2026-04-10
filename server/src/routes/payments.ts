@@ -55,6 +55,60 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     }
   });
 
+  // Stripe Terminal — connection token for Android app
+  app.post('/api/payments/stripe/terminal/connection-token', async (req, reply) => {
+    const stripeKey = getSetting('stripe_secret_key');
+    if (!stripeKey) return reply.status(400).send({ error: 'Stripe not configured' });
+    try {
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(stripeKey);
+      const token = await stripe.terminal.connectionTokens.create();
+      return { secret: token.secret };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Stripe Terminal — create payment intent for card-present
+  app.post<{ Body: { amount: number; table_number?: string } }>('/api/payments/stripe/terminal/create-intent', async (req, reply) => {
+    const stripeKey = getSetting('stripe_secret_key');
+    if (!stripeKey) return reply.status(400).send({ error: 'Stripe not configured' });
+    const amount = req.body.amount;
+    if (!amount || amount <= 0) return reply.status(400).send({ error: 'Amount must be > 0' });
+    try {
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(stripeKey);
+      const intent = await stripe.paymentIntents.create({
+        amount,
+        currency: 'usd',
+        payment_method_types: ['card_present'],
+        capture_method: 'automatic',
+        metadata: { table_number: req.body.table_number || '', source: 'terminal' },
+      });
+      return { clientSecret: intent.client_secret, id: intent.id };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Stripe Terminal — capture/confirm a payment (called by Android app after tap)
+  app.post<{ Body: { payment_intent_id: string } }>('/api/payments/stripe/terminal/capture', async (req, reply) => {
+    const stripeKey = getSetting('stripe_secret_key');
+    if (!stripeKey) return reply.status(400).send({ error: 'Stripe not configured' });
+    try {
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(stripeKey);
+      const intent = await stripe.paymentIntents.retrieve(req.body.payment_intent_id);
+      if (intent.status === 'requires_capture') {
+        const captured = await stripe.paymentIntents.capture(req.body.payment_intent_id);
+        return { ok: true, status: captured.status };
+      }
+      return { ok: true, status: intent.status };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   // ============================================
   // SQUARE
   // ============================================
