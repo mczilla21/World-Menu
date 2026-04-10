@@ -108,7 +108,10 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     const amount = (amountCents / 100).toFixed(2);
 
     try {
-      const response = await fetch('https://api.helcim.com/v2/helcim-pay/initialize', {
+      // Use sandbox API when in sandbox mode, production otherwise
+      const isSandbox = getSetting('sandbox_mode') === '1';
+      const helcimApiBase = isSandbox ? 'https://api.mypostest.helcim.com' : 'https://api.helcim.com';
+      const response = await fetch(`${helcimApiBase}/v2/helcim-pay/initialize`, {
         method: 'POST',
         headers: {
           'api-token': apiToken,
@@ -124,7 +127,7 @@ export function registerPaymentRoutes(app: FastifyInstance) {
 
       const data = await response.json();
       if (data.checkoutToken) {
-        return { ok: true, checkoutToken: data.checkoutToken, secretToken: data.secretToken, amount };
+        return { ok: true, checkoutToken: data.checkoutToken, secretToken: data.secretToken, amount, sandbox: isSandbox };
       }
       return reply.status(400).send({ error: data.message || 'Helcim init failed' });
     } catch (err: any) {

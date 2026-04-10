@@ -123,18 +123,23 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
     onComplete('cash', parseFloat(cashGiven));
   };
 
+  const [cardError, setCardError] = useState('');
+
   const handleCardPay = async () => {
     setCardProcessing(true);
+    setCardError('');
     try {
       // Step 1: Get checkout token from server
+      console.log('[Payment] Requesting checkout token...');
       const res = await fetch('/api/payments/create-intent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_number: tableNumber, amount: Math.round(cardTotal * 100) }),
       });
       const data = await res.json();
+      console.log('[Payment] Server response:', data);
 
       if (data.checkoutToken) {
-        // Hide processing UI so Helcim modal can render
+        // Hide processing UI so Helcim modal can render on top
         setCardProcessing(false);
 
         // Step 2: Listen for payment result BEFORE loading script
@@ -143,15 +148,17 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
           if (typeof eventData === 'string') {
             try {
               const parsed = JSON.parse(eventData);
+              console.log('[Payment] Helcim message:', parsed.eventName);
               if (parsed.eventName === 'helcim-pay-success') {
                 window.removeEventListener('message', handleMessage);
                 setCardDone(true);
                 onComplete('card', cardTotal);
               } else if (parsed.eventName === 'helcim-pay-error') {
                 window.removeEventListener('message', handleMessage);
-                alert('Payment declined. Please try again.');
+                setCardError('Payment declined. Please try again.');
               } else if (parsed.eventName === 'helcim-pay-close') {
                 window.removeEventListener('message', handleMessage);
+                setView('summary');
               }
             } catch {}
           }
@@ -161,17 +168,43 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
         // Step 3: Load HelcimPay.js and open checkout modal
         const existingScript = document.querySelector('script[src*="helcim-pay"]');
         if (existingScript) existingScript.remove();
+        // Also remove any leftover Helcim iframes
+        document.getElementById('helcimPayIframe')?.remove();
+
         const script = document.createElement('script');
-        script.src = 'https://mypostest.helcim.com/helcim-pay/services/start.js';
+        script.src = data.sandbox
+          ? 'https://mypostest.helcim.com/helcim-pay/services/start.js'
+          : 'https://secure.helcim.app/helcim-pay/services/start.js';
         script.onload = () => {
+          console.log('[Payment] Helcim script loaded');
           if (typeof (window as any).appendHelcimPayIframe === 'function') {
+            console.log('[Payment] Opening Helcim checkout...');
             (window as any).appendHelcimPayIframe(data.checkoutToken);
+            // Ensure the Helcim iframe is on top of everything
+            setTimeout(() => {
+              const iframe = document.getElementById('helcimPayIframe');
+              if (iframe) {
+                iframe.style.zIndex = '99999';
+                iframe.style.position = 'fixed';
+                console.log('[Payment] Helcim iframe found and z-indexed');
+              } else {
+                console.warn('[Payment] Helcim iframe not found after appendHelcimPayIframe');
+                setCardError('Card terminal failed to load. Try again.');
+              }
+            }, 500);
+          } else {
+            console.error('[Payment] appendHelcimPayIframe function not found');
+            setCardError('Card terminal script failed. Try again.');
           }
+        };
+        script.onerror = () => {
+          console.error('[Payment] Failed to load Helcim script');
+          setCardError('Could not load card terminal. Check internet connection.');
         };
         document.body.appendChild(script);
       } else if (data.error) {
         setCardProcessing(false);
-        alert('Payment setup failed: ' + data.error);
+        setCardError(data.error);
       } else {
         // No payment provider configured — simulate for testing
         await new Promise(r => setTimeout(r, 2000));
@@ -181,7 +214,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
       }
     } catch {
       setCardProcessing(false);
-      alert('Payment failed — please try again or use a different payment method.');
+      setCardError('Payment failed — check internet connection.');
     }
   };
 
@@ -375,9 +408,25 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
               {!cardDone ? (
                 <>
                   <div className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center animate-pulse" style={{ background: `${theme.info}20` }}><span className="text-5xl">💳</span></div>
-                  <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>Processing...</h2>
-                  <p style={{ color: theme.textMuted }}>Tap, insert, or swipe card</p>
-                  <button onClick={() => setView('summary')} className="mt-8 px-8 py-3 rounded-xl" style={{ background: theme.bgCardHover, color: theme.textSecondary }}>Cancel</button>
+                  <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
+                    {cardProcessing ? 'Connecting...' : 'Waiting for Helcim...'}
+                  </h2>
+                  <p style={{ color: theme.textMuted }}>
+                    {cardProcessing ? 'Setting up card terminal' : 'The payment window should appear. If not, try again.'}
+                  </p>
+                  {cardError && (
+                    <div className="mt-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: '#ef444420', color: '#ef4444' }}>
+                      {cardError}
+                    </div>
+                  )}
+                  <div className="flex gap-3 mt-6 justify-center">
+                    {!cardProcessing && (
+                      <button onClick={() => { setCardError(''); handleCardPay(); }} className="px-8 py-3 rounded-xl font-semibold" style={{ background: theme.info, color: '#fff' }}>
+                        Retry
+                      </button>
+                    )}
+                    <button onClick={() => { setCardError(''); setView('summary'); document.getElementById('helcimPayIframe')?.remove(); }} className="px-8 py-3 rounded-xl" style={{ background: theme.bgCardHover, color: theme.textSecondary }}>Cancel</button>
+                  </div>
                 </>
               ) : receiptPrompt ? (
                 <>
