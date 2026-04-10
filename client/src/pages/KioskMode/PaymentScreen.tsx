@@ -396,8 +396,13 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                       {cardError}
                     </div>
                   )}
-                  <div className="flex flex-col gap-3">
-                    {!cardProcessing && (
+                  {cardProcessing ? (
+                    <div className="mt-4">
+                      <div className="animate-spin w-8 h-8 border-4 rounded-full mx-auto mb-3" style={{ borderColor: `${theme.info}30`, borderTopColor: theme.info }} />
+                      <p style={{ color: theme.textMuted }}>Opening payment window...</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
                       <button
                         onClick={handleCardPay}
                         className="w-full py-4 rounded-2xl font-bold text-lg text-white transition-all active:scale-[0.98]"
@@ -405,20 +410,13 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                       >
                         {cardError ? 'Try Again' : 'Pay'} {currency}{cardTotal.toFixed(2)}
                       </button>
-                    )}
-                    <button
-                      onClick={() => { setCardError(''); setView('summary'); }}
-                      className="w-full py-3 rounded-xl font-semibold"
-                      style={{ background: theme.bgCardHover, color: theme.textSecondary }}
-                    >
-                      Cancel
-                    </button>
-                    </div>
-                  )}
-                  {cardProcessing && (
-                    <div className="mt-4">
-                      <div className="animate-spin w-8 h-8 border-4 rounded-full mx-auto mb-3" style={{ borderColor: `${theme.info}30`, borderTopColor: theme.info }} />
-                      <p style={{ color: theme.textMuted }}>Charging card...</p>
+                      <button
+                        onClick={() => { setCardError(''); setView('summary'); }}
+                        className="w-full py-3 rounded-xl font-semibold"
+                        style={{ background: theme.bgCardHover, color: theme.textSecondary }}
+                      >
+                        Cancel
+                      </button>
                     </div>
                   )}
                 </>
