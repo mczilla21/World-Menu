@@ -172,9 +172,8 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
         document.getElementById('helcimPayIframe')?.remove();
 
         const script = document.createElement('script');
-        script.src = data.sandbox
-          ? 'https://mypostest.helcim.com/helcim-pay/services/start.js'
-          : 'https://secure.helcim.app/helcim-pay/services/start.js';
+        // Always use production script — works with both sandbox and production tokens
+        script.src = 'https://secure.helcim.app/helcim-pay/services/start.js';
         script.onload = () => {
           console.log('[Payment] Helcim script loaded');
           if (typeof (window as any).appendHelcimPayIframe === 'function') {
