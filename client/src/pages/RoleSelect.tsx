@@ -52,9 +52,9 @@ export default function RoleSelect() {
         sessionStorage.setItem('wm_pin', empPin);
         const role = data.employee.role;
 
-        // Set display language to employee's preference (or system default)
+        // Set display language to employee's preference
         if (data.employee.language) {
-          localStorage.setItem('wm_display_lang', 'translated');
+          localStorage.setItem('display_language', data.employee.language);
         }
 
         // Auto clock-in for hourly staff only (not owners/managers)

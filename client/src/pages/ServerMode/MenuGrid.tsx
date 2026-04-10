@@ -4,6 +4,7 @@ import type { CartItem } from '../../stores/orderStore';
 import { useOrderStore } from '../../stores/orderStore';
 import { useSettings } from '../../hooks/useSettings';
 import { useI18n } from '../../i18n/useI18n';
+import { useMenuTranslations } from '../../hooks/useMenuTranslations';
 import IngredientPopup from '../../components/IngredientPopup';
 
 interface Props {
@@ -46,6 +47,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
   const { currentCustomer, customerCount, setCurrentCustomer, addCustomer } = useOrderStore();
   const { settings } = useSettings();
   const { t } = useI18n();
+  const { itemName, catName } = useMenuTranslations();
 
   // Sort categories into service order
   const sortedCategories = useMemo(() => sortCategoriesInServiceOrder(categories), [categories]);
@@ -86,9 +88,9 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
     if (item.variants && item.variants.length > 0) {
       onOpenVariant(item);
     } else if (isBuilderTab) {
-      onOpenBuilder(currentCat!.id, { id: item.id, name: item.name }, item.price || 0, !!item.category_show_in_kitchen);
+      onOpenBuilder(currentCat!.id, { id: item.id, name: itemName(item.id, item.name) }, item.price || 0, !!item.category_show_in_kitchen);
     } else {
-      onAddSimple(item.id, item.name, !!item.category_show_in_kitchen, item.price);
+      onAddSimple(item.id, itemName(item.id, item.name), !!item.category_show_in_kitchen, item.price);
     }
   };
 
@@ -137,7 +139,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
 
       {/* Step indicator */}
       <div className="px-4 py-1.5 bg-slate-800/60 border-b border-slate-700/30 text-xs font-semibold text-slate-400 tracking-wide">
-        Step {stepIndex + 1} of {sortedCategories.length}: <span className="text-white">{currentCat?.name ?? ''}</span>
+        Step {stepIndex + 1} of {sortedCategories.length}: <span className="text-white">{currentCat ? catName(currentCat.id, currentCat.name) : ''}</span>
       </div>
 
       {/* Category tabs - wrap to multiple rows */}
@@ -154,7 +156,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
               }`}
             >
-              {c.name}
+              {catName(c.id, c.name)}
               {count > 0 && (
                 <span className={`ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${
                   i === stepIndex ? 'bg-white/20 text-white' : 'bg-green-600 text-white'
@@ -204,7 +206,7 @@ export default function MenuGrid({ items, categories, cart, onAddSimple, onRemov
                   </div>
                 )}
                 <div className="font-medium text-sm leading-tight">
-                  {item.name}
+                  {itemName(item.id, item.name)}
                   {/* Badges */}
                   {!!item.is_popular && <span className="ml-1 text-[10px]" title="Popular">&#11088;</span>}
                   {!!item.is_alcohol && <span className="ml-1 text-[10px]" title="Alcohol">&#127863;</span>}
