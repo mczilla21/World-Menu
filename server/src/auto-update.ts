@@ -175,10 +175,11 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     const uploadsDir = path.join(PROJECT_ROOT, 'server', 'uploads');
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-    // Install any new dependencies
+    // Install dependencies (root + client)
     console.log('Installing dependencies...');
     try {
       execSync('npm install', { cwd: PROJECT_ROOT, timeout: 180000, stdio: 'pipe' });
+      execSync('npm install', { cwd: path.join(PROJECT_ROOT, 'client'), timeout: 180000, stdio: 'pipe' });
       console.log('Dependencies installed');
     } catch (e: any) {
       console.error('npm install failed:', e.stderr?.toString()?.slice(0, 200) || e.message);
