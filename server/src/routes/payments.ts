@@ -152,10 +152,12 @@ export function registerPaymentRoutes(app: FastifyInstance) {
       const expiryYear = cleaned.length === 4 ? cleaned.slice(2, 4) : cleaned.slice(2);
 
       try {
+        const { randomUUID } = await import('crypto');
         const response = await fetch('https://api.helcim.com/v2/payment/purchase', {
           method: 'POST',
           headers: {
             'api-token': apiToken,
+            'idempotency-key': randomUUID(),
             'Content-Type': 'application/json',
             'accept': 'application/json',
           },

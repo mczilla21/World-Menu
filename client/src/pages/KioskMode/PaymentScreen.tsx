@@ -209,6 +209,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
 
   return (
     <div className="h-full flex">
+      <style>{`.card-input { background: #334155 !important; color: #f8fafc !important; } .card-input::placeholder { color: #94a3b8 !important; opacity: 1 !important; }`}</style>
       {/* Left — Order + Totals */}
       <div className="w-[400px] flex flex-col" style={{ background: theme.bgCard, color: theme.text, borderRight: `1px solid ${theme.border}` }}>
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${theme.border}` }}>
@@ -388,8 +389,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                           maxLength={19}
                           inputMode="numeric"
                           autoFocus
-                          className="w-full px-4 py-3.5 rounded-xl text-lg tracking-widest outline-none"
-                          style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
+                          className="card-input w-full px-4 py-3.5 rounded-xl text-lg tracking-widest outline-none"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -401,8 +401,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                             placeholder="MM/YY"
                             maxLength={5}
                             inputMode="numeric"
-                            className="w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
-                            style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
+                            className="card-input w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
                           />
                         </div>
                         <div>
@@ -413,9 +412,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                             placeholder="123"
                             maxLength={4}
                             inputMode="numeric"
-                            type="password"
-                            className="w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
-                            style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
+                            className="card-input w-full px-4 py-3.5 rounded-xl text-lg text-center outline-none"
                           />
                         </div>
                       </div>
@@ -425,8 +422,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                           value={cardName}
                           onChange={e => setCardName(e.target.value)}
                           placeholder="John Doe"
-                          className="w-full px-4 py-3 rounded-xl outline-none"
-                          style={{ background: '#1e293b', color: '#fff', border: `1px solid #475569` }}
+                          className="card-input w-full px-4 py-3 rounded-xl outline-none"
                         />
                       </div>
                       <button
