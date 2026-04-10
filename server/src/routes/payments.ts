@@ -171,7 +171,7 @@ export function registerPaymentRoutes(app: FastifyInstance) {
               cardCVV: cvv,
               cardHolderName: cardholder_name || '',
             },
-            invoiceNumber: `T-${table_number}`,
+            ecommerce: true,
           }),
         });
 
