@@ -170,7 +170,7 @@ export async function downloadAndApplyUpdate(): Promise<{ ok: boolean; message: 
     // Install any new dependencies
     console.log('Installing dependencies...');
     try {
-      execSync('npm install --omit=dev', { cwd: PROJECT_ROOT, timeout: 120000, stdio: 'pipe' });
+      execSync('npm install', { cwd: PROJECT_ROOT, timeout: 120000, stdio: 'pipe' });
       console.log('Dependencies installed');
     } catch {
       console.error('npm install failed — some features may not work until manually installed');
