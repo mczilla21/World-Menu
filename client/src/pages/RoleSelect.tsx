@@ -39,6 +39,12 @@ export default function RoleSelect() {
         body: JSON.stringify({ pin: pin.trim() }),
       });
       const data = await res.json();
+      if (data.ok && data.station) {
+        sessionStorage.setItem('wm_station', JSON.stringify(data.station));
+        localStorage.setItem('role', 'kitchen');
+        navigate('/kitchen');
+        return;
+      }
       if (data.ok && data.employee) {
         const { pin: empPin, ...empWithoutPin } = data.employee;
         sessionStorage.setItem('wm_employee', JSON.stringify(empWithoutPin));

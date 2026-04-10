@@ -74,9 +74,11 @@ export function registerPosRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  // Authenticate by PIN
+  // Authenticate by PIN — check stations first, then employees
   app.post<{ Body: { pin: string } }>('/api/employees/auth', (req, reply) => {
     const db = getDb();
+    const station = db.prepare('SELECT id, name, pin, category_ids FROM stations WHERE pin = ? AND is_active = 1').get(req.body.pin) as any;
+    if (station) return { ok: true, station };
     const emp = db.prepare('SELECT id, name, role, pin, language FROM employees WHERE pin = ? AND is_active = 1').get(req.body.pin) as any;
     if (!emp) return reply.code(401).send({ error: 'Invalid PIN' });
     return { ok: true, employee: emp };
@@ -548,5 +550,49 @@ export function registerPosRoutes(app: FastifyInstance) {
 
   app.get<{ Params: { orderId: string } }>('/api/split-payments/:orderId', (req) => {
     return getDb().prepare('SELECT * FROM split_payments WHERE order_id = ?').all(Number(req.params.orderId));
+  });
+
+  // ============================================
+  // 12. STATIONS
+  // ============================================
+  app.get('/api/stations', () => {
+    return getDb().prepare('SELECT * FROM stations WHERE is_active = 1 ORDER BY name').all();
+  });
+
+  app.get('/api/stations/all', () => {
+    return getDb().prepare('SELECT * FROM stations ORDER BY name').all();
+  });
+
+  app.post<{ Body: { name: string; pin: string; category_ids?: string } }>('/api/stations', (req, reply) => {
+    const db = getDb();
+    const { name, pin, category_ids = '' } = req.body;
+    const existing = db.prepare('SELECT id FROM stations WHERE pin = ?').get(pin) as any;
+    if (existing) return reply.code(409).send({ error: 'PIN already taken' });
+    const empPin = db.prepare('SELECT id FROM employees WHERE pin = ? AND is_active = 1').get(pin) as any;
+    if (empPin) return reply.code(409).send({ error: 'PIN already used by an employee' });
+    const result = db.prepare('INSERT INTO stations (name, pin, category_ids) VALUES (?, ?, ?)').run(name, pin, category_ids);
+    return db.prepare('SELECT * FROM stations WHERE id = ?').get(result.lastInsertRowid);
+  });
+
+  app.put<{ Params: { id: string }; Body: Record<string, any> }>('/api/stations/:id', (req, reply) => {
+    const db = getDb();
+    const existing = db.prepare('SELECT * FROM stations WHERE id = ?').get(Number(req.params.id)) as any;
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
+    const b = req.body;
+    const newPin = b.pin ?? existing.pin;
+    if (newPin !== existing.pin) {
+      const dupe = db.prepare('SELECT id FROM stations WHERE pin = ? AND id != ?').get(newPin, Number(req.params.id)) as any;
+      if (dupe) return reply.code(409).send({ error: 'PIN already taken' });
+      const empPin = db.prepare('SELECT id FROM employees WHERE pin = ? AND is_active = 1').get(newPin) as any;
+      if (empPin) return reply.code(409).send({ error: 'PIN already used by an employee' });
+    }
+    db.prepare('UPDATE stations SET name=?, pin=?, category_ids=?, is_active=? WHERE id=?')
+      .run(b.name ?? existing.name, newPin, b.category_ids ?? existing.category_ids, b.is_active ?? existing.is_active, req.params.id);
+    return db.prepare('SELECT * FROM stations WHERE id = ?').get(req.params.id);
+  });
+
+  app.delete<{ Params: { id: string } }>('/api/stations/:id', (req) => {
+    getDb().prepare('DELETE FROM stations WHERE id = ?').run(req.params.id);
+    return { ok: true };
   });
 }

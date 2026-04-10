@@ -24,6 +24,7 @@ const GiftCardManager = lazy(() => import('./pos/GiftCardManager'));
 const ScheduleManager = lazy(() => import('./pos/ScheduleManager'));
 const CashDrawerManager = lazy(() => import('./pos/CashDrawerManager'));
 const RefundManager = lazy(() => import('./pos/RefundManager'));
+const StationManager = lazy(() => import('./pos/StationManager'));
 
 type Section = 'menu' | 'floorplan' | 'team' | 'finance' | 'operations' | 'settings';
 type SubTab = string;
@@ -47,6 +48,7 @@ const sections: { key: Section; label: string; icon: string; color: string; acti
     key: 'team', label: 'Team', icon: '👥', color: '#dbeafe', activeColor: '#3b82f6',
     subtabs: [
       { key: 'employees', label: 'Employees & Time', emoji: '👥', color: '#3b82f6' },
+      { key: 'stations', label: 'Stations', emoji: '📺', color: '#8b5cf6' },
       { key: 'schedules', label: 'Schedules', emoji: '🕐', color: '#6366f1' },
       { key: 'customers', label: 'Customers', emoji: '⭐', color: '#0ea5e9' },
     ],
@@ -180,6 +182,7 @@ export default function AdminMode() {
 
           {/* Team */}
           {subTab === 'employees' && <EmployeeManager />}
+          {subTab === 'stations' && <StationManager />}
           {subTab === 'schedules' && <ScheduleManager />}
           {subTab === 'customers' && <CustomerManager />}
 

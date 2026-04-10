@@ -27,7 +27,22 @@ export default function KitchenMode() {
   const [showHistory, setShowHistory] = useState(false);
   const [showStationPicker, setShowStationPicker] = useState(false);
   const [elapsedTick, setElapsedTick] = useState(0);
+
+  // Check for station login (via PIN-based station auth)
+  const stationInfo = (() => {
+    try {
+      const raw = sessionStorage.getItem('wm_station');
+      if (raw) return JSON.parse(raw) as { id: number; name: string; pin: string; category_ids: string };
+    } catch {}
+    return null;
+  })();
+
   const [stationFilter, setStationFilter] = useState<Set<number>>(() => {
+    // If logged in as a station, use the station's category_ids
+    if (stationInfo && stationInfo.category_ids) {
+      const ids = stationInfo.category_ids.split(',').map(Number).filter(Boolean);
+      if (ids.length > 0) return new Set(ids);
+    }
     try {
       const saved = sessionStorage.getItem('kitchen_station');
       if (saved) return new Set(JSON.parse(saved));
@@ -206,7 +221,7 @@ export default function KitchenMode() {
   };
 
   const switchRole = () => {
-    localStorage.removeItem('role'); sessionStorage.removeItem('wm_employee');
+    localStorage.removeItem('role'); sessionStorage.removeItem('wm_employee'); sessionStorage.removeItem('wm_station');
     navigate('/');
   };
 
@@ -230,7 +245,7 @@ export default function KitchenMode() {
     <div className="min-h-screen flex flex-col" style={{ background: theme.bg }}>
       <header className="px-4 py-2.5 flex items-center justify-between shrink-0" style={{ background: theme.bgCard, borderBottom: `1px solid ${theme.border}` }}>
         <div className="flex items-center gap-2.5">
-          <h1 className="font-semibold text-base" style={{ color: theme.text }}>{t('Chef / Kitchen')}</h1>
+          <h1 className="font-semibold text-base" style={{ color: theme.text }}>{stationInfo ? stationInfo.name : t('Chef / Kitchen')}</h1>
           <div className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
           {!connected && <span className="text-[11px] text-red-400">Reconnecting...</span>}
         </div>
