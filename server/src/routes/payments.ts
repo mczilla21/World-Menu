@@ -108,8 +108,6 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     const amount = (amountCents / 100).toFixed(2);
 
     try {
-      // Helcim uses the same API endpoint for sandbox and production — the token determines which
-      const isSandbox = getSetting('sandbox_mode') === '1';
       const response = await fetch('https://api.helcim.com/v2/helcim-pay/initialize', {
         method: 'POST',
         headers: {
@@ -126,68 +124,13 @@ export function registerPaymentRoutes(app: FastifyInstance) {
 
       const data = await response.json();
       if (data.checkoutToken) {
-        return { ok: true, checkoutToken: data.checkoutToken, secretToken: data.secretToken, amount, sandbox: isSandbox };
+        return { ok: true, checkoutToken: data.checkoutToken, secretToken: data.secretToken, amount };
       }
       return reply.status(400).send({ error: data.message || 'Helcim init failed' });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
   });
-
-  // Direct card charge via Helcim API (no iframe needed)
-  app.post<{ Body: { table_number: string; amount: number; card_number: string; expiry: string; cvv: string; cardholder_name?: string } }>(
-    '/api/payments/helcim/charge',
-    async (req, reply) => {
-      const apiToken = getSetting('helcim_api_token');
-      if (!apiToken) return reply.status(400).send({ error: 'Helcim not configured' });
-
-      const { amount, card_number, expiry, cvv, cardholder_name, table_number } = req.body;
-      if (!card_number || !expiry || !cvv || !amount) {
-        return reply.status(400).send({ error: 'Missing card details' });
-      }
-
-      // Parse expiry (MM/YY or MMYY)
-      const cleaned = expiry.replace(/[^0-9]/g, '');
-      const expiryMonth = cleaned.slice(0, 2);
-      const expiryYear = cleaned.length === 4 ? cleaned.slice(2, 4) : cleaned.slice(2);
-
-      try {
-        const { randomUUID } = await import('crypto');
-        const response = await fetch('https://api.helcim.com/v2/payment/purchase', {
-          method: 'POST',
-          headers: {
-            'api-token': apiToken,
-            'idempotency-key': randomUUID(),
-            'Content-Type': 'application/json',
-            'accept': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: amount / 100, // API expects dollars, we send cents
-            currency: 'USD',
-            ipAddress: req.ip || '127.0.0.1',
-            cardData: {
-              cardNumber: card_number.replace(/\s/g, ''),
-              cardExpiry: `${expiryMonth}${expiryYear}`,
-              cardCVV: cvv,
-              cardHolderName: cardholder_name || '',
-            },
-            ecommerce: true,
-          }),
-        });
-
-        const data = await response.json() as any;
-        console.log('[Helcim] Response status:', response.status, 'Data:', JSON.stringify(data));
-        if (data.status === 'APPROVED' || data.transactionId) {
-          return { ok: true, transactionId: data.transactionId, status: data.status, approvalCode: data.approvalCode };
-        }
-        // Return detailed error for debugging
-        const errMsg = data.errors?.[0]?.message || data.errors?.message || data.message || data.error || JSON.stringify(data);
-        return reply.status(400).send({ error: errMsg });
-      } catch (err: any) {
-        return reply.status(500).send({ error: err.message });
-      }
-    }
-  );
 
   // ============================================
   // UNIFIED - uses whichever is configured (priority: helcim > square > stripe)

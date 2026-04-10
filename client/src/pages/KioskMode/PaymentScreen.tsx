@@ -169,11 +169,22 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
 
         // Poll for popup close (user closed without completing)
         if (popup) {
+          let paymentCompleted = false;
+          const origHandleMessage = handleMessage;
+          // Wrap to track completion
+          window.removeEventListener('message', handleMessage);
+          const wrappedHandler = (event: MessageEvent) => {
+            if (typeof event.data === 'string' && event.data.includes('helcim-pay-success')) {
+              paymentCompleted = true;
+            }
+            origHandleMessage(event);
+          };
+          window.addEventListener('message', wrappedHandler);
           const pollTimer = setInterval(() => {
             if (popup.closed) {
               clearInterval(pollTimer);
-              window.removeEventListener('message', handleMessage);
-              if (!cardDone) setCardError('Payment window was closed.');
+              window.removeEventListener('message', wrappedHandler);
+              if (!paymentCompleted) setCardError('Payment window was closed.');
             }
           }, 500);
         } else {
