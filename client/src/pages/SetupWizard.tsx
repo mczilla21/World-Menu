@@ -72,7 +72,7 @@ export default function SetupWizard() {
       const settingsRes = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({ ...settings, pin: ownerPin }),
       });
       if (!settingsRes.ok) throw new Error(`Failed to save settings: ${settingsRes.statusText}`);
 
