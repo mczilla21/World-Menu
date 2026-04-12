@@ -164,8 +164,9 @@ export function registerPosRoutes(app: FastifyInstance) {
     const b = req.body;
     const prefix = (db.prepare("SELECT value FROM settings WHERE key = 'order_prefix'").get() as any)?.value || 'A';
     const today = new Date().toISOString().slice(0, 10);
-    const count = (db.prepare("SELECT COUNT(*) as c FROM orders WHERE date(created_at) = ?").get(today) as any).c;
-    const orderNumber = prefix + String(count + 1).padStart(3, '0');
+    db.prepare("INSERT INTO order_sequence (date_key, last_number) VALUES (?, 0) ON CONFLICT(date_key) DO UPDATE SET last_number = last_number + 1").run(today);
+    const num = (db.prepare('SELECT last_number FROM order_sequence WHERE date_key = ?').get(today) as any).last_number;
+    const orderNumber = prefix + String(num).padStart(3, '0');
 
     const result = db.prepare(
       "INSERT INTO orders (order_number, table_number, source, order_type, status) VALUES (?, ?, 'manual', ?, 'finished')"

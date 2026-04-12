@@ -200,6 +200,7 @@ export default function ServerMode() {
 
   // Table overview popup — fetch orders for a table
   const handleOverviewTableClick = async (tableNum: string, status: string, total: number, elapsed: number) => {
+    if (loadingPopup) return; // Prevent double-tap
     setLoadingPopup(true);
     try {
       const [activeRes, finishedRes] = await Promise.all([

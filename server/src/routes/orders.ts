@@ -8,17 +8,9 @@ function generateOrderNumber(): string {
   const today = new Date().toISOString().slice(0, 10);
   const prefix = (db.prepare("SELECT value FROM settings WHERE key = 'order_prefix'").get() as any)?.value || 'A';
 
-  // Use a transaction to prevent race conditions
-  let num: number;
-  db.exec('BEGIN');
-  try {
-    db.prepare("INSERT INTO order_sequence (date_key, last_number) VALUES (?, 0) ON CONFLICT(date_key) DO UPDATE SET last_number = last_number + 1").run(today);
-    num = (db.prepare('SELECT last_number FROM order_sequence WHERE date_key = ?').get(today) as any).last_number;
-    db.exec('COMMIT');
-  } catch (e) {
-    db.exec('ROLLBACK');
-    throw e;
-  }
+  // Atomic — no separate BEGIN needed, works inside or outside a transaction
+  db.prepare("INSERT INTO order_sequence (date_key, last_number) VALUES (?, 0) ON CONFLICT(date_key) DO UPDATE SET last_number = last_number + 1").run(today);
+  const num = (db.prepare('SELECT last_number FROM order_sequence WHERE date_key = ?').get(today) as any).last_number;
 
   return `${prefix}${String(num).padStart(3, '0')}`;
 }
@@ -76,8 +68,6 @@ export function registerOrderRoutes(app: FastifyInstance) {
       return getOrderWithItems(recent.id);
     }
 
-    const order_number = generateOrderNumber();
-
     // Validate item prices and quantities
     for (const item of items) {
       if (typeof item.item_price !== 'number' || item.item_price < 0) item.item_price = 0;
@@ -97,6 +87,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
     let orderId: number;
     db.exec('BEGIN');
     try {
+      const order_number = generateOrderNumber();
       const needsApproval = (source === 'customer') ? 1 : 0;
       const orderResult = insertOrder.run(order_number, table_number, source, order_type, customer_name, tip_amount, needsApproval);
       orderId = Number(orderResult.lastInsertRowid);
@@ -272,10 +263,10 @@ export function registerOrderRoutes(app: FastifyInstance) {
   // Undo item done
   app.patch<{ Params: { id: string } }>('/api/order-items/:id/undone', (req, reply) => {
     const db = getDb();
-    db.prepare('UPDATE order_items SET is_done = 0 WHERE id = ?').run(req.params.id);
-
     const item = db.prepare('SELECT * FROM order_items WHERE id = ?').get(Number(req.params.id)) as any;
     if (!item) return reply.code(404).send({ error: 'Not found' });
+
+    db.prepare('UPDATE order_items SET is_done = 0 WHERE id = ?').run(req.params.id);
 
     db.prepare("UPDATE orders SET status = 'active', finished_at = NULL WHERE id = ? AND status = 'finished'")
       .run(item.order_id);

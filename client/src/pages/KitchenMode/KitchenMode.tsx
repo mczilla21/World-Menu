@@ -140,6 +140,9 @@ export default function KitchenMode() {
           }, 5000);
         }
       }
+    } else if (msg.type === 'ORDER_REMOVED') {
+      setActiveOrders((prev) => prev.filter((o) => o.id !== msg.orderId));
+      setFinishedOrders((prev) => prev.filter((o) => o.id !== msg.orderId));
     } else if (msg.type === 'TABLE_CLOSED') {
       setActiveOrders((prev) => prev.filter((o) => String(o.table_number) !== String(msg.tableNumber)));
       setFinishedOrders((prev) => prev.filter((o) => String(o.table_number) !== String(msg.tableNumber)));

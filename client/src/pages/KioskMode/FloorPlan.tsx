@@ -79,6 +79,7 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
   const [tableStatus, setTableStatus] = useState<Record<string, TableData>>({});
   const { settings } = useSettings();
   const thm = useTheme();
+  const currency = settings.currency_symbol || '$';
 
   const fetchFloor = useCallback(async () => {
     const tables = await fetch('/api/floor-tables').then(r => r.json()).catch(() => []);
@@ -219,7 +220,7 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
         )}
         {showTotals && s && s.total > 0 && (
           <span style={{ fontSize: 10, fontWeight: 700, position: 'relative', zIndex: 1, marginTop: 1 }}>
-            ${s.total.toFixed(2)}
+            {currency}{s.total.toFixed(2)}
           </span>
         )}
         {s && s.elapsed > 0 && status !== 'empty' && (
@@ -251,7 +252,7 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
             <span>Open <b style={{ color: '#2dd4bf' }}>{counts.open}</b></span>
             <span>Occupied <b style={{ color: '#60a5fa' }}>{counts.occupied}</b></span>
             {counts.attention > 0 && <span className="animate-pulse">Attention <b style={{ color: '#f87171' }}>{counts.attention}</b></span>}
-            {showTotals && <span>Total <b style={{ color: '#34d399' }}>${counts.total.toFixed(2)}</b></span>}
+            {showTotals && <span>Total <b style={{ color: '#34d399' }}>{currency}{counts.total.toFixed(2)}</b></span>}
           </div>
         </div>
       )}

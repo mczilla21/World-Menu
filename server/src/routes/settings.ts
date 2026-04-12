@@ -23,8 +23,9 @@ export function registerSettingsRoutes(app: FastifyInstance) {
     if (empCount === 0) return true; // First-time setup, no employees yet
     const pin = req.body?.pin;
     if (!pin) { reply.code(401).send({ error: 'Employee PIN required' }); return false; }
-    const emp = db.prepare("SELECT id FROM employees WHERE pin = ? AND is_active = 1").get(pin);
+    const emp = db.prepare("SELECT id, role FROM employees WHERE pin = ? AND is_active = 1").get(pin) as any;
     if (!emp) { reply.code(403).send({ error: 'Invalid PIN' }); return false; }
+    if (!['manager', 'owner'].includes(emp.role)) { reply.code(403).send({ error: 'Manager or owner access required' }); return false; }
     return true;
   }
 
