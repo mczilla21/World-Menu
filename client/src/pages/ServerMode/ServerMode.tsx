@@ -292,43 +292,62 @@ export default function ServerMode() {
           ))}
         </div>
       )}
-      <header className="shrink-0" style={{ background: t_.bgCard, borderBottom: `1px solid ${t_.border}` }}>
-        {/* Top row — title + nav */}
-        <div className="px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {view !== 'table' && (
+      {/* Header — only show for non-table views */}
+      {view !== 'table' && view !== 'overview' && (
+        <header className="shrink-0" style={{ background: t_.bgCard, borderBottom: `1px solid ${t_.border}` }}>
+          <div className="px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <button onClick={handleBack} aria-label="Go back" className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
-            )}
-            <h1 className="font-bold text-base" style={{ color: t_.text }}>{viewTitle[view]}</h1>
-            <ApprovalBadge />
-            <ServiceCallBadge />
+              <h1 className="font-bold text-base" style={{ color: t_.text }}>{viewTitle[view]}</h1>
+              <ApprovalBadge />
+              <ServiceCallBadge />
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={switchRole} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300">Logout</button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={switchRole} className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300">Logout</button>
-          </div>
-        </div>
-        {/* Bottom row — action buttons (bigger, easier to tap) */}
-        {(view === 'table' || view === 'menu' || view === 'history') && (
-          <div className="px-4 pb-2 flex gap-2 flex-wrap">
-            <button onClick={handleToGoOrder} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors hover:brightness-110" style={{ background: t_.orange }}>
-              🛍 To-Go Order
-            </button>
-            {view !== 'table' && (
+          {(view === 'menu' || view === 'history') && (
+            <div className="px-4 pb-2 flex gap-2 flex-wrap">
+              <button onClick={handleToGoOrder} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors hover:brightness-110" style={{ background: t_.orange }}>
+                🛍 To-Go
+              </button>
               <button onClick={() => setView('table')} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors hover:brightness-110" style={{ background: t_.info }}>
                 🗺 Tables
               </button>
-            )}
-            <button onClick={() => setView('history')} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${view === 'history' ? 'bg-slate-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
-              📋 Orders
-            </button>
-            <LangToggle />
+              <button onClick={() => setView('history')} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${view === 'history' ? 'bg-slate-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
+                📋 Orders
+              </button>
+              <LangToggle />
+            </div>
+          )}
+        </header>
+      )}
+
+      <div className="flex-1 overflow-auto relative">
+        {/* Floating buttons on floor plan view */}
+        {(view === 'table' || view === 'overview') && (
+          <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+            <div className="flex gap-2 pointer-events-auto">
+              <button onClick={handleToGoOrder} className="px-3 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-colors hover:brightness-110" style={{ background: t_.orange }}>
+                🛍 To-Go
+              </button>
+              <button onClick={() => setView('history')} className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-700/90 hover:bg-slate-600 text-slate-200 shadow-lg transition-colors backdrop-blur-sm">
+                📋 Orders
+              </button>
+              <div className="pointer-events-auto"><LangToggle /></div>
+              <div className="pointer-events-auto"><ApprovalBadge /></div>
+              <div className="pointer-events-auto"><ServiceCallBadge /></div>
+            </div>
+            <div className="flex gap-2 pointer-events-auto">
+              <button onClick={switchRole} className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800/80 hover:bg-slate-700 text-slate-400 shadow-lg transition-colors backdrop-blur-sm">
+                Logout
+              </button>
+            </div>
           </div>
         )}
-      </header>
 
-      <div className="flex-1 overflow-auto">
         {(view === 'table' || view === 'overview') && (
           <FloorPlan
             onSelectTable={(table) => {
