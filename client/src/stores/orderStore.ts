@@ -65,9 +65,9 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
   addSimpleItem: (id, name, showInKitchen, price = 0, variantName = '') => {
     const { cart, currentCustomer } = get();
     const newCart = [...cart];
-    const existing = newCart.find((i) => i.menu_item_id === id && !i.notes && i.customer_number === currentCustomer && i.variant_name === variantName);
-    if (existing) {
-      existing.quantity++;
+    const idx = newCart.findIndex((i) => i.menu_item_id === id && !i.notes && i.customer_number === currentCustomer && i.variant_name === variantName);
+    if (idx >= 0) {
+      newCart[idx] = { ...newCart[idx], quantity: newCart[idx].quantity + 1 };
     } else {
       newCart.push({
         id: `simple-${id}-c${currentCustomer}-${Date.now()}`,

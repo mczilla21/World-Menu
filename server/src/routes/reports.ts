@@ -50,7 +50,7 @@ export function registerReportRoutes(app: FastifyInstance) {
     }
 
     return {
-      date: today,
+      date: new Date().toISOString().slice(0, 10),
       order_count: orders.length,
       item_count: totalItems,
       total_revenue: totalRevenue,

@@ -181,15 +181,17 @@ export function registerOrderRoutes(app: FastifyInstance) {
   });
 
   // Reject a customer order
-  app.patch<{ Params: { id: string }; Body: { reason?: string } }>('/api/orders/:id/reject', (req) => {
+  app.patch<{ Params: { id: string }; Body: { reason?: string } }>('/api/orders/:id/reject', (req, reply) => {
     const db = getDb();
     const orderId = Number(req.params.id);
     const order = getOrderWithItems(orderId);
+    if (!order) return reply.code(404).send({ error: 'Order not found' });
 
+    const tableNum = order.table_number;
     db.prepare("DELETE FROM order_items WHERE order_id = ?").run(orderId);
     db.prepare("DELETE FROM orders WHERE id = ?").run(orderId);
 
-    broadcastToTable(order.table_number, { type: 'ORDER_REJECTED', orderId, reason: req.body.reason || 'Order declined by server' });
+    broadcastToTable(tableNum, { type: 'ORDER_REJECTED', orderId, reason: req.body.reason || 'Order declined by server' });
 
     return { ok: true };
   });
@@ -236,11 +238,13 @@ export function registerOrderRoutes(app: FastifyInstance) {
     const remaining = db.prepare('SELECT COUNT(*) as count FROM order_items WHERE order_id = ?').get(item.order_id) as any;
     if (remaining.count === 0) {
       db.prepare('DELETE FROM orders WHERE id = ?').run(item.order_id);
+      broadcastToRole('kitchen', { type: 'ORDER_REMOVED', orderId: item.order_id });
+      broadcastToRole('server', { type: 'ORDER_REMOVED', orderId: item.order_id });
+    } else {
+      const order = getOrderWithItems(item.order_id);
+      broadcastToRole('kitchen', { type: 'ORDER_UPDATED', order, newItemIds: [] });
+      broadcastToRole('server', { type: 'ORDER_UPDATED', order });
     }
-
-    const order = getOrderWithItems(item.order_id);
-    broadcastToRole('kitchen', { type: 'ORDER_UPDATED', order, newItemIds: [] });
-    broadcastToRole('server', { type: 'ORDER_UPDATED', order });
 
     return { ok: true };
   });
@@ -248,10 +252,10 @@ export function registerOrderRoutes(app: FastifyInstance) {
   // Mark item as done
   app.patch<{ Params: { id: string } }>('/api/order-items/:id/done', (req, reply) => {
     const db = getDb();
-    db.prepare('UPDATE order_items SET is_done = 1 WHERE id = ?').run(req.params.id);
-
     const item = db.prepare('SELECT * FROM order_items WHERE id = ?').get(Number(req.params.id)) as any;
     if (!item) return reply.code(404).send({ error: 'Not found' });
+
+    db.prepare('UPDATE order_items SET is_done = 1 WHERE id = ?').run(req.params.id);
 
     const allDone = allKitchenItemsDone(item.order_id);
     broadcastToRole('kitchen', { type: 'ITEM_DONE', itemId: item.id, orderId: item.order_id, allDone });

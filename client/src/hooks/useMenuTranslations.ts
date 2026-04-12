@@ -52,14 +52,19 @@ export function useMenuTranslations() {
       return;
     }
 
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
     (async () => {
       try {
         const [itemRes, catRes] = await Promise.all([
           fetch(`/api/translations/menu_item?lang=${lang}`),
           fetch(`/api/translations/category?lang=${lang}`),
         ]);
+        if (cancelled) return;
         const items = await itemRes.json();
         const cats = await catRes.json();
+        if (cancelled) return;
 
         const iMap: TranslationMap = {};
         for (const t of items) {
@@ -76,18 +81,18 @@ export function useMenuTranslations() {
         setItemTranslations(iMap);
         setCatTranslations(cMap);
 
-        // If translations came back empty, the server is translating in the background
-        // Retry after a few seconds to pick up the results
+        // If translations came back empty, server is translating in background — retry
         if (items.length === 0 && cats.length === 0) {
-          setTimeout(() => setRefreshKey(k => k + 1), 5000);
-          setTimeout(() => setRefreshKey(k => k + 1), 15000);
-          setTimeout(() => setRefreshKey(k => k + 1), 30000);
+          timers.push(setTimeout(() => { if (!cancelled) setRefreshKey(k => k + 1); }, 5000));
+          timers.push(setTimeout(() => { if (!cancelled) setRefreshKey(k => k + 1); }, 15000));
+          timers.push(setTimeout(() => { if (!cancelled) setRefreshKey(k => k + 1); }, 30000));
         }
       } catch {
-        setItemTranslations({});
-        setCatTranslations({});
+        if (!cancelled) { setItemTranslations({}); setCatTranslations({}); }
       }
     })();
+
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
   }, [lang, needsTranslation, refreshKey]);
 
   const itemName = useCallback((id: number, fallback: string) => {

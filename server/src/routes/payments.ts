@@ -61,9 +61,9 @@ export function registerPaymentRoutes(app: FastifyInstance) {
     const pubKey = getSetting('stripe_publishable_key');
     if (!stripeKey || !pubKey) return reply.status(400).send('Stripe not configured');
 
-    const amount = req.query.amount || '0.00';
+    const amount = String(req.query.amount || '0.00').replace(/[^0-9.]/g, '');
     const amountCents = Math.round(parseFloat(amount) * 100);
-    const table = req.query.table || '';
+    const table = String(req.query.table || '').replace(/[^a-zA-Z0-9 \-_]/g, '');
     const currency = (getDb().prepare("SELECT value FROM settings WHERE key = 'currency_symbol'").get() as any)?.value || '$';
 
     reply.type('text/html').send(`<!DOCTYPE html>

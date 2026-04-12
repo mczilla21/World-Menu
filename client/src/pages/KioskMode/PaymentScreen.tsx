@@ -135,10 +135,12 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
       if (!popup) { setCardProcessing(false); setCardError('Popup blocked — allow popups for this site.'); return; }
 
       let paymentCompleted = false;
+      let pollTimer: ReturnType<typeof setInterval>;
       const handleMessage = (event: MessageEvent) => {
         if (typeof event.data === 'string' && event.data.includes('stripe-pay-success')) {
           paymentCompleted = true;
           window.removeEventListener('message', handleMessage);
+          clearInterval(pollTimer);
           setCardDone(true);
           setCardProcessing(false);
           if (enableReceiptPrompt) setReceiptPrompt(true);
@@ -147,7 +149,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
       };
       window.addEventListener('message', handleMessage);
 
-      const pollTimer = setInterval(() => {
+      pollTimer = setInterval(() => {
         if (popup.closed) {
           clearInterval(pollTimer);
           window.removeEventListener('message', handleMessage);

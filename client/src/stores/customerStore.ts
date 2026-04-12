@@ -51,9 +51,9 @@ export const useCustomerStore = create<CustomerStore>((set, get) => ({
   addItem: (item) => {
     const { cart } = get();
     const newCart = [...cart];
-    const existing = newCart.find(i => i.menu_item_id === item.menu_item_id && !i.notes && !item.notes && i.variant_name === item.variant_name && !i.combo_id);
-    if (existing) {
-      existing.quantity += item.quantity;
+    const idx = newCart.findIndex(i => i.menu_item_id === item.menu_item_id && !i.notes && !item.notes && i.variant_name === item.variant_name && !i.combo_id);
+    if (idx >= 0) {
+      newCart[idx] = { ...newCart[idx], quantity: newCart[idx].quantity + item.quantity };
     } else {
       newCart.push({ ...item, id: `cust-${item.menu_item_id}-${Date.now()}` });
     }
