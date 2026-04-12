@@ -619,6 +619,9 @@ export default function NoodleBowlBuilder({
                     <span className="text-sm font-semibold text-gray-900 text-center leading-tight">
                       {translateModifier(mod.id, mod.name.replace(/\s*\(\+\$[\d.]+\)\s*$/, ''))}
                     </span>
+                    {mod.description && (
+                      <span className="text-[10px] text-gray-500 text-center leading-tight px-1">{mod.description}</span>
+                    )}
                     {mod.extra_price > 0 && (
                       <span className="text-xs text-gray-500 mt-0.5">+{currency}{mod.extra_price.toFixed(2)}</span>
                     )}

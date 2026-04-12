@@ -207,6 +207,7 @@ export default function ItemBuilder({ categoryId, item, onAdd, onClose, itemPric
                     {isSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                   </span>
                   <span className="text-sm font-medium">{mod.name}</span>
+                  {mod.description && <span className="text-[10px] text-slate-500 ml-1">— {mod.description}</span>}
                 </button>
               );
             }
