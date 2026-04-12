@@ -36,6 +36,7 @@ interface Props {
   onSelectTable: (table: TableData) => void;
   selectedTable: string | null;
   showTotals?: boolean;
+  hideHeader?: boolean;
 }
 
 // Premium dark color scheme
@@ -73,7 +74,7 @@ function TableChairs({ type, width, height }: { type: string; width: number; hei
   );
 }
 
-export default function FloorPlan({ onSelectTable, selectedTable, showTotals = false }: Props) {
+export default function FloorPlan({ onSelectTable, selectedTable, showTotals = false, hideHeader = false }: Props) {
   const [floorTables, setFloorTables] = useState<FloorTable[]>([]);
   const [tableStatus, setTableStatus] = useState<Record<string, TableData>>({});
   const { settings } = useSettings();
@@ -232,26 +233,28 @@ export default function FloorPlan({ onSelectTable, selectedTable, showTotals = f
 
   return (
     <div className="h-full flex flex-col" style={{ background: '#111' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-2.5" style={{ background: thm.bgCard, borderBottom: `1px solid ${thm.border}` }}>
-        <div className="flex items-center gap-4">
-          <h2 className="text-sm font-bold" style={{ color: thm.text }}>Floor Plan</h2>
-          <div className="flex gap-3 text-xs">
-            {[['empty', 'Open'], ['ordering', 'Ordering'], ['eating', 'Eating'], ['check', 'Check']].map(([k, l]) => (
-              <span key={k} className="flex items-center gap-1.5">
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: statusColors[k].labelBg, display: 'inline-block', boxShadow: `0 0 6px ${statusColors[k].labelBg}60` }} />
-                <span style={{ color: thm.textMuted }}>{l}</span>
-              </span>
-            ))}
+      {/* Header — hidden when embedded in ServerMode */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-5 py-2.5 shrink-0" style={{ background: thm.bgCard, borderBottom: `1px solid ${thm.border}` }}>
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm font-bold" style={{ color: thm.text }}>Floor Plan</h2>
+            <div className="flex gap-3 text-xs">
+              {[['empty', 'Open'], ['ordering', 'Ordering'], ['eating', 'Eating'], ['check', 'Check']].map(([k, l]) => (
+                <span key={k} className="flex items-center gap-1.5">
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: statusColors[k].labelBg, display: 'inline-block', boxShadow: `0 0 6px ${statusColors[k].labelBg}60` }} />
+                  <span style={{ color: thm.textMuted }}>{l}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-5 text-xs" style={{ color: thm.textMuted }}>
+            <span>Open <b style={{ color: '#2dd4bf' }}>{counts.open}</b></span>
+            <span>Occupied <b style={{ color: '#60a5fa' }}>{counts.occupied}</b></span>
+            {counts.attention > 0 && <span className="animate-pulse">Attention <b style={{ color: '#f87171' }}>{counts.attention}</b></span>}
+            {showTotals && <span>Total <b style={{ color: '#34d399' }}>${counts.total.toFixed(2)}</b></span>}
           </div>
         </div>
-        <div className="flex gap-5 text-xs" style={{ color: thm.textMuted }}>
-          <span>Open <b style={{ color: '#2dd4bf' }}>{counts.open}</b></span>
-          <span>Occupied <b style={{ color: '#60a5fa' }}>{counts.occupied}</b></span>
-          {counts.attention > 0 && <span className="animate-pulse">Attention <b style={{ color: '#f87171' }}>{counts.attention}</b></span>}
-          {showTotals && <span>Total <b style={{ color: '#34d399' }}>${counts.total.toFixed(2)}</b></span>}
-        </div>
-      </div>
+      )}
 
       {/* Floor area */}
       <div ref={containerRef} className="flex-1 overflow-auto relative" style={{

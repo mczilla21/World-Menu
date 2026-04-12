@@ -340,6 +340,7 @@ export default function ServerMode() {
             }}
             selectedTable={tablePopup?.number || null}
             showTotals={isManager}
+            hideHeader
           />
         )}
         {view === 'menu' && (
