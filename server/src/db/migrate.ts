@@ -23,7 +23,16 @@ export function runMigrations() {
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
-    db.exec(sql);
+    try {
+      db.exec(sql);
+    } catch (e: any) {
+      // Handle "duplicate column" and other non-fatal migration errors gracefully
+      if (e.message?.includes('duplicate column')) {
+        console.log(`Migration ${file}: column already exists, skipping`);
+      } else {
+        throw e;
+      }
+    }
     db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(file);
     console.log(`Migration applied: ${file}`);
   }
