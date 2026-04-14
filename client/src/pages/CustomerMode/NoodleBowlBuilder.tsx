@@ -420,11 +420,11 @@ export default function NoodleBowlBuilder({
 
       {/* Main content — selections on left, bowl on right */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Right: Bowl visual — premium top-down ramen view (side panel, not top) */}
-        <div className="hidden lg:flex w-[200px] shrink-0 flex-col items-center justify-center p-3 border-l border-orange-100 bg-gradient-to-b from-orange-50/50 to-amber-50/50 order-2">
+        {/* Right: Bowl visual — always visible, responsive size */}
+        <div className="flex w-[30%] max-w-[240px] min-w-[120px] shrink-0 flex-col items-center justify-center p-2 border-l border-orange-100 bg-gradient-to-b from-orange-50/50 to-amber-50/50 order-2">
           <div
-            className="relative"
-            style={{ width: 160, height: 160, animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
+            className="relative w-full aspect-square max-w-[180px]"
+            style={{ animation: isComplete ? 'bowlPulse 2s ease-in-out infinite' : undefined }}
           >
             {/* Shadow under bowl */}
             <div className="absolute rounded-full" style={{ bottom: -6, left: 10, right: 10, height: 12, background: 'radial-gradient(ellipse, rgba(0,0,0,0.15), transparent)', filter: 'blur(4px)' }} />
