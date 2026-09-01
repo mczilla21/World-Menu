@@ -19,15 +19,17 @@ function getOrderTotal(tableNumber: string): number {
 }
 
 export function registerPaymentRoutes(app: FastifyInstance) {
-  // Get active payment provider
+  // Get active payment provider. "Active" means every credential that provider's own
+  // /pay popup route requires is actually present -- not just the one used server-side.
+  // Reporting a provider active on a partial config (e.g. Helcim with an api_token but
+  // no helcim_js_token) used to open a popup that could never work, landing on a raw
+  // "not configured" error with no useful signal to whoever tapped Pay.
   app.get('/api/payments/provider', () => {
-    const stripe = getSetting('stripe_secret_key');
-    const square = getSetting('square_access_token');
-    const helcim = getSetting('helcim_api_token');
+    const stripe = !!(getSetting('stripe_secret_key') && getSetting('stripe_publishable_key'));
+    const square = !!(getSetting('square_access_token') && getSetting('square_application_id') && getSetting('square_location_id'));
+    const helcim = !!(getSetting('helcim_api_token') && getSetting('helcim_js_token'));
     return {
-      stripe: !!stripe,
-      square: !!square,
-      helcim: !!helcim,
+      stripe, square, helcim,
       active: helcim ? 'helcim' : square ? 'square' : stripe ? 'stripe' : 'none',
     };
   });

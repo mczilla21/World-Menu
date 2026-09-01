@@ -36,12 +36,18 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const [tipPercent, setTipPercent] = useState(0);
   const [customTip, setCustomTip] = useState('');
   const [cashGiven, setCashGiven] = useState('');
+  const [cashSubmitting, setCashSubmitting] = useState(false);
   const [giftCode, setGiftCode] = useState('');
   const [giftResult, setGiftResult] = useState<any>(null);
+  const [giftCovered, setGiftCovered] = useState(0);
   const [cardProcessing, setCardProcessing] = useState(false);
   const [cardDone, setCardDone] = useState(false);
   const [splitWays, setSplitWays] = useState(2);
   const [splitPaid, setSplitPaid] = useState(0);
+  const [splitPayingMethod, setSplitPayingMethod] = useState<'cash' | 'card' | null>(null);
+  const [splitCashGiven, setSplitCashGiven] = useState('');
+  const [splitProcessing, setSplitProcessing] = useState(false);
+  const [splitError, setSplitError] = useState('');
   const [cardSurcharge, setCardSurcharge] = useState(3);
   const [receiptPrompt, setReceiptPrompt] = useState(false);
   const [receiptPrinting, setReceiptPrinting] = useState(false);
@@ -95,9 +101,20 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const cashTotal = afterDiscount + tax + tip;
   const surchargeAmount = afterDiscount * (cardSurcharge / 100);
   const cardTotal = afterDiscount + surchargeAmount + tax + tip;
-  const total = view === 'card' ? cardTotal : cashTotal;
-  const changeDue = parseFloat(cashGiven) - cashTotal;
-  const splitAmount = cashTotal / splitWays;
+  // A gift card can cover part of the bill without covering all of it -- whatever it
+  // doesn't cover is what's actually still due, and everything downstream (the Cash/
+  // Card views, the button amounts, what gets charged) needs to key off that, not the
+  // pre-credit total.
+  const total = Math.max(0, (view === 'card' ? cardTotal : cashTotal) - giftCovered);
+  const changeDue = parseFloat(cashGiven) - total;
+  // Split doesn't interact with a gift card credit -- keeping those two combined is an
+  // edge case explosion (which guest's portion does the credit reduce?) that isn't worth
+  // solving here. Split divides the plain cash total, cent-accurate so it always sums
+  // back to the total exactly (the last guests absorb the leftover pennies, not lost).
+  const splitCents = Math.round(cashTotal * 100);
+  const splitBase = Math.floor(splitCents / splitWays);
+  const splitRemainder = splitCents - splitBase * splitWays;
+  const splitAmounts = Array.from({ length: splitWays }, (_, i) => (splitBase + (i < splitRemainder ? 1 : 0)) / 100);
 
   const applyDiscount = async (discountId?: number) => {
     const body: any = {};
@@ -118,32 +135,43 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   };
 
   const handleCashPay = async () => {
-    if (changeDue < 0) return;
-    await fetch('/api/cash-drawer/transaction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: total, type: 'in' }) }).catch(() => {});
-    onComplete('cash', parseFloat(cashGiven));
+    if (changeDue < 0 || !cashGiven || cashSubmitting) return;
+    setCashSubmitting(true);
+    try {
+      await fetch('/api/cash-drawer/transaction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: total, type: 'in' }) }).catch(() => {});
+      onComplete('cash', parseFloat(cashGiven));
+    } finally {
+      setCashSubmitting(false);
+    }
   };
 
   const [cardError, setCardError] = useState('');
 
-  // Whichever provider is actually configured (priority: Helcim -> Square -> Stripe, same
-  // as the server's unified endpoint) drives which popup opens. No more assuming Stripe.
-  const handleCardPay = async () => {
-    setCardProcessing(true);
-    setCardError('');
+  // Shared by the main Card flow and each Split Check guest's card portion: opens
+  // whichever provider is actually configured (priority: Helcim -> Square -> Stripe,
+  // same as the server's unified endpoint), waits for its popup to report success or
+  // close, and reports the result back through the caller's own state setters.
+  const openCardPopup = async (
+    amount: number,
+    onSuccess: () => void,
+    setError: (s: string) => void,
+    setProcessing: (b: boolean) => void
+  ) => {
+    setProcessing(true);
+    setError('');
     try {
       const providerRes = await fetch('/api/payments/provider');
       const providerData = await providerRes.json();
       const active = providerData.active;
       if (active === 'none') {
-        setCardProcessing(false);
-        setCardError('No payment provider configured — add one in Admin -> Settings.');
+        setProcessing(false);
+        setError('No payment provider configured — add one in Admin -> Settings, or use Cash.');
         return;
       }
 
-      const amount = cardTotal.toFixed(2);
-      const payUrl = `/api/payments/${active}/pay?amount=${amount}&table=${encodeURIComponent(tableNumber)}`;
-      const popup = window.open(payUrl, active + 'Pay', 'width=440,height=520,scrollbars=yes,resizable=yes');
-      if (!popup) { setCardProcessing(false); setCardError('Popup blocked — allow popups for this site.'); return; }
+      const payUrl = `/api/payments/${active}/pay?amount=${amount.toFixed(2)}&table=${encodeURIComponent(tableNumber)}`;
+      const popup = window.open(payUrl, active + 'Pay' + Date.now(), 'width=440,height=520,scrollbars=yes,resizable=yes');
+      if (!popup) { setProcessing(false); setError('Popup blocked — allow popups for this site.'); return; }
 
       const successMarker = active + '-pay-success';   // stripe-pay-success | square-pay-success | helcim-pay-success
       let paymentCompleted = false;
@@ -153,10 +181,8 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
           paymentCompleted = true;
           window.removeEventListener('message', handleMessage);
           clearInterval(pollTimer);
-          setCardDone(true);
-          setCardProcessing(false);
-          if (enableReceiptPrompt) setReceiptPrompt(true);
-          else onComplete('card', cardTotal);
+          setProcessing(false);
+          onSuccess();
         }
       };
       window.addEventListener('message', handleMessage);
@@ -165,39 +191,72 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
         if (popup.closed) {
           clearInterval(pollTimer);
           window.removeEventListener('message', handleMessage);
-          setCardProcessing(false);
-          if (!paymentCompleted) setCardError('Payment window was closed.');
+          setProcessing(false);
+          if (!paymentCompleted) setError("Payment window was closed. If the customer didn't pay, try Cash instead.");
         }
       }, 500);
     } catch {
-      setCardProcessing(false);
-      setCardError('Payment failed — check internet connection.');
+      setProcessing(false);
+      setError('Payment failed — check internet connection.');
     }
   };
+
+  const handleCardPay = () => openCardPopup(total, () => {
+    setCardDone(true);
+    if (enableReceiptPrompt) setReceiptPrompt(true);
+    else onComplete('card', total);
+  }, setCardError, setCardProcessing);
 
   const handleGiftRedeem = async () => {
     if (!giftCode.trim()) return;
     const res = await fetch(`/api/gift-cards/${encodeURIComponent(giftCode.trim())}`);
     const card = await res.json();
     if (card.error) { setGiftResult({ error: card.error }); return; }
-    if (card.balance >= total) {
+    const due = total;
+    if (card.balance >= due) {
       await fetch('/api/gift-cards/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: giftCode.trim(), amount: total }) });
-      setGiftResult({ success: true, remaining: card.balance - total });
-      setTimeout(() => onComplete('gift_card', total), 1500);
+        body: JSON.stringify({ code: giftCode.trim(), amount: due }) });
+      setGiftResult({ success: true, remaining: card.balance - due });
+      setTimeout(() => onComplete('gift_card', due), 1500);
+    } else if (card.balance > 0) {
+      // Redeem whatever's actually on the card now and let staff finish the rest with
+      // Cash/Card -- this used to just stop here and redeem nothing at all.
+      await fetch('/api/gift-cards/redeem', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: giftCode.trim(), amount: card.balance }) });
+      setGiftCovered(prev => prev + card.balance);
+      setGiftResult({ partial: true, balance: card.balance, remaining: due - card.balance });
     } else {
-      setGiftResult({ partial: true, balance: card.balance, remaining: total - card.balance });
+      setGiftResult({ error: 'This gift card has no balance.' });
     }
   };
 
-  const handleSplitPay = () => {
-    setSplitPaid(prev => {
-      const next = prev + 1;
-      if (next >= splitWays) {
-        setTimeout(() => onComplete('split', total), 500);
-      }
-      return next;
-    });
+  // Each guest's portion has to actually be collected -- Cash or Card -- before it
+  // counts as paid. This used to just increment a counter with no money involved.
+  const handleSplitCashConfirm = async () => {
+    const amt = splitAmounts[splitPaid];
+    const given = parseFloat(splitCashGiven);
+    if (!given || given < amt || splitProcessing) return;
+    setSplitProcessing(true);
+    try {
+      await fetch('/api/cash-drawer/transaction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: amt, type: 'in' }) }).catch(() => {});
+      const next = splitPaid + 1;
+      setSplitPaid(next);
+      setSplitPayingMethod(null);
+      setSplitCashGiven('');
+      if (next >= splitWays) setTimeout(() => onComplete('split', cashTotal), 300);
+    } finally {
+      setSplitProcessing(false);
+    }
+  };
+
+  const handleSplitCardPay = () => {
+    const amt = splitAmounts[splitPaid] * (1 + cardSurcharge / 100);
+    openCardPopup(amt, () => {
+      const next = splitPaid + 1;
+      setSplitPaid(next);
+      setSplitPayingMethod(null);
+      if (next >= splitWays) setTimeout(() => onComplete('split', cashTotal), 300);
+    }, setSplitError, setSplitProcessing);
   };
 
   const quickCash = [1, 5, 10, 20, 50, 100];
@@ -234,6 +293,11 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
           {appliedDiscount && (
             <div className="flex justify-between" style={{ color: theme.success }}>
               <span>{appliedDiscount.name}</span><span>-{currency}{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+          {giftCovered > 0 && (
+            <div className="flex justify-between" style={{ color: theme.success }}>
+              <span>Gift Card Applied</span><span>-{currency}{giftCovered.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between" style={{ color: theme.textSecondary }}>
@@ -354,8 +418,8 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
             )}
             <div className="flex gap-3 w-full">
               <button onClick={() => { setView('summary'); setCashGiven(''); }} className="flex-1 py-4 rounded-xl font-semibold" style={{ background: theme.bgCardHover, color: theme.textSecondary }}>Back</button>
-              <button onClick={handleCashPay} disabled={changeDue < 0 || !cashGiven}
-                className="flex-1 py-4 rounded-xl font-bold text-lg disabled:opacity-30" style={{ background: theme.success, color: '#fff', boxShadow: `0 4px 12px ${theme.success}30` }}>Complete</button>
+              <button onClick={handleCashPay} disabled={changeDue < 0 || !cashGiven || cashSubmitting}
+                className="flex-1 py-4 rounded-xl font-bold text-lg disabled:opacity-30" style={{ background: theme.success, color: '#fff', boxShadow: `0 4px 12px ${theme.success}30` }}>{cashSubmitting ? 'Processing...' : 'Complete'}</button>
             </div>
           </div>
         )}
@@ -387,7 +451,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                       <button onClick={handleCardPay}
                         className="w-full py-4 rounded-2xl font-bold text-lg text-white transition-all active:scale-[0.98]"
                         style={{ background: theme.info, boxShadow: `0 4px 12px ${theme.info}30` }}>
-                        {cardError ? 'Try Again' : 'Pay'} {currency}{cardTotal.toFixed(2)}
+                        {cardError ? 'Try Again' : 'Pay'} {currency}{total.toFixed(2)}
                       </button>
                       <button onClick={() => { setCardError(''); setView('summary'); }}
                         className="w-full py-3 rounded-xl font-semibold"
@@ -410,7 +474,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                         setReceiptPrinting(true);
                         await printReceiptCopy('customer');
                         setReceiptPrinting(false);
-                        onComplete('card', cardTotal);
+                        onComplete('card', total);
                       }}
                       disabled={receiptPrinting}
                       className="w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-60"
@@ -419,7 +483,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
                       {receiptPrinting ? 'Printing...' : '\uD83D\uDDA8 Print Receipt'}
                     </button>
                     <button
-                      onClick={() => onComplete('card', cardTotal)}
+                      onClick={() => onComplete('card', total)}
                       className="w-full py-4 rounded-2xl font-semibold text-base transition-all active:scale-[0.98]"
                       style={{ background: theme.bgCardHover, color: theme.textSecondary }}
                     >
@@ -459,11 +523,17 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
             )}
             {giftResult?.partial && (
               <div className="w-full rounded-xl p-4 text-center" style={{ background: `${theme.accent}20`, border: `1px solid ${theme.accent}40` }}>
-                <div className="font-bold" style={{ color: theme.accent }}>Partial — card has {currency}{giftResult.balance.toFixed(2)}</div>
-                <div className="text-sm" style={{ color: theme.textSecondary }}>Remaining to pay: {currency}{giftResult.remaining.toFixed(2)}</div>
+                <div className="font-bold" style={{ color: theme.accent }}>Applied {currency}{giftResult.balance.toFixed(2)} from the gift card</div>
+                <div className="text-sm mb-3" style={{ color: theme.textSecondary }}>Remaining to pay: {currency}{giftResult.remaining.toFixed(2)}</div>
+                <div className="flex gap-2">
+                  <button onClick={() => { setGiftResult(null); setGiftCode(''); setView('cash'); }} className="flex-1 py-2.5 rounded-lg font-bold text-sm" style={{ background: theme.success, color: '#fff' }}>Pay Remaining — Cash</button>
+                  <button onClick={() => { setGiftResult(null); setGiftCode(''); setView('card'); }} className="flex-1 py-2.5 rounded-lg font-bold text-sm" style={{ background: theme.info, color: '#fff' }}>Pay Remaining — Card</button>
+                </div>
               </div>
             )}
-            <button onClick={() => setView('summary')} className="mt-4 text-sm" style={{ color: theme.textMuted }}>Back</button>
+            {!giftResult?.partial && (
+              <button onClick={() => setView('summary')} className="mt-4 text-sm" style={{ color: theme.textMuted }}>Back</button>
+            )}
           </div>
         )}
 
@@ -472,41 +542,78 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
           <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full">
             <span className="text-5xl mb-4">✂️</span>
             <h2 className="text-xl font-bold mb-2" style={{ color: theme.text }}>Split Check</h2>
-            <p className="text-sm mb-6" style={{ color: theme.textMuted }}>Total: {currency}{total.toFixed(2)}</p>
+            <p className="text-sm mb-6" style={{ color: theme.textMuted }}>Total: {currency}{cashTotal.toFixed(2)}</p>
 
-            <div className="flex items-center gap-4 mb-6">
-              <button onClick={() => setSplitWays(Math.max(2, splitWays - 1))} className="w-12 h-12 rounded-xl text-xl font-bold" style={{ background: theme.bgCardHover, color: theme.text }}>-</button>
-              <div className="text-center">
-                <div className="text-4xl font-black" style={{ color: theme.text }}>{splitWays}</div>
-                <div className="text-xs" style={{ color: theme.textMuted }}>ways</div>
-              </div>
-              <button onClick={() => setSplitWays(splitWays + 1)} className="w-12 h-12 rounded-xl text-xl font-bold" style={{ background: theme.bgCardHover, color: theme.text }}>+</button>
-            </div>
-
-            <div className="w-full rounded-xl p-4 mb-4 text-center" style={{ background: theme.bgCard }}>
-              <div className="text-sm" style={{ color: theme.textMuted }}>Each person pays</div>
-              <div className="text-3xl font-black" style={{ color: theme.info }}>{currency}{splitAmount.toFixed(2)}</div>
-            </div>
-
-            <div className="w-full space-y-2 mb-4">
-              {Array.from({ length: splitWays }, (_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={i < splitPaid ? { background: `${theme.success}20`, border: `1px solid ${theme.success}40` } : { background: theme.bgCard, border: `1px solid ${theme.border}` }}>
-                  <span className="text-sm font-medium" style={{ color: theme.text }}>Guest {i + 1}</span>
-                  <span className="ml-auto text-sm font-bold" style={{ color: theme.text }}>{currency}{splitAmount.toFixed(2)}</span>
-                  {i < splitPaid ? (
-                    <span className="text-xs font-bold" style={{ color: theme.success }}>PAID</span>
-                  ) : i === splitPaid ? (
-                    <button onClick={handleSplitPay} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: theme.info, color: '#fff' }}>
-                      Pay Now
-                    </button>
-                  ) : (
-                    <span className="text-xs" style={{ color: theme.textMuted }}>Waiting</span>
-                  )}
+            {!splitPayingMethod && (
+              <div className="flex items-center gap-4 mb-6">
+                <button onClick={() => setSplitWays(Math.max(2, splitWays - 1))} disabled={splitPaid > 0} className="w-12 h-12 rounded-xl text-xl font-bold disabled:opacity-30" style={{ background: theme.bgCardHover, color: theme.text }}>-</button>
+                <div className="text-center">
+                  <div className="text-4xl font-black" style={{ color: theme.text }}>{splitWays}</div>
+                  <div className="text-xs" style={{ color: theme.textMuted }}>ways</div>
                 </div>
-              ))}
-            </div>
+                <button onClick={() => setSplitWays(splitWays + 1)} disabled={splitPaid > 0} className="w-12 h-12 rounded-xl text-xl font-bold disabled:opacity-30" style={{ background: theme.bgCardHover, color: theme.text }}>+</button>
+              </div>
+            )}
 
-            <button onClick={() => { setView('summary'); setSplitPaid(0); }} className="text-sm" style={{ color: theme.textMuted }}>Cancel Split</button>
+            {!splitPayingMethod && (
+              <div className="w-full space-y-2 mb-4">
+                {splitAmounts.map((amt, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={i < splitPaid ? { background: `${theme.success}20`, border: `1px solid ${theme.success}40` } : { background: theme.bgCard, border: `1px solid ${theme.border}` }}>
+                    <span className="text-sm font-medium" style={{ color: theme.text }}>Guest {i + 1}</span>
+                    <span className="ml-auto text-sm font-bold" style={{ color: theme.text }}>{currency}{amt.toFixed(2)}</span>
+                    {i < splitPaid ? (
+                      <span className="text-xs font-bold" style={{ color: theme.success }}>PAID</span>
+                    ) : i === splitPaid ? (
+                      <div className="flex gap-1.5">
+                        <button onClick={() => setSplitPayingMethod('cash')} className="px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background: theme.success, color: '#fff' }}>💵 Cash</button>
+                        <button onClick={() => { setSplitPayingMethod('card'); handleSplitCardPay(); }} className="px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background: theme.info, color: '#fff' }}>💳 Card</button>
+                      </div>
+                    ) : (
+                      <span className="text-xs" style={{ color: theme.textMuted }}>Waiting</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {splitPayingMethod === 'cash' && (
+              <div className="w-full rounded-xl p-4 mb-4" style={{ background: theme.bgCard, border: `1px solid ${theme.border}` }}>
+                <div className="text-center mb-3">
+                  <div className="text-sm" style={{ color: theme.textMuted }}>Guest {splitPaid + 1} owes</div>
+                  <div className="text-3xl font-black" style={{ color: theme.success }}>{currency}{splitAmounts[splitPaid].toFixed(2)}</div>
+                </div>
+                <input type="tel" inputMode="decimal" value={splitCashGiven} onChange={e => setSplitCashGiven(e.target.value.replace(/[^0-9.]/g, ''))}
+                  placeholder="Cash given" autoFocus className="w-full rounded-xl px-4 py-3 text-center text-xl font-bold outline-none mb-3" style={{ background: theme.bg, color: theme.text, border: `1px solid ${theme.border}` }} />
+                <div className="flex gap-2">
+                  <button onClick={() => { setSplitPayingMethod(null); setSplitCashGiven(''); }} className="flex-1 py-3 rounded-xl font-semibold text-sm" style={{ background: theme.bgCardHover, color: theme.textSecondary }}>Back</button>
+                  <button onClick={handleSplitCashConfirm} disabled={!splitCashGiven || parseFloat(splitCashGiven) < splitAmounts[splitPaid] || splitProcessing}
+                    className="flex-1 py-3 rounded-xl font-bold text-sm disabled:opacity-30" style={{ background: theme.success, color: '#fff' }}>
+                    {splitProcessing ? 'Processing...' : 'Confirm'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {splitPayingMethod === 'card' && (
+              <div className="w-full rounded-xl p-4 mb-4 text-center" style={{ background: theme.bgCard, border: `1px solid ${theme.border}` }}>
+                <div className="text-sm mb-2" style={{ color: theme.textMuted }}>Guest {splitPaid + 1} — {currency}{(splitAmounts[splitPaid] * (1 + cardSurcharge / 100)).toFixed(2)}</div>
+                {splitError ? (
+                  <>
+                    <div className="mb-3 px-3 py-2 rounded-lg text-sm font-medium" style={{ background: '#ef444420', color: '#ef4444' }}>{splitError}</div>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setSplitPayingMethod(null); setSplitError(''); }} className="flex-1 py-2.5 rounded-xl font-semibold text-sm" style={{ background: theme.bgCardHover, color: theme.textSecondary }}>Back</button>
+                      <button onClick={handleSplitCardPay} className="flex-1 py-2.5 rounded-xl font-bold text-sm" style={{ background: theme.info, color: '#fff' }}>Try Again</button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="animate-spin w-8 h-8 border-4 rounded-full mx-auto" style={{ borderColor: `${theme.info}30`, borderTopColor: theme.info }} />
+                )}
+              </div>
+            )}
+
+            {!splitPayingMethod && (
+              <button onClick={() => { setView('summary'); setSplitPaid(0); setSplitError(''); }} className="text-sm" style={{ color: theme.textMuted }}>Cancel Split</button>
+            )}
           </div>
         )}
       </div>
