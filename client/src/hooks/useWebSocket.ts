@@ -1,11 +1,13 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 type MessageHandler = (data: any) => void;
+type StatusHandler = () => void;
 
 // Singleton WebSocket connections per role
 const connections = new Map<string, {
   ws: WebSocket | null;
   listeners: Set<MessageHandler>;
+  statusListeners: Set<StatusHandler>;
   retries: number;
   connectFn: (() => void) | null;
 }>();
@@ -17,6 +19,7 @@ function getOrCreateConnection(role: string): { ws: WebSocket | null; listeners:
     const entry = {
       ws: null as WebSocket | null,
       listeners: new Set<MessageHandler>(),
+      statusListeners: new Set<StatusHandler>(),
       retries: 0,
       connectFn: null as (() => void) | null,
     };
@@ -28,7 +31,10 @@ function getOrCreateConnection(role: string): { ws: WebSocket | null; listeners:
       const ws = new WebSocket(`${protocol}//${host}/ws?role=${role}`);
       entry.ws = ws;
 
-      ws.onopen = () => { entry.retries = 0; };
+      // Every open/close has to notify subscribed components, or the "connected" dot/label
+      // freezes at whatever it happened to be on the render before the socket actually
+      // settled -- that's what was showing "Reconnecting..." under a live connection.
+      ws.onopen = () => { entry.retries = 0; entry.statusListeners.forEach(fn => fn()); };
 
       ws.onmessage = (e) => {
         try {
@@ -41,6 +47,7 @@ function getOrCreateConnection(role: string): { ws: WebSocket | null; listeners:
 
       ws.onclose = () => {
         entry.ws = null;
+        entry.statusListeners.forEach(fn => fn());
         // Only reconnect if there are still listeners
         if (entry.listeners.size > 0) {
           const delay = Math.min(1000 * 2 ** entry.retries, 10000);
@@ -80,16 +87,22 @@ export function useWebSocket(role: string, onMessage: MessageHandler) {
     onMessageRef.current(data);
   }, []);
 
+  const [connected, setConnected] = useState(() => connections.get(role)?.ws?.readyState === 1);
+
   useEffect(() => {
     if (!role) return;
     const entry = getOrCreateConnection(role);
     entry.listeners.add(stableHandler);
 
+    const statusHandler = () => setConnected(entry.ws?.readyState === 1);
+    entry.statusListeners.add(statusHandler);
+    statusHandler();   // sync immediately in case the socket opened between mount and this effect running
+
     return () => {
+      entry.statusListeners.delete(statusHandler);
       removeListener(role, stableHandler);
     };
   }, [role, stableHandler]);
 
-  const entry = connections.get(role);
-  return { connected: entry?.ws?.readyState === 1 };
+  return { connected };
 }

@@ -214,36 +214,42 @@ async function printRawTCP(ip: string, port: number, data: PrintData): Promise<b
 export async function scanForPrinters(): Promise<{ ip: string; port: number; name: string }[]> {
   const os = await import('os');
   const interfaces = os.networkInterfaces();
-  let baseIp = '';
 
+  // Scan every private subnet this machine has a real address on, not just whichever
+  // adapter happens to enumerate first. A laptop with a VPN client, Docker, Hyper-V,
+  // or any other virtual adapter installed can easily have THAT one come first in
+  // os.networkInterfaces() -- and scanning only its subnet means never finding a
+  // printer that's actually on the restaurant's real wifi. (Same failure mode as the
+  // "Tablets/Phones" LAN URL this app prints on startup, which has the identical bug.)
+  const baseIps = new Set<string>();
   for (const iface of Object.values(interfaces)) {
     if (!iface) continue;
     for (const addr of iface) {
       if (addr.family === 'IPv4' && !addr.internal) {
-        baseIp = addr.address.split('.').slice(0, 3).join('.');
-        break;
+        baseIps.add(addr.address.split('.').slice(0, 3).join('.'));
       }
     }
-    if (baseIp) break;
   }
-  if (!baseIp) return [];
+  if (baseIps.size === 0) return [];
 
   const found: { ip: string; port: number; name: string }[] = [];
-  for (let batch = 0; batch < 6; batch++) {
-    const start = batch * 50 + 1;
-    const end = Math.min(start + 49, 254);
-    const promises: Promise<void>[] = [];
-    for (let i = start; i <= end; i++) {
-      const ip = baseIp + '.' + i;
-      promises.push(new Promise<void>((resolve) => {
-        const socket = new net.Socket();
-        socket.setTimeout(800);
-        socket.connect(9100, ip, () => { found.push({ ip, port: 9100, name: 'Printer at ' + ip }); socket.destroy(); resolve(); });
-        socket.on('error', () => { socket.destroy(); resolve(); });
-        socket.on('timeout', () => { socket.destroy(); resolve(); });
-      }));
+  for (const baseIp of baseIps) {
+    for (let batch = 0; batch < 6; batch++) {
+      const start = batch * 50 + 1;
+      const end = Math.min(start + 49, 254);
+      const promises: Promise<void>[] = [];
+      for (let i = start; i <= end; i++) {
+        const ip = baseIp + '.' + i;
+        promises.push(new Promise<void>((resolve) => {
+          const socket = new net.Socket();
+          socket.setTimeout(800);
+          socket.connect(9100, ip, () => { found.push({ ip, port: 9100, name: 'Printer at ' + ip }); socket.destroy(); resolve(); });
+          socket.on('error', () => { socket.destroy(); resolve(); });
+          socket.on('timeout', () => { socket.destroy(); resolve(); });
+        }));
+      }
+      await Promise.all(promises);
     }
-    await Promise.all(promises);
   }
   return found;
 }

@@ -204,9 +204,11 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const tipOptions = [0, 15, 18, 20, 25];
 
   return (
-    <div className="h-full flex">
-      {/* Left — Order + Totals */}
-      <div className="w-[400px] flex flex-col" style={{ background: theme.bgCard, color: theme.text, borderRight: `1px solid ${theme.border}` }}>
+    <div className="h-full flex flex-col md:flex-row overflow-auto">
+      {/* Left — Order + Totals. Fixed-width sidebar only makes sense once there's room for a
+          second column beside it (desktop/tablet-landscape) — below that it has to be full-width
+          and stack above the payment buttons, or the buttons get squeezed into an unusable sliver. */}
+      <div className="w-full md:w-[400px] flex flex-col shrink-0 max-h-[45vh] md:max-h-none" style={{ background: theme.bgCard, color: theme.text, borderRight: `1px solid ${theme.border}` }}>
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${theme.border}` }}>
           <button onClick={onBack} className="hover:opacity-80 text-sm" style={{ color: theme.textMuted }}>← Back</button>
           <span className="text-sm font-medium" style={{ color: theme.textMuted }}>Table {tableNumber}</span>

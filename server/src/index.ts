@@ -32,6 +32,29 @@ import { checkForUpdate, downloadAndApplyUpdate, startUpdateChecker } from './au
 import { registerLicenseRoutes, startLicenseChecker } from './routes/license.js';
 import { startAutoBackup } from './cloud-backup.js';
 
+// Picks the LAN IP tablets/phones actually reach this machine on. Plain "first non-internal
+// IPv4" (what both call sites used to do) grabs whichever adapter os.networkInterfaces()
+// happens to enumerate first -- on a machine with any virtual adapter installed (Hyper-V's
+// "Default Switch", a VPN client, Docker, VirtualBox, WSL) that's very often NOT the real
+// wifi/ethernet adapter, so the URL printed at startup, the one baked into QR codes, and the
+// printer scanner's target subnet could all silently point at a network nothing else is on.
+// Prefer names that don't look virtual; fall back to whatever's there rather than nothing.
+async function getLocalLanIp(): Promise<string> {
+  const os = await import('os');
+  const ifaces = os.networkInterfaces();
+  const VIRTUAL_NAME = /virtual|vethernet|hyper-v|vmware|virtualbox|docker|wsl|tailscale|vpn|loopback|tap|tun/i;
+  let fallback = '';
+  for (const [name, iface] of Object.entries(ifaces)) {
+    if (!iface) continue;
+    for (const addr of iface) {
+      if (addr.family !== 'IPv4' || addr.internal) continue;
+      if (!VIRTUAL_NAME.test(name)) return addr.address;
+      if (!fallback) fallback = addr.address;
+    }
+  }
+  return fallback || 'localhost';
+}
+
 const app = Fastify({ logger: false });
 
 async function start() {
@@ -135,16 +158,7 @@ async function start() {
 
   // Server network info (for tablet connection URLs)
   app.get('/api/server-info', async () => {
-    const os = await import('os');
-    let localIp = 'localhost';
-    const ifaces = os.networkInterfaces();
-    for (const iface of Object.values(ifaces)) {
-      if (!iface) continue;
-      for (const addr of iface) {
-        if (addr.family === 'IPv4' && !addr.internal) { localIp = addr.address; break; }
-      }
-      if (localIp !== 'localhost') break;
-    }
+    const localIp = await getLocalLanIp();
     return { ip: localIp, port: config.port, url: `http://${localIp}:${config.port}` };
   });
 
@@ -188,16 +202,7 @@ async function start() {
   await app.listen({ port: config.port, host: config.host });
 
   // Find real local IP for tablet connections
-  const os = await import('os');
-  let localIp = 'localhost';
-  const ifaces = os.networkInterfaces();
-  for (const iface of Object.values(ifaces)) {
-    if (!iface) continue;
-    for (const addr of iface) {
-      if (addr.family === 'IPv4' && !addr.internal) { localIp = addr.address; break; }
-    }
-    if (localIp !== 'localhost') break;
-  }
+  const localIp = await getLocalLanIp();
 
   // Advertise on local network via mDNS
   try {
