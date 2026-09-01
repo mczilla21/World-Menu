@@ -41,7 +41,11 @@ function loadServerState() {
 
 export default function ServerMode() {
   const saved = loadServerState();
-  const [view, setViewRaw] = useState<View>(saved?.view === 'menu' || saved?.view === 'review' ? saved.view : 'table');
+  // A real page reload wipes the in-memory order store (cart, tableNumber) but not
+  // sessionStorage, so a saved 'review' view would land on a Review screen for an
+  // order that no longer has any items -- drop back to 'menu' instead, which is
+  // valid even with an empty cart (just means the table's open, nothing ordered yet).
+  const [view, setViewRaw] = useState<View>(saved?.view === 'menu' || saved?.view === 'review' ? 'menu' : 'table');
   const [builderTarget, setBuilderTarget] = useState<{ categoryId: number; item: { id: number; name: string }; price: number; showInKitchen: boolean } | null>(null);
   const [variantTarget, setVariantTarget] = useState<MenuItem | null>(null);
   const [lastTable, setLastTable] = useState(saved?.lastTable || '');
@@ -68,12 +72,26 @@ export default function ServerMode() {
   const { itemName: tItem } = useMenuTranslations();
   const confirm = useConfirm();
 
+  // Restore the in-progress table into the (otherwise reload-wiped) order store,
+  // once, on mount -- only meaningful when we actually landed back on 'menu'.
+  useEffect(() => {
+    if (saved?.view === 'menu' && saved?.tableNumber) {
+      setTable(saved.tableNumber);
+      setOrderType((saved.orderType || 'dine_in') as any);
+      fetch(`/api/orders/table/${encodeURIComponent(saved.tableNumber)}/current`)
+        .then(res => res.ok ? res.json() : null)
+        .then(order => { if (order && order.id) setExistingOrder(order.id); })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Persist server view state across role switches
   useEffect(() => {
     sessionStorage.setItem('server_view_state', JSON.stringify({
-      view, lastTable, lastOrderType,
+      view, lastTable, lastOrderType, tableNumber, orderType,
     }));
-  }, [view, lastTable, lastOrderType]);
+  }, [view, lastTable, lastOrderType, tableNumber, orderType]);
 
   const currency = settings.currency_symbol || '$';
 
@@ -162,23 +180,25 @@ export default function ServerMode() {
     const savedType = orderType;
     const savedName = customerName;
     const ok = await submitOrder();
-    if (ok) {
-      setLastTable(savedTable);
-      setLastOrderType(savedType);
-      setTable(savedTable);
-      setOrderType(savedType as any);
-      if (savedName) setCustomerName(savedName);
-      if (savedTable) {
-        try {
-          const res = await fetch(`/api/orders/table/${encodeURIComponent(savedTable)}/current`);
-          if (res.ok) {
-            const order = await res.json();
-            if (order && order.id) setExistingOrder(order.id);
-          }
-        } catch {}
-      }
-      setView('sent');
+    if (!ok) {
+      alert('Could not send order — check the connection and try again.');
+      return;
     }
+    setLastTable(savedTable);
+    setLastOrderType(savedType);
+    setTable(savedTable);
+    setOrderType(savedType as any);
+    if (savedName) setCustomerName(savedName);
+    if (savedTable) {
+      try {
+        const res = await fetch(`/api/orders/table/${encodeURIComponent(savedTable)}/current`);
+        if (res.ok) {
+          const order = await res.json();
+          if (order && order.id) setExistingOrder(order.id);
+        }
+      } catch {}
+    }
+    setView('sent');
   };
 
   const handleAddMore = async () => {
