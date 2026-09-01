@@ -4,14 +4,6 @@ color 0A
 mode con: cols=80 lines=35
 cd /d "%~dp0"
 
-:: Get local IP address
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4" ^| findstr /v "127.0.0"') do (
-    set "LOCALIP=%%a"
-    goto :found
-)
-:found
-set LOCALIP=%LOCALIP: =%
-
 cls
 echo.
 echo   ============================================================
@@ -23,25 +15,18 @@ echo.
 echo   ============================================================
 echo.
 echo   ============================================================
-echo        CONNECTION INFO - SAVE THIS!
-echo   ============================================================
-echo.
-echo        On THIS computer:
-echo        http://localhost:3000
-echo.
-echo        On TABLETS and PHONES (same WiFi):
-echo        http://%LOCALIP%:3000
-echo.
-echo   ============================================================
 echo        HOW TO CONNECT A TABLET OR PHONE
 echo   ============================================================
 echo.
-echo    1. Connect the tablet/phone to the SAME WiFi as this computer
-echo    2. Open Chrome (or Safari on iPhone/iPad)
-echo    3. Type this in the address bar:
-echo.
-echo            http://%LOCALIP%:3000
-echo.
+echo    1. Wait for "Tablets/Phones: http://..." to appear below --
+echo       that's this computer's real address on the network. (Not
+echo       computed here on purpose: a machine with a VPN, Hyper-V,
+echo       or similar installed can have more than one network
+echo       adapter, and guessing wrong here means sending a tablet to
+echo       an address nothing is listening on. The server below picks
+echo       correctly.)
+echo    2. Connect the tablet/phone to the SAME WiFi as this computer
+echo    3. Open Chrome (or Safari on iPhone/iPad) and type that address
 echo    4. Bookmark it or tap "Add to Home Screen" for easy access
 echo    5. That's it! Pick your role and start using World Menu
 echo.
