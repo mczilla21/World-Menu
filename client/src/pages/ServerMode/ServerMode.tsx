@@ -236,10 +236,12 @@ export default function ServerMode() {
     setLoadingPopup(false);
   };
 
-  const handleCloseTable = async (tableNum: string, mode: 'complete' | 'cancel') => {
+  const handleCloseTable = async (tableNum: string, mode: 'complete' | 'cancel', total: number = 0) => {
     const ok = await confirm(mode === 'cancel'
       ? { title: `Cancel Table ${tableNum}?`, message: 'All orders will be voided and won\'t count in reports.', confirmText: 'Cancel Orders', danger: true }
-      : { title: `Close Table ${tableNum}?`, message: 'Orders will be marked as completed.', confirmText: 'Close Table' }
+      : total > 0
+        ? { title: `Close Table ${tableNum}?`, message: `This table has an unpaid balance of ${currency}${total.toFixed(2)}. Closing here will NOT process any payment — use Process Payment instead if the customer hasn't paid yet.`, confirmText: 'Close Without Payment', danger: true }
+        : { title: `Close Table ${tableNum}?`, message: 'Orders will be marked as completed.', confirmText: 'Close Table' }
     );
     if (!ok) return;
     await fetch(`/api/tables/${encodeURIComponent(tableNum)}/close`, {
@@ -609,7 +611,7 @@ export default function ServerMode() {
               {tablePopup.status !== 'empty' && (
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleCloseTable(tablePopup.number, 'complete')}
+                    onClick={() => handleCloseTable(tablePopup.number, 'complete', tablePopup.total)}
                     className="flex-1 py-3 rounded-xl font-semibold text-sm bg-slate-600 hover:bg-slate-500 text-white transition-colors"
                   >
                     Close Table

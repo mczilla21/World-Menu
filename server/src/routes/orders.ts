@@ -59,13 +59,48 @@ export function registerOrderRoutes(app: FastifyInstance) {
       table_number, items, source = 'server',
       order_type = 'dine_in', customer_name = '', tip_amount = 0,
     } = req.body;
-    // Check for duplicate (same table, same item count, within 5 seconds)
+    // Guard against a genuine double-submit (the same tap/request landing twice --
+    // a network retry, a double-tap) without also swallowing a second, DIFFERENT
+    // order that lands on the same table in the same window (e.g. two staff both
+    // opening a brand-new table within 5 seconds of each other). Compare the
+    // incoming items against what's already on the recent order: identical items
+    // means it's the same submission retried, so no-op; different items means
+    // it's a real second order, so merge it in instead of silently dropping it.
     const recent = db.prepare(
       "SELECT id FROM orders WHERE table_number = ? AND created_at > datetime('now', 'localtime', '-5 seconds') AND closed = 0"
     ).get(table_number) as any;
     if (recent) {
-      // Return existing order instead of creating duplicate
-      return getOrderWithItems(recent.id);
+      const sig = (arr: any[]) => JSON.stringify(
+        arr.map(i => [i.menu_item_id, i.item_name, i.quantity, i.customer_number || 0, i.variant_name || '', i.notes || '']).sort()
+      );
+      const existingItems = db.prepare(
+        'SELECT menu_item_id, item_name, quantity, customer_number, variant_name, notes FROM order_items WHERE order_id = ?'
+      ).all(recent.id) as any[];
+      if (sig(existingItems) === sig(items)) {
+        return getOrderWithItems(recent.id);
+      }
+
+      const insertMergedItem = db.prepare(
+        `INSERT INTO order_items (order_id, menu_item_id, item_name, quantity, show_in_kitchen,
+         notes, customer_number, item_price, variant_name, combo_id, combo_slot_label)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      db.exec('BEGIN');
+      try {
+        for (const item of items) {
+          insertMergedItem.run(recent.id, item.menu_item_id, item.item_name, item.quantity,
+            item.show_in_kitchen ? 1 : 0, item.notes || '', item.customer_number || 0,
+            item.item_price || 0, item.variant_name || '', item.combo_id || null, item.combo_slot_label || '');
+        }
+        db.exec('COMMIT');
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+      }
+      const merged = getOrderWithItems(recent.id);
+      broadcastToRole('kitchen', { type: 'ORDER_UPDATED', order: merged });
+      broadcastToRole('server', { type: 'ORDER_UPDATED', order: merged });
+      return merged;
     }
 
     // Validate item prices and quantities
@@ -461,12 +496,13 @@ export function registerOrderRoutes(app: FastifyInstance) {
         "UPDATE orders SET closed = 1, status = 'voided', is_archived = 1 WHERE table_number = ? AND closed = 0"
       ).run(tableNumber);
     } else {
-      // Complete — close all orders and set payment method if provided
-      const sql = paymentMethod
-        ? "UPDATE orders SET closed = 1, status = 'finished', payment_method = ?, finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0"
-        : "UPDATE orders SET closed = 1, status = 'finished', finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0";
-      if (paymentMethod) db.prepare(sql).run(paymentMethod, tableNumber);
-      else db.prepare(sql).run(tableNumber);
+      // Complete — close all orders and record the payment method. If none was
+      // given, this table was closed without going through Process Payment (e.g.
+      // the direct "Close Table" button) -- tag it so it's distinguishable from a
+      // real paid closeout instead of looking identical in the data/reports.
+      db.prepare(
+        "UPDATE orders SET closed = 1, status = 'finished', payment_method = ?, finished_at = COALESCE(finished_at, datetime('now', 'localtime')) WHERE table_number = ? AND closed = 0"
+      ).run(paymentMethod || 'closed_without_payment', tableNumber);
     }
 
     broadcastToAll({ type: 'TABLE_CLOSED', tableNumber });

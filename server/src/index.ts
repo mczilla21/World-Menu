@@ -299,11 +299,19 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Catch uncaught errors — log but don't crash
+// An uncaught error leaves the process in an undefined state -- continuing
+// after one (the old behavior here) risks some routes silently working and
+// others silently failing, with no visible "it's down" signal. Exiting lets
+// START.bat's restart loop do its job: a clean few-second restart instead of
+// a half-broken server nobody notices until later.
 process.on('uncaughtException', (err) => {
   console.error('Uncaught exception:', err);
+  stopKeepAwake();
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection:', err);
+  stopKeepAwake();
+  process.exit(1);
 });

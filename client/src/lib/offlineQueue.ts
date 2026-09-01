@@ -66,6 +66,20 @@ export async function flushQueue(): Promise<number> {
   return synced;
 }
 
+// Attempt to flush the queue only if nothing else is already flushing it --
+// OfflineIndicator's periodic timer and its 'online' handler can otherwise
+// overlap and both fetch() the same queued request at once.
+let flushing = false;
+export async function flushQueueOnce(): Promise<number> {
+  if (flushing) return 0;
+  flushing = true;
+  try {
+    return await flushQueue();
+  } finally {
+    flushing = false;
+  }
+}
+
 // Enhanced fetch that queues on failure for POST/PATCH requests
 export async function resilientFetch(url: string, options: RequestInit = {}): Promise<Response> {
   try {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getQueueLength, flushQueue } from '../lib/offlineQueue';
+import { getQueueLength, flushQueueOnce } from '../lib/offlineQueue';
 
 export default function OfflineIndicator() {
   const [online, setOnline] = useState(navigator.onLine);
@@ -8,10 +8,9 @@ export default function OfflineIndicator() {
 
   const handleOnline = useCallback(async () => {
     setOnline(true);
-    // Auto-flush queue when back online
     if (getQueueLength() > 0) {
       setSyncing(true);
-      const synced = await flushQueue();
+      await flushQueueOnce();
       setQueueCount(getQueueLength());
       setSyncing(false);
     }
@@ -25,10 +24,22 @@ export default function OfflineIndicator() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Periodically check queue
-    const interval = setInterval(() => {
-      setQueueCount(getQueueLength());
-    }, 30000);
+    // Retry the queue on a short timer regardless of the browser's online/offline
+    // signal. That event only fires when the device's own WiFi radio drops -- it
+    // never fires when WiFi stays connected but the laptop running the server is
+    // briefly unreachable (restarting, overloaded, etc), which is the far more
+    // common real case. A retry against a still-down server just fails again
+    // cheaply, so it's safe to keep trying every 15s until it lands.
+    const interval = setInterval(async () => {
+      const count = getQueueLength();
+      setQueueCount(count);
+      if (count > 0) {
+        setSyncing(true);
+        await flushQueueOnce();
+        setQueueCount(getQueueLength());
+        setSyncing(false);
+      }
+    }, 15000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
