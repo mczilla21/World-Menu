@@ -408,13 +408,17 @@ export default function SettingsManager() {
             <span className="text-sm font-bold text-white">Square</span>
             <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">Recommended — 2.6% + 10¢</span>
           </div>
-          <p className="text-[10px] text-slate-400">Get keys at <span className="text-blue-400">developer.squareup.com</span></p>
+          <p className="text-[10px] text-slate-400">Get keys at <span className="text-blue-400">developer.squareup.com</span> — Access Token + Location ID from the API credentials page, Application ID from the app's Credentials tab (starts with sq0idp- for production, sandbox-sq0idb- for sandbox).</p>
           <input value={settings.square_access_token || ''} onChange={e => updateSetting('square_access_token', e.target.value.trim())}
             placeholder="Access Token" type="password" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
           <input value={settings.square_location_id || ''} onChange={e => updateSetting('square_location_id', e.target.value.trim())}
             placeholder="Location ID" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
-          {settings.square_access_token ? (
-            <div className="flex items-center gap-2 text-xs text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Square connected</div>
+          <input value={settings.square_application_id || ''} onChange={e => updateSetting('square_application_id', e.target.value.trim())}
+            placeholder="Application ID (needed for the card form)" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+          {settings.square_access_token && settings.square_application_id && settings.square_location_id ? (
+            <div className="flex items-center gap-2 text-xs text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Square connected — card payments ready</div>
+          ) : settings.square_access_token ? (
+            <div className="flex items-center gap-2 text-xs text-amber-400"><span className="w-2 h-2 rounded-full bg-amber-400" /> Need Application ID for the card form to load</div>
           ) : (
             <div className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-slate-600" /> Not connected</div>
           )}

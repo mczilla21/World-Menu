@@ -125,19 +125,31 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
 
   const [cardError, setCardError] = useState('');
 
+  // Whichever provider is actually configured (priority: Helcim -> Square -> Stripe, same
+  // as the server's unified endpoint) drives which popup opens. No more assuming Stripe.
   const handleCardPay = async () => {
     setCardProcessing(true);
     setCardError('');
     try {
+      const providerRes = await fetch('/api/payments/provider');
+      const providerData = await providerRes.json();
+      const active = providerData.active;
+      if (active === 'none') {
+        setCardProcessing(false);
+        setCardError('No payment provider configured — add one in Admin -> Settings.');
+        return;
+      }
+
       const amount = cardTotal.toFixed(2);
-      const payUrl = `/api/payments/stripe/pay?amount=${amount}&table=${encodeURIComponent(tableNumber)}`;
-      const popup = window.open(payUrl, 'StripePay', 'width=440,height=520,scrollbars=yes,resizable=yes');
+      const payUrl = `/api/payments/${active}/pay?amount=${amount}&table=${encodeURIComponent(tableNumber)}`;
+      const popup = window.open(payUrl, active + 'Pay', 'width=440,height=520,scrollbars=yes,resizable=yes');
       if (!popup) { setCardProcessing(false); setCardError('Popup blocked — allow popups for this site.'); return; }
 
+      const successMarker = active + '-pay-success';   // stripe-pay-success | square-pay-success | helcim-pay-success
       let paymentCompleted = false;
       let pollTimer: ReturnType<typeof setInterval>;
       const handleMessage = (event: MessageEvent) => {
-        if (typeof event.data === 'string' && event.data.includes('stripe-pay-success')) {
+        if (typeof event.data === 'string' && event.data.includes(successMarker)) {
           paymentCompleted = true;
           window.removeEventListener('message', handleMessage);
           clearInterval(pollTimer);

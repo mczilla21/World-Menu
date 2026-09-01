@@ -209,6 +209,104 @@ async function pay() {
   // ============================================
   // SQUARE
   // ============================================
+  // Square direct charge — card form page in popup, tokenizes via Square Web Payments SDK.
+  // Same shape as the Stripe popup above: opener listens for a postMessage, closes itself on success.
+  app.get<{ Querystring: { amount: string; table: string } }>('/api/payments/square/pay', (req, reply) => {
+    const appId = getSetting('square_application_id');
+    const locationId = getSetting('square_location_id');
+    if (!appId || !locationId) return reply.status(400).send('Square not configured — need Application ID and Location ID');
+
+    const isSandbox = getSetting('sandbox_mode') === '1';
+    const sdkUrl = isSandbox ? 'https://sandbox.web.squarecdn.com/v1/square.js' : 'https://web.squarecdn.com/v1/square.js';
+
+    const amount = String(req.query.amount || '0.00').replace(/[^0-9.]/g, '');
+    const amountCents = Math.round(parseFloat(amount) * 100);
+    const table = String(req.query.table || '').replace(/[^a-zA-Z0-9 \-_]/g, '');
+    const currency = (getDb().prepare("SELECT value FROM settings WHERE key = 'currency_symbol'").get() as any)?.value || '$';
+
+    reply.type('text/html').send(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Card Payment</title>
+<script type="text/javascript" src="${sdkUrl}"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{background:#1e293b;border-radius:20px;padding:32px;width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+h2{text-align:center;margin-bottom:8px;font-size:20px}
+.amount{text-align:center;font-size:36px;font-weight:900;color:#22c55e;margin-bottom:24px}
+#card-container{background:#334155;border-radius:12px;padding:16px;margin-bottom:16px;min-height:90px}
+button{width:100%;background:#3b82f6;color:#fff;border:none;border-radius:16px;padding:18px;font-size:18px;font-weight:700;cursor:pointer}
+button:hover{background:#2563eb}
+button:disabled{opacity:0.5;cursor:not-allowed}
+.cancel{background:#334155;margin-top:8px;font-size:14px}
+.cancel:hover{background:#475569}
+.error{color:#ef4444;text-align:center;font-size:14px;margin-bottom:12px;min-height:20px}
+.ok{text-align:center;padding:40px}
+.ok .icon{font-size:80px;margin-bottom:16px}
+.ok h2{color:#22c55e}
+.ok p{color:#94a3b8}
+</style></head><body>
+<div class="card" id="main">
+  <h2>Card Payment</h2>
+  <div class="amount">${currency}${amount}</div>
+  <div id="card-container">Loading card form...</div>
+  <div class="error" id="error"></div>
+  <button id="payBtn" onclick="pay()" disabled>Pay ${currency}${amount}</button>
+  <button class="cancel" onclick="window.close()">Cancel</button>
+</div>
+<script>
+var card;
+async function init() {
+  try {
+    var payments = window.Square.payments('${appId}', '${locationId}');
+    card = await payments.card();
+    await card.attach('#card-container');
+    document.getElementById('payBtn').disabled = false;
+  } catch (e) {
+    document.getElementById('error').textContent = 'Could not load card form: ' + e.message;
+  }
+}
+init();
+
+async function pay() {
+  var btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+  document.getElementById('error').textContent = '';
+
+  try {
+    var result = await card.tokenize();
+    if (result.status !== 'OK') {
+      var msg = (result.errors && result.errors[0] && result.errors[0].message) || 'Card declined';
+      document.getElementById('error').textContent = msg;
+      btn.disabled = false;
+      btn.textContent = 'Pay ${currency}${amount}';
+      return;
+    }
+    var res = await fetch('/api/payments/square/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: ${amountCents}, table_number: '${table}', source_id: result.token })
+    });
+    var data = await res.json();
+    if (data.error) {
+      document.getElementById('error').textContent = data.error;
+      btn.disabled = false;
+      btn.textContent = 'Pay ${currency}${amount}';
+      return;
+    }
+    window.opener && window.opener.postMessage(JSON.stringify({ eventName: 'square-pay-success', paymentId: data.payment && data.payment.id }), '*');
+    document.getElementById('main').innerHTML = '<div class="ok"><div class="icon">\\u2705</div><h2>Approved!</h2><p>You can close this window.</p></div>';
+    setTimeout(function(){ window.close(); }, 2000);
+  } catch (e) {
+    document.getElementById('error').textContent = e.message || 'Payment failed';
+    btn.disabled = false;
+    btn.textContent = 'Pay ${currency}${amount}';
+  }
+}
+</script></body></html>`);
+  });
+
   app.post<{ Body: { table_number: string; amount?: number; source_id?: string } }>('/api/payments/square/create', async (req, reply) => {
     const accessToken = getSetting('square_access_token');
     const locationId = getSetting('square_location_id');
