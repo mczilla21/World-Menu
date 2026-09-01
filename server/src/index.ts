@@ -31,6 +31,7 @@ import { startAutoDailyLog } from './auto-daylog.js';
 import { checkForUpdate, downloadAndApplyUpdate, startUpdateChecker } from './auto-update.js';
 import { registerLicenseRoutes, startLicenseChecker } from './routes/license.js';
 import { startAutoBackup } from './cloud-backup.js';
+import { startKeepAwake, stopKeepAwake } from './keep-awake.js';
 
 // Picks the LAN IP tablets/phones actually reach this machine on. Plain "first non-internal
 // IPv4" (what both call sites used to do) grabs whichever adapter os.networkInterfaces()
@@ -272,6 +273,10 @@ async function start() {
   // Start auto cloud backup (every 6 hours + on startup)
   startAutoBackup();
 
+  // Every other device is a thin client with no local data -- if this machine sleeps,
+  // the whole restaurant loses the system at once. Keep it awake for as long as we run.
+  startKeepAwake();
+
 }
 
 start().catch((err) => {
@@ -282,12 +287,14 @@ start().catch((err) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('Shutting down gracefully...');
+  stopKeepAwake();
   await app.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('Shutting down...');
+  stopKeepAwake();
   await app.close();
   process.exit(0);
 });
