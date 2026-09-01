@@ -326,31 +326,14 @@ export default function SettingsManager() {
             />
           </div>
         )}
-        {/* Helcim Payment Processing */}
-        <div className="bg-slate-700/30 rounded-lg p-3 space-y-2">
-          <div className="text-xs font-semibold text-slate-400 uppercase">Payment Processor (Helcim)</div>
-          <div>
-            <label className="text-xs text-slate-500 mb-1 block">API Token</label>
-            <input
-              value={settings.helcim_api_token || ''}
-              onChange={e => updateSetting('helcim_api_token', e.target.value)}
-              placeholder="Paste your Helcim API token"
-              className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-500 mb-1 block">Account ID</label>
-            <input
-              value={settings.helcim_account_id || ''}
-              onChange={e => updateSetting('helcim_account_id', e.target.value)}
-              placeholder="e.g. 2500307481"
-              className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono"
-            />
-          </div>
-          <div className="text-[10px] text-slate-600">
-            {settings.helcim_api_token ? '✅ Helcim connected' : '⚠️ No payment processor — card payments will simulate'}
-          </div>
-        </div>
+        {/* Helcim/Square/Stripe are configured together below, under "Payments" --
+            this used to be a second, separate Helcim block bound to the exact same
+            helcim_api_token setting as the one down there, except it showed the raw
+            token in plain text instead of masking it. Two edit points for one value
+            is just a footgun (edit here, wonder why "Payments" didn't change, or
+            vice versa) on top of the exposure -- removed rather than just masked it,
+            so there's one place this ever gets typed in again. helcim_account_id
+            was never actually read by anything server-side; dropped with it. */}
 
         <div>
           <label className="text-xs text-slate-400 mb-1 block">Card Processing Surcharge (%)</label>
@@ -786,25 +769,56 @@ export default function SettingsManager() {
         {/* Cloud Backup */}
         <div className="mt-4 pt-4 border-t border-slate-700">
           <h4 className="font-semibold text-slate-200 text-sm mb-2">Cloud Backup</h4>
-          <p className="text-xs text-slate-400 mb-3">Automatic backups every 6 hours to Supabase cloud. If the PC dies, restore to a new machine in minutes.</p>
-          <div className="space-y-2">
-            <input value={settings.supabase_url || ''} onChange={e => updateSetting('supabase_url', e.target.value.trim())}
-              placeholder="Supabase URL (https://xxx.supabase.co)" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
-            <input value={settings.supabase_service_key || ''} onChange={e => updateSetting('supabase_service_key', e.target.value.trim())}
-              placeholder="Supabase Service Key (eyJ...)" type="password" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
-          </div>
-          {settings.supabase_url && settings.supabase_service_key ? (
-            <div className="mt-2 flex items-center gap-2">
-              <div className="flex items-center gap-2 text-xs text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Cloud backup active</div>
-              <button onClick={async () => {
-                const res = await fetch('/api/backup/cloud', { method: 'POST' });
-                const data = await res.json();
-                alert(data.ok ? data.message : 'Backup failed: ' + data.error);
-              }} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">Backup Now</button>
+          <p className="text-xs text-slate-400 mb-3">Automatic backups every 6 hours. If the PC dies, restore to a new machine in minutes.</p>
+
+          <div className="bg-slate-700/30 rounded-lg p-3 space-y-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white">GitHub</span>
+              <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">Recommended</span>
             </div>
-          ) : (
-            <div className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-slate-600" /> Not configured</div>
-          )}
+            <p className="text-[10px] text-slate-400">
+              A private repo dedicated to nothing but these backups -- github.com/settings/personal-access-tokens →
+              Generate new token (fine-grained) → Repository access: only that one repo →
+              Permissions: Contents = Read and write. Don't use a token with access to anything else.
+            </p>
+            <input value={settings.github_backup_repo || ''} onChange={e => updateSetting('github_backup_repo', e.target.value.trim())}
+              placeholder="owner/repo (e.g. mczilla21/world-menu-backups)" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+            <input value={settings.github_backup_token || ''} onChange={e => updateSetting('github_backup_token', e.target.value.trim())}
+              placeholder="Fine-grained token (github_pat_...)" type="password" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+            {settings.github_backup_repo && settings.github_backup_token ? (
+              <div className="flex items-center gap-2 text-xs text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400" /> GitHub backup active</div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-slate-600" /> Not configured</div>
+            )}
+          </div>
+
+          <details className="text-xs text-slate-400">
+            <summary className="cursor-pointer select-none">Supabase instead (advanced)</summary>
+            <div className="mt-2 space-y-2">
+              <p className="text-[10px] text-amber-400/90">
+                Needs a service-role key -- the most privileged credential a Supabase project has, bypasses every
+                access rule. Only ever point this at a project that holds nothing but these backups; never reuse
+                a key from a project that runs anything else, since a leaked key here would expose that too.
+              </p>
+              <input value={settings.supabase_url || ''} onChange={e => updateSetting('supabase_url', e.target.value.trim())}
+                placeholder="Supabase URL (https://xxx.supabase.co)" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+              <input value={settings.supabase_service_key || ''} onChange={e => updateSetting('supabase_service_key', e.target.value.trim())}
+                placeholder="Supabase Service Key (eyJ...)" type="password" className="w-full bg-slate-700 rounded-lg px-3 py-2 text-white outline-none text-xs font-mono" />
+              {settings.supabase_url && settings.supabase_service_key ? (
+                <div className="flex items-center gap-2 text-xs text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Supabase backup active</div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-slate-600" /> Not configured</div>
+              )}
+            </div>
+          </details>
+
+          {(settings.github_backup_repo && settings.github_backup_token) || (settings.supabase_url && settings.supabase_service_key) ? (
+            <button onClick={async () => {
+              const res = await fetch('/api/backup/cloud', { method: 'POST' });
+              const data = await res.json();
+              alert(data.ok ? data.message : 'Backup failed: ' + data.message);
+            }} className="mt-3 w-full px-3 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white">Backup Now</button>
+          ) : null}
         </div>
       </div>
 
