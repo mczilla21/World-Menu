@@ -837,7 +837,18 @@ export default function SettingsManager() {
           <button
             onClick={async () => {
               if (!confirm('Go live? This will clear all test orders, logs, and time entries. Your menu, employees, and settings will be kept.')) return;
-              await fetch('/api/reset-financial-data', { method: 'POST' });
+              const pin = prompt('Enter owner PIN to confirm:');
+              if (!pin) return;
+              const res = await fetch('/api/reset-financial-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin }),
+              });
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(`Could not go live: ${err.error || 'wrong PIN'}. Test data was NOT cleared — try again.`);
+                return;
+              }
               await updateSetting('sandbox_mode', '0');
               alert('You are now LIVE! World Menu is ready for real customers.');
             }}

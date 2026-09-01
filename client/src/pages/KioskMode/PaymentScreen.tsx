@@ -49,6 +49,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
   const [splitProcessing, setSplitProcessing] = useState(false);
   const [splitError, setSplitError] = useState('');
   const [cardSurcharge, setCardSurcharge] = useState(3);
+  const [tippingEnabled, setTippingEnabled] = useState(true);
   const [receiptPrompt, setReceiptPrompt] = useState(false);
   const [receiptPrinting, setReceiptPrinting] = useState(false);
 
@@ -89,6 +90,7 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
     fetch('/api/discounts').then(r => r.json()).then(d => setDiscounts(d.filter((x: any) => x.is_active))).catch(() => {});
     fetch('/api/settings').then(r => r.json()).then(s => {
       if (s.card_surcharge) setCardSurcharge(parseFloat(s.card_surcharge) || 3);
+      setTippingEnabled(s.tipping_enabled === '1');
     }).catch(() => {});
   }, []);
 
@@ -342,20 +344,22 @@ export default function PaymentScreen({ tableNumber, orderId, items, subtotal, c
             </div>
 
             {/* Tip */}
-            <div className="w-full mb-6">
-              <span className="text-xs mb-2 block" style={{ color: theme.textMuted }}>Tip</span>
-              <div className="flex gap-2">
-                {tipOptions.map(p => (
-                  <button key={p} onClick={() => { setTipPercent(p); setCustomTip(''); }}
-                    className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
-                    style={tipPercent === p && !customTip ? { background: theme.info, color: '#fff' } : { background: theme.bgInput, color: theme.textSecondary }}>
-                    {p === 0 ? 'None' : `${p}%`}
-                  </button>
-                ))}
-                <input value={customTip} onChange={e => { setCustomTip(e.target.value); setTipPercent(0); }} placeholder="$"
-                  type="number" className="w-16 rounded-lg px-2 py-2 text-sm text-center outline-none" style={{ background: theme.bgInput, color: theme.text, border: `1px solid ${theme.border}` }} />
+            {tippingEnabled && (
+              <div className="w-full mb-6">
+                <span className="text-xs mb-2 block" style={{ color: theme.textMuted }}>Tip</span>
+                <div className="flex gap-2">
+                  {tipOptions.map(p => (
+                    <button key={p} onClick={() => { setTipPercent(p); setCustomTip(''); }}
+                      className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
+                      style={tipPercent === p && !customTip ? { background: theme.info, color: '#fff' } : { background: theme.bgInput, color: theme.textSecondary }}>
+                      {p === 0 ? 'None' : `${p}%`}
+                    </button>
+                  ))}
+                  <input value={customTip} onChange={e => { setCustomTip(e.target.value); setTipPercent(0); }} placeholder="$"
+                    type="number" className="w-16 rounded-lg px-2 py-2 text-sm text-center outline-none" style={{ background: theme.bgInput, color: theme.text, border: `1px solid ${theme.border}` }} />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Payment method buttons */}
             <div className="w-full space-y-3">
